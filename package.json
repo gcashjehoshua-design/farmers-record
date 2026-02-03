@@ -4,9 +4,9 @@
   "description": "Complete Farmer Management System",
   "main": "backend/server.js",
   "scripts": {
-    "start": "cd backend && npm install && node database/init.js && npm start",
-    "init-db": "cd backend && node database/init.js",
-    "dev": "cd backend && npm run dev"
+    "start": "npm --prefix backend install && npm --prefix backend start",
+    "init-db": "npm --prefix backend run init-db",
+    "dev": "npm --prefix backend run dev"
   },
   "keywords": [
     "farmers",

@@ -2,17 +2,117 @@
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 const dbPath = path.join(__dirname, 'farmers_record.db');
+let dbInitialized = false;
 
 // Create database connection
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err);
+    process.exit(1);
   } else {
     console.log('✓ Connected to SQLite database');
+    // Initialize database schema if needed
+    initializeDatabase();
   }
 });
+
+// Initialize database schema
+function initializeDatabase() {
+  try {
+    const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+    db.exec(schemaSql, (err) => {
+      if (err) {
+        console.error('Error creating tables:', err);
+        process.exit(1);
+      }
+      console.log('✓ Database schema ready');
+      insertTransactionTypes();
+      insertSampleData();
+      dbInitialized = true;
+    });
+  } catch (error) {
+    console.error('Error reading schema file:', error);
+    process.exit(1);
+  }
+}
+
+// Insert default transaction types
+function insertTransactionTypes() {
+  const transactionTypes = [
+    { name: 'Loan Application', desc: 'Farmer applying for loan' },
+    { name: 'Loan Disbursement', desc: 'Releasing loan amount' },
+    { name: 'Loan Repayment', desc: 'Farmer repaying loan' },
+    { name: 'Equipment Request', desc: 'Request for farming equipment' },
+    { name: 'Fertilizer Purchase', desc: 'Buying fertilizer supplies' },
+    { name: 'Consultation', desc: 'Meeting with agricultural advisor' },
+    { name: 'Training Session', desc: 'Attending training workshop' },
+    { name: 'Report Submission', desc: 'Submitting farm reports' }
+  ];
+
+  const insertType = (index) => {
+    if (index >= transactionTypes.length) return;
+    
+    const type = transactionTypes[index];
+    db.run(
+      'INSERT OR IGNORE INTO transaction_types (type_name, description) VALUES (?, ?)',
+      [type.name, type.desc],
+      (err) => {
+        if (err && !err.message.includes('UNIQUE')) {
+          console.error('Error inserting transaction type:', err);
+        }
+        insertType(index + 1);
+      }
+    );
+  };
+
+  insertType(0);
+}
+
+// Insert sample data
+function insertSampleData() {
+  const sampleFarmers = [
+    {
+      first_name: 'John',
+      middle_name: '',
+      last_name: 'Doe',
+      email: 'john@example.com',
+      phone: '555-0101',
+      address: '123 Farm Road',
+      city: 'Springfield',
+      farm_name: "Doe's Farm",
+      farm_size: 50.5,
+      farm_type: 'Crop'
+    },
+    {
+      first_name: 'Mary',
+      middle_name: '',
+      last_name: 'Smith',
+      email: 'mary@example.com',
+      phone: '555-0102',
+      address: '456 Country Lane',
+      city: 'Shelbyville',
+      farm_name: "Smith's Dairy",
+      farm_size: 30,
+      farm_type: 'Livestock'
+    }
+  ];
+
+  sampleFarmers.forEach(farmer => {
+    db.run(
+      `INSERT OR IGNORE INTO farmers (first_name, middle_name, last_name, email, phone, address, city, farm_name, farm_size, farm_type, date_registered)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      [farmer.first_name, farmer.middle_name, farmer.last_name, farmer.email, farmer.phone, farmer.address, farmer.city, farmer.farm_name, farmer.farm_size, farmer.farm_type],
+      (err) => {
+        if (err && !err.message.includes('UNIQUE')) {
+          console.error('Error inserting sample farmer:', err);
+        }
+      }
+    );
+  });
+}
 
 // Enable foreign keys
 db.run('PRAGMA foreign_keys = ON');
