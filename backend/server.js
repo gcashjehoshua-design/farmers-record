@@ -5,6 +5,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const config = require('./config');
+const { getInitPromise } = require('./database/db');
 
 // Initialize Express
 const app = express();
@@ -60,8 +61,10 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = config.port;
 
-app.listen(PORT, () => {
-  console.log(`
+// Wait for database initialization before starting the server
+getInitPromise().then(() => {
+  app.listen(PORT, () => {
+    console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║   FARMERS RECORD SYSTEM - Backend Server                   ║
 ║   Server running on http://localhost:${PORT}                  ║
@@ -87,6 +90,10 @@ Frontend:
 
 To view in browser, open: http://localhost:${PORT}
 `);
+  });
+}).catch((err) => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
 });
 
 module.exports = app;

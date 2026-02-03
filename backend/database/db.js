@@ -6,6 +6,7 @@ const fs = require('fs');
 
 const dbPath = path.join(__dirname, 'farmers_record.db');
 let dbInitialized = false;
+let initPromise = null;
 
 // Create database connection
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -14,29 +15,49 @@ const db = new sqlite3.Database(dbPath, (err) => {
     process.exit(1);
   } else {
     console.log('✓ Connected to SQLite database');
-    // Initialize database schema if needed
-    initializeDatabase();
   }
 });
 
+// Return promise that resolves when DB is initialized
+function getInitPromise() {
+  if (initPromise) return initPromise;
+  
+  initPromise = new Promise((resolve, reject) => {
+    // Enable foreign keys first
+    db.run('PRAGMA foreign_keys = ON', (err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      initializeDatabase().then(resolve).catch(reject);
+    });
+  });
+  
+  return initPromise;
+}
+
 // Initialize database schema
 function initializeDatabase() {
-  try {
-    const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-    db.exec(schemaSql, (err) => {
-      if (err) {
-        console.error('Error creating tables:', err);
-        process.exit(1);
-      }
-      console.log('✓ Database schema ready');
-      insertTransactionTypes();
-      insertSampleData();
-      dbInitialized = true;
-    });
-  } catch (error) {
-    console.error('Error reading schema file:', error);
-    process.exit(1);
-  }
+  return new Promise((resolve, reject) => {
+    try {
+      const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+      db.exec(schemaSql, (err) => {
+        if (err) {
+          console.error('Error creating tables:', err);
+          reject(err);
+          return;
+        }
+        console.log('✓ Database schema ready');
+        insertTransactionTypes();
+        insertSampleData();
+        dbInitialized = true;
+        resolve();
+      });
+    } catch (error) {
+      console.error('Error reading schema file:', error);
+      reject(error);
+    }
+  });
 }
 
 // Insert default transaction types
@@ -160,5 +181,6 @@ module.exports = {
   db,
   dbRun,
   dbGet,
-  dbAll
+  dbAll,
+  getInitPromise
 };
