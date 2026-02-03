@@ -108,7 +108,7 @@ async function performSearch() {
 // Setup search listener
 function setupSearchListener() {
   const searchInput = document.getElementById('farmerSearch');
-  const searchBtn = document.querySelector('button[onclick="searchFarmers()"]');
+  const searchBtn = document.querySelector('button[onclick="triggerSearch()"]');
   
   // Enter key search
   searchInput.addEventListener('keypress', (e) => {
@@ -126,8 +126,8 @@ function setupSearchListener() {
   });
 }
 
-// Wrapper for search button click
-function searchFarmers() {
+// Wrapper for search button click (renamed to avoid clashing with API client)
+function triggerSearch() {
   performSearch();
 }
 
