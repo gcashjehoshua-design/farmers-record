@@ -4,6 +4,25 @@ const express = require('express');
 const router = express.Router();
 const { dbRun, dbGet, dbAll } = require('../database/db');
 
+// Helper: get current date-time in Asia/Manila as 'YYYY-MM-DD HH:MM:SS'
+function getManilaNow() {
+  const dtf = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  });
+  const parts = dtf.formatToParts(new Date());
+  const map = {};
+  parts.forEach(p => { map[p.type] = p.value; });
+  const y = map.year;
+  const m = map.month;
+  const d = map.day;
+  const hh = map.hour;
+  const mm = map.minute;
+  const ss = map.second;
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+}
+
 // GET all farmers with pagination
 router.get('/', async (req, res) => {
   try {
@@ -106,10 +125,13 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Generate current timestamp for date_registered using Manila timezone
+    const dateRegistered = getManilaNow();
+
     const result = await dbRun(
       `INSERT INTO farmers 
-       (first_name, middle_name, last_name, email, phone, address, city, state, postal_code, farm_name, farm_size, farm_type, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (first_name, middle_name, last_name, email, phone, address, city, state, postal_code, farm_name, farm_size, farm_type, notes, date_registered)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         first_name,
         middle_name || null,
@@ -123,7 +145,8 @@ router.post('/', async (req, res) => {
         farm_name || null,
         farm_size || null,
         farm_type || null,
-        notes || null
+        notes || null,
+        dateRegistered
       ]
     );
 
