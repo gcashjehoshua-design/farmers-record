@@ -14,8 +14,8 @@ async function loadFarmers(page = 1) {
   try {
     isSearching = false;
     const response = await getAllFarmers(page, pageSize);
-    const farmers = response.data;
-    const pagination = response.pagination;
+    const farmers = (response && response.data) || [];
+    const pagination = (response && response.pagination) || { page: 1, limit: pageSize, total: farmers.length, pages: Math.max(1, Math.ceil(farmers.length / pageSize)) };
     
     // Update pagination info
     currentPage = page;
@@ -70,7 +70,7 @@ async function performSearch() {
   
   try {
     isSearching = true;
-    const farmers = await searchFarmers(query);
+    const farmers = (await searchFarmers(query)) || [];
     
     const tbody = document.getElementById('farmersTableBody');
     if (farmers.length === 0) {
