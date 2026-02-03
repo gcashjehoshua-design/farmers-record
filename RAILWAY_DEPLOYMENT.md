@@ -65,6 +65,17 @@ Railway will auto-detect your project. For additional configuration:
 2. Select "PostgreSQL"
 3. Railway will provide connection details
 4. Update your backend code to use PostgreSQL instead of SQLite
+5. (Optional) Migrate existing SQLite data to Postgres:
+  - Download your `backend/database/farmers_record.db` file from your current deployment or local environment.
+  - In Railway, add the `DATABASE_URL` variable with the Postgres connection string.
+  - Run the migration script locally or in Railway CLI:
+
+```bash
+# From project root
+DATABASE_URL="postgres://user:pass@host:5432/dbname" SQLITE_PATH=backend/database/farmers_record.db node backend/database/migrate-sqlite-to-pg.js
+```
+
+  - Verify tables and data in the Railway Postgres service.
 
 ### Current Setup (Works as-is)
 The system currently uses SQLite which works for small deployments but:
