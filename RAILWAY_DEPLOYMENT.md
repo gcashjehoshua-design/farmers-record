@@ -59,23 +59,9 @@ Railway will auto-detect your project. For additional configuration:
   - Using Railway's PostgreSQL service (recommended)
   - Or configure persistent volume in Railway
 
-### To Add PostgreSQL (Recommended for Production)
+### PostgreSQL (optional)
 
-1. In your Railway project dashboard, click "Add"
-2. Select "PostgreSQL"
-3. Railway will provide connection details
-4. Update your backend code to use PostgreSQL instead of SQLite
-5. (Optional) Migrate existing SQLite data to Postgres:
-  - Download your `backend/database/farmers_record.db` file from your current deployment or local environment.
-  - In Railway, add the `DATABASE_URL` variable with the Postgres connection string.
-  - Run the migration script locally or in Railway CLI:
-
-```bash
-# From project root
-DATABASE_URL="postgres://user:pass@host:5432/dbname" SQLITE_PATH=backend/database/farmers_record.db node backend/database/migrate-sqlite-to-pg.js
-```
-
-  - Verify tables and data in the Railway Postgres service.
+If you later decide to use PostgreSQL for persistence, add a PostgreSQL plugin in your Railway project and set a `DATABASE_URL` environment variable. For this temporary deployment you can continue using the bundled SQLite database.
 
 ### Current Setup (Works as-is)
 The system currently uses SQLite which works for small deployments but:
