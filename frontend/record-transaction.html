@@ -119,7 +119,10 @@
         <div id="successMessage" class="message success hidden">
             <p>✓ Transaction recorded successfully!</p>
             <p id="successDetails"></p>
-            <button type="button" class="btn-primary" onclick="resetForm()">Record Another</button>
+            <div style="margin-top: 20px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <button type="button" class="btn-primary" onclick="resetForm()">➕ Create Another Transaction</button>
+                <button type="button" class="btn-secondary" onclick="goToFarmerProfile(document.getElementById('farmer_id').value)">👥 View Farmer Profile</button>
+            </div>
         </div>
 
         <!-- ERROR MESSAGE -->

@@ -155,7 +155,10 @@
         <div id="successMessage" class="message success hidden">
             <p>✓ Farmer added successfully!</p>
             <p id="successDetails"></p>
-            <a href="farmer-directory.html" class="btn-primary">Go to Farmer Directory</a>
+            <div style="margin-top: 20px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <button type="button" class="btn-primary" onclick="resetForm()">➕ Add Another Farmer</button>
+                <button type="button" class="btn-secondary" onclick="goToFarmerProfile(window.currentFarmerId)">👥 View Farmer Profile</button>
+            </div>
         </div>
 
         <!-- ERROR MESSAGE -->

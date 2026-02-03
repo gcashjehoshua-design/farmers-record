@@ -184,12 +184,27 @@ async function submitTransaction() {
       const transType = document.getElementById('transactionType').options[document.getElementById('transactionType').selectedIndex].text;
       document.getElementById('successDetails').innerHTML = `
         <strong>Farmer:</strong> ${farmerName}<br>
-        <strong>Transaction:</strong> ${transType}
+        <strong>Transaction:</strong> ${transType}<br>
+        <br>
+        <small style="color: #666;">Redirecting to farmer profile in <span id="redirectCountdown">2</span> seconds...</small>
       `;
       successMsg.classList.remove('hidden');
       
-      // Navigate back to farmer profile after 2 seconds to see the updated transaction history
-      setTimeout(() => {
+      // Start countdown for auto-redirect
+      let countdown = 2;
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        const countdownEl = document.getElementById('redirectCountdown');
+        if (countdownEl) {
+          countdownEl.textContent = countdown;
+        }
+        if (countdown <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+      
+      // Store the redirect timeout ID so we can cancel it if needed
+      window.redirectTimeout = setTimeout(() => {
         window.location.href = `farmer-profile.html?id=${farmerId}`;
       }, 2000);
     }
@@ -201,6 +216,12 @@ async function submitTransaction() {
 
 // Reset form and show form again
 function resetForm() {
+  // Cancel pending redirect if user clicks "Create Another Transaction"
+  if (window.redirectTimeout) {
+    clearTimeout(window.redirectTimeout);
+    window.redirectTimeout = null;
+  }
+  
   document.getElementById('transactionForm').reset();
   document.getElementById('farmer_id').value = '';
   document.getElementById('farmerSearch').value = '';
@@ -208,4 +229,14 @@ function resetForm() {
   document.getElementById('typeDescription').innerHTML = '';
   document.getElementById('transactionForm').style.display = 'block';
   document.getElementById('successMessage').classList.add('hidden');
+  document.getElementById('successMessage').style.display = 'none';
+}
+
+// Navigate to farmer profile
+function goToFarmerProfile(farmerId) {
+  if (window.redirectTimeout) {
+    clearTimeout(window.redirectTimeout);
+    window.redirectTimeout = null;
+  }
+  window.location.href = `farmer-profile.html?id=${farmerId}`;
 }

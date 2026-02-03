@@ -39,18 +39,40 @@ async function submitAddFarmer(e) {
       
       // Show success message
       const successMsg = document.getElementById('successMessage');
-      document.getElementById('successDetails').textContent = 
-        `Farmer ${formData.first_name}${formData.middle_name ? ' ' + formData.middle_name : ''} ${formData.last_name} has been added to the system.`;
+      const farmerId = response.data && response.data.farmer_id ? response.data.farmer_id : null;
+      const farmerFullName = `${formData.first_name}${formData.middle_name ? ' ' + formData.middle_name : ''} ${formData.last_name}`;
+      
+      document.getElementById('successDetails').innerHTML = `
+        Farmer <strong>${farmerFullName}</strong> has been added to the system.<br>
+        <br>
+        <small style="color: #666;">Redirecting to farmer profile in <span id="redirectCountdown">2</span> seconds...</small>
+      `;
       successMsg.classList.remove('hidden');
       
+      // Start countdown for auto-redirect
+      let countdown = 2;
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        const countdownEl = document.getElementById('redirectCountdown');
+        if (countdownEl) {
+          countdownEl.textContent = countdown;
+        }
+        if (countdown <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+      
+      // Store the farmer ID and timeout for potential cancellation
+      window.currentFarmerId = farmerId;
+      
       // Navigate to farmer profile after 2 seconds to show the new farmer
-      if (response.data && response.data.farmer_id) {
-        setTimeout(() => {
-          window.location.href = `farmer-profile.html?id=${response.data.farmer_id}`;
+      if (farmerId) {
+        window.redirectTimeout = setTimeout(() => {
+          window.location.href = `farmer-profile.html?id=${farmerId}`;
         }, 2000);
       } else {
         // Fallback: go to farmer directory if farmer_id not returned
-        setTimeout(() => {
+        window.redirectTimeout = setTimeout(() => {
           window.location.href = 'farmer-directory.html';
         }, 2000);
       }
@@ -67,4 +89,31 @@ function showError(message) {
 
 function closeError() {
   document.getElementById('errorMessage').classList.add('hidden');
+}
+
+// Reset form and show form again
+function resetForm() {
+  // Cancel pending redirect if user clicks "Add Another Farmer"
+  if (window.redirectTimeout) {
+    clearTimeout(window.redirectTimeout);
+    window.redirectTimeout = null;
+  }
+  
+  document.getElementById('addFarmerForm').reset();
+  document.getElementById('addFarmerForm').style.display = 'block';
+  document.getElementById('successMessage').classList.add('hidden');
+  document.getElementById('successMessage').style.display = 'none';
+}
+
+// Navigate to farmer profile
+function goToFarmerProfile(farmerId) {
+  if (window.redirectTimeout) {
+    clearTimeout(window.redirectTimeout);
+    window.redirectTimeout = null;
+  }
+  if (farmerId) {
+    window.location.href = `farmer-profile.html?id=${farmerId}`;
+  } else {
+    window.location.href = 'farmer-directory.html';
+  }
 }

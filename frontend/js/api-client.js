@@ -202,17 +202,23 @@ async function getAllTransactions(filters = {}) {
 // UTILITY FUNCTIONS
 // ============================================
 
-// Format date for display
+// Format date for display - Philippine format (MM/DD/YYYY HH:MM AM/PM)
 function formatDate(dateString) {
   if (!dateString) return '—';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  
+  // Format: MM/DD/YYYY HH:MM AM/PM
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+  // Convert to 12-hour format
+  const hour12 = date.getHours() % 12 || 12;
+  const ampm = date.getHours() >= 12 ? 'PM' : 'AM';
+  
+  return `${month}/${day}/${year} ${String(hour12).padStart(2, '0')}:${minutes} ${ampm}`;
 }
 
 // Format currency
