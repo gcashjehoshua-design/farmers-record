@@ -41,9 +41,10 @@ async function submitAddFarmer(e) {
       const successMsg = document.getElementById('successMessage');
       const farmerId = response.data && response.data.farmer_id ? response.data.farmer_id : null;
       const farmerFullName = `${formData.first_name}${formData.middle_name ? ' ' + formData.middle_name : ''} ${formData.last_name}`;
+      const memberSince = response.data && response.data.date_registered ? formatDate(response.data.date_registered) : null;
       
       document.getElementById('successDetails').innerHTML = `
-        Farmer <strong>${farmerFullName}</strong> has been added to the system.<br>
+        Farmer <strong>${farmerFullName}</strong> has been added to the system.${memberSince ? `<br><strong>Member Since:</strong> ${memberSince}` : ''}<br>
         <br>
         <small style="color: #666;">Redirecting to farmer profile in <span id="redirectCountdown">2</span> seconds...</small>
       `;

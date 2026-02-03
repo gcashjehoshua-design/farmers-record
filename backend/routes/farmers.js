@@ -127,15 +127,13 @@ router.post('/', async (req, res) => {
       ]
     );
 
+    // Fetch the created farmer row (includes date_registered)
+    const createdFarmer = await dbGet('SELECT * FROM farmers WHERE farmer_id = ?', [result.id]);
+
     res.status(201).json({
       success: true,
       message: 'Farmer created successfully',
-      data: {
-        farmer_id: result.id,
-        first_name,
-        last_name,
-        phone
-      }
+      data: createdFarmer
     });
   } catch (error) {
     if (error.message.includes('UNIQUE constraint failed')) {
