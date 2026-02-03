@@ -97,7 +97,7 @@ function insertSampleData() {
   const sampleFarmers = [
     {
       first_name: 'John',
-      middle_name: '',
+      middle_name: 'David',
       last_name: 'Doe',
       email: 'john@example.com',
       phone: '555-0101',
@@ -109,7 +109,7 @@ function insertSampleData() {
     },
     {
       first_name: 'Mary',
-      middle_name: '',
+      middle_name: 'Elizabeth',
       last_name: 'Smith',
       email: 'mary@example.com',
       phone: '555-0102',
