@@ -1,6 +1,8 @@
 // js/api-client.js - API communication layer
 
-const API_BASE_URL = 'http://localhost:3000/api';
+// Dynamically set API base URL based on current host
+// This allows the same frontend to work on localhost and deployed on Railway
+const API_BASE_URL = `${window.location.protocol}//${window.location.host}/api`;
 
 // ============================================
 // FARMER API CALLS
