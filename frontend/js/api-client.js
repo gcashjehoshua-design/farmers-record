@@ -202,23 +202,23 @@ async function getAllTransactions(filters = {}) {
 // UTILITY FUNCTIONS
 // ============================================
 
-// Format date for display - Philippine format (MM/DD/YYYY HH:MM AM/PM)
+// Format date for display - Long format (e.g., "January 25, 2026, 5:40 am")
 function formatDate(dateString) {
   if (!dateString) return '—';
   const date = new Date(dateString);
   
-  // Format: MM/DD/YYYY HH:MM AM/PM
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+  const month = months[date.getMonth()];
+  const day = date.getDate();
   const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
   
   // Convert to 12-hour format
   const hour12 = date.getHours() % 12 || 12;
-  const ampm = date.getHours() >= 12 ? 'PM' : 'AM';
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const ampm = date.getHours() >= 12 ? 'pm' : 'am';
   
-  return `${month}/${day}/${year} ${String(hour12).padStart(2, '0')}:${minutes} ${ampm}`;
+  return `${month} ${day}, ${year}, ${hour12}:${minutes} ${ampm}`;
 }
 
 // Format currency
