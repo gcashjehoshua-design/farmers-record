@@ -85,8 +85,8 @@ function setupFormListeners() {
       } else {
         suggestionsList.innerHTML = farmers
           .map(farmer => `
-            <div class="suggestion-item" onclick="selectFarmer(${farmer.farmer_id}, '${farmer.first_name} ${farmer.last_name}', '${farmer.phone}', '${farmer.farm_name || 'N/A'}')">
-              <strong>👨‍🌾 ${farmer.first_name} ${farmer.last_name}</strong><br>
+            <div class="suggestion-item" onclick="selectFarmer(${farmer.farmer_id}, '${farmer.first_name}${farmer.middle_name ? ' ' + farmer.middle_name : ''} ${farmer.last_name}', '${farmer.phone}', '${farmer.farm_name || 'N/A'}')">
+              <strong>👨‍🌾 ${farmer.first_name}${farmer.middle_name ? ' ' + farmer.middle_name : ''} ${farmer.last_name}</strong><br>
               <small>📞 Phone: ${farmer.phone}</small>
               ${farmer.farm_name ? `<br><small>🌾 Farm: ${farmer.farm_name}</small>` : ''}
             </div>

@@ -82,7 +82,7 @@ async function submitEditFarmer(e) {
       // Show success message
       const successMsg = document.getElementById('successMessage');
       document.getElementById('successDetails').textContent = 
-        `Changes have been saved for ${formData.first_name} ${formData.last_name}.`;
+        `Changes have been saved for ${formData.first_name}${formData.middle_name ? ' ' + formData.middle_name : ''} ${formData.last_name}.`;
       successMsg.classList.remove('hidden');
       
       // Auto-navigate back to profile after 2 seconds

@@ -40,7 +40,7 @@ async function loadFarmers(page = 1) {
       .map((farmer, index) => `
         <tr>
           <td>${(page - 1) * pageSize + index + 1}</td>
-          <td><strong>${farmer.first_name} ${farmer.last_name}</strong></td>
+          <td><strong>${farmer.first_name}${farmer.middle_name ? ' ' + farmer.middle_name : ''} ${farmer.last_name}</strong></td>
           <td>${farmer.phone}</td>
           <td>${farmer.farm_name || '—'}</td>
           <td>${formatDate(farmer.date_registered)}</td>
@@ -85,7 +85,7 @@ async function performSearch() {
       .map((farmer, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td><strong>${farmer.first_name} ${farmer.last_name}</strong></td>
+          <td><strong>${farmer.first_name}${farmer.middle_name ? ' ' + farmer.middle_name : ''} ${farmer.last_name}</strong></td>
           <td>${farmer.phone}</td>
           <td>${farmer.farm_name || '—'}</td>
           <td>${formatDate(farmer.date_registered)}</td>

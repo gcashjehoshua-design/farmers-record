@@ -40,7 +40,7 @@ async function submitAddFarmer(e) {
       // Show success message
       const successMsg = document.getElementById('successMessage');
       document.getElementById('successDetails').textContent = 
-        `Farmer ${formData.first_name} ${formData.last_name} has been added to the system.`;
+        `Farmer ${formData.first_name}${formData.middle_name ? ' ' + formData.middle_name : ''} ${formData.last_name} has been added to the system.`;
       successMsg.classList.remove('hidden');
       
       // Navigate to farmer profile after 2 seconds to show the new farmer
