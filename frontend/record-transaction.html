@@ -1,0 +1,134 @@
+<!-- Record Transaction Form - HTML Structure -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Transaction - Farmers Record System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header-with-back">
+            <a href="#" id="backBtn" class="btn-back">← Back</a>
+            <div>
+                <h1>📝 Record Transaction</h1>
+                <p>Register a farmer visit and record their transaction</p>
+            </div>
+        </header>
+
+        <form id="transactionForm" class="transaction-form">
+            
+            <!-- STEP 1: SELECT FARMER -->
+            <fieldset class="form-section">
+                <legend>STEP 1: Select Farmer</legend>
+                
+                <div class="form-group">
+                    <label for="farmerSearch">Search Farmer by Name or Phone:</label>
+                    <input 
+                        type="text" 
+                        id="farmerSearch" 
+                        placeholder="Type farmer name or phone number..."
+                        autocomplete="off"
+                        required
+                    >
+                    <div id="farmerSuggestions" class="suggestions-list"></div>
+                </div>
+
+                <input type="hidden" id="farmer_id" name="farmer_id" required>
+                
+                <div id="selectedFarmer" class="selected-farmer hidden">
+                    <p><strong>✓ Selected Farmer:</strong> <span id="farmerName"></span></p>
+                    <p><strong>Phone:</strong> <span id="farmerPhone"></span></p>
+                    <p><strong>Farm:</strong> <span id="farmerFarm"></span></p>
+                </div>
+
+                <button type="button" id="addNewFarmerBtn" class="btn-secondary" style="margin-top: 20px;">
+                    ➕ Add New Farmer
+                </button>
+            </fieldset>
+
+            <!-- STEP 2: SELECT TRANSACTION TYPE -->
+            <fieldset class="form-section">
+                <legend>STEP 2: Select Transaction Type</legend>
+                
+                <div class="form-group">
+                    <label for="transactionType">What is the purpose of the visit?</label>
+                    <select id="transactionType" name="type_id" required>
+                        <option value="">-- Choose a Transaction Type --</option>
+                        <option value="1">💰 Loan Application</option>
+                        <option value="2">💵 Loan Disbursement (Receive Money)</option>
+                        <option value="3">💳 Loan Repayment (Pay Back)</option>
+                        <option value="4">🔧 Equipment Request</option>
+                        <option value="5">🌱 Fertilizer Purchase</option>
+                        <option value="6">👨‍💼 Consultation with Advisor</option>
+                        <option value="7">📚 Training Session</option>
+                        <option value="8">📄 Report Submission</option>
+                    </select>
+                </div>
+
+                <div id="typeDescription" class="description-box"></div>
+            </fieldset>
+
+            <!-- STEP 3: ENTER TRANSACTION DETAILS -->
+            <fieldset class="form-section">
+                <legend>STEP 3: Enter Transaction Details</legend>
+                
+                <div class="form-group">
+                    <label for="amount">Amount (if any money involved):</label>
+                    <input 
+                        type="number" 
+                        id="amount" 
+                        name="amount" 
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Brief Description:</label>
+                    <input 
+                        type="text" 
+                        id="description" 
+                        name="description" 
+                        placeholder="What is this transaction about?"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Additional Notes (Optional):</label>
+                    <textarea 
+                        id="notes" 
+                        name="notes" 
+                        placeholder="Any additional information to remember about this visit..."
+                        rows="3"
+                    ></textarea>
+                </div>
+            </fieldset>
+
+            <!-- BUTTONS -->
+            <div class="form-actions" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 40px;">
+                <button type="reset" class="btn-secondary">🔄 Clear Form</button>
+                <button type="button" class="btn-secondary" id="cancelBtn">← Cancel</button>
+                <button type="submit" class="btn-primary">✓ Save Transaction</button>
+            </div>
+        </form>
+
+        <!-- SUCCESS MESSAGE -->
+        <div id="successMessage" class="message success hidden">
+            <p>✓ Transaction recorded successfully!</p>
+            <p id="successDetails"></p>
+            <button type="button" class="btn-primary" onclick="resetForm()">Record Another</button>
+        </div>
+
+        <!-- ERROR MESSAGE -->
+        <div id="errorMessage" class="message error hidden">
+            <p id="errorText"></p>
+        </div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    <script src="js/transaction-form.js"></script>
+</body>
+</html>

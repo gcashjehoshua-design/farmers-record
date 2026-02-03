@@ -1,0 +1,21 @@
+{
+  "name": "farmers-record-system",
+  "version": "1.0.0",
+  "description": "Complete Farmer Management System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "cd backend && npm install && node database/init.js && npm start",
+    "init-db": "cd backend && node database/init.js",
+    "dev": "cd backend && npm run dev"
+  },
+  "keywords": [
+    "farmers",
+    "records",
+    "management"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": "18.x"
+  }
+}
