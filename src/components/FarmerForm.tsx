@@ -28,7 +28,7 @@ interface FarmerFormProps {
 }
 
 export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) {
-  const { toasts, success, error } = useToast();
+  const { toasts, error } = useToast();
   const defaults = initialData
     ? {
         ...initialData,
