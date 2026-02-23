@@ -302,7 +302,7 @@ export const dashboardService = {
       nameByFarmerId[f.id] = f.full_name || "Unknown";
     });
 
-    return transactions.map((t) => ({
+    return transactions.map((t: typeof transactions[0]) => ({
       ...t,
       farmerName: nameByFarmerId[t.farmerId] || "Unknown",
     }));
