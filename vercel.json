@@ -2,16 +2,9 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "env": {},
-  "builds": [
-    {
-      "src": "dist",
-      "use": "@vercel/static"
-    }
-  ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "^/(?!.*\\.).*$",
       "dest": "/index.html"
     }
   ]
