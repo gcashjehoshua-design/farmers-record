@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmers Record System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌾 FARMERS RECORD SYSTEM</h1>
+            <p>Manage farmer profiles and transaction records</p>
+        </header>
+
+        <div class="dashboard">
+            <section class="dashboard-section">
+                <h2>Welcome to Farmers Record Management</h2>
+                <p style="font-size: 20px; margin-bottom: 30px; color: #7f8c8d;">
+                    This system helps you manage farmer profiles and record their transactions. 
+                    Choose an option below to get started:
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px;">
+                    <!-- Card 1: Record Transaction -->
+                    <div style="background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 6px solid #3498db;">
+                        <h3 style="font-size: 28px; color: #2c3e50; margin-bottom: 15px;">📝 Record Transaction</h3>
+                        <p style="font-size: 18px; color: #7f8c8d; margin-bottom: 25px;">
+                            Register a new farmer visit and record the transaction type
+                        </p>
+                        <a href="record-transaction.html" class="btn-primary" style="width: 100%; text-align: center;">
+                            Start Recording →
+                        </a>
+                    </div>
+
+                    <!-- Card 2: Farmer Directory -->
+                    <div style="background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 6px solid #27ae60;">
+                        <h3 style="font-size: 28px; color: #2c3e50; margin-bottom: 15px;">👥 Farmer Directory</h3>
+                        <p style="font-size: 18px; color: #7f8c8d; margin-bottom: 25px;">
+                            Browse all farmers and view their profiles and transaction history
+                        </p>
+                        <a href="farmer-directory.html" class="btn-primary" style="width: 100%; text-align: center;">
+                            View All Farmers →
+                        </a>
+                    </div>
+
+                    <!-- Card 3: Add Farmer -->
+                    <div style="background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 6px solid #e74c3c;">
+                        <h3 style="font-size: 28px; color: #2c3e50; margin-bottom: 15px;">➕ Add New Farmer</h3>
+                        <p style="font-size: 18px; color: #7f8c8d; margin-bottom: 25px;">
+                            Register a new farmer in the system with their profile details
+                        </p>
+                        <a href="add-farmer.html" class="btn-primary" style="width: 100%; text-align: center;">
+                            Add Farmer →
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Stats -->
+            <section class="dashboard-section" style="margin-top: 60px;">
+                <h2>Quick Statistics</h2>
+                <div id="statsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin-top: 30px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px;">
+                        <p style="font-size: 16px; opacity: 0.9;">Total Farmers</p>
+                        <p style="font-size: 48px; font-weight: bold; margin: 10px 0;">—</p>
+                        <p style="font-size: 14px; opacity: 0.8;">Loading...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <style>
+        .dashboard {
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-section {
+            margin-bottom: 40px;
+        }
+
+        .dashboard-section h2 {
+            font-size: 32px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .dashboard-section:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+
+    <script src="js/api-client.js"></script>
+    <script>
+        // Load some quick stats on dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await getAllFarmers(1, 1);
+                const total = response.pagination.total;
+                
+                const statsHtml = `
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px;">
+                        <p style="font-size: 16px; opacity: 0.9;">Total Farmers</p>
+                        <p style="font-size: 48px; font-weight: bold; margin: 10px 0;">${total}</p>
+                        <p style="font-size: 14px; opacity: 0.8;">in the system</p>
+                    </div>
+                `;
+                
+                document.getElementById('statsContainer').innerHTML = statsHtml;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        });
+    </script>
+</body>
+</html>
