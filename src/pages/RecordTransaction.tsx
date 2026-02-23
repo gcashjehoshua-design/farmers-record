@@ -7,11 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { User, Edit, Receipt, RotateCcw, Check, Loader, Search as SearchIcon } from "lucide-react";
 import type { Farmer } from "@/types";
 import { ALL_TRANSACTION_TYPES } from "@/constants/transactionTypes";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 export default function RecordTransaction() {
   const navigate = useNavigate();
   const { data: farmers, isLoading } = useFarmers();
   const createTransaction = useCreateTransaction();
+  const { toasts, success, error, info } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
@@ -41,7 +44,7 @@ export default function RecordTransaction() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFarmer || !transactionType) {
-      alert("Please complete all required fields");
+      info("Please complete all required fields");
       return;
     }
 
@@ -54,11 +57,11 @@ export default function RecordTransaction() {
         notes: notes || undefined,
         date: new Date(),
       });
-      alert("Transaction recorded successfully!");
+      success("Transaction recorded successfully!");
       handleReset();
-    } catch (error) {
-      console.error("Error recording transaction:", error);
-      alert("Failed to record transaction. Please try again.");
+    } catch (e) {
+      console.error("Error recording transaction:", e);
+      error("Failed to record transaction. Please try again.");
     }
   };
 
@@ -80,6 +83,9 @@ export default function RecordTransaction() {
 
   return (
     <div className="min-h-screen animate-fade-in">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} type={toast.type} message={toast.message} />
+      ))}
       {/* Header Section */}
       <div className="border-b border-gray-200 bg-harvest-50/80">
         <div className="container mx-auto px-4 max-w-4xl py-6">

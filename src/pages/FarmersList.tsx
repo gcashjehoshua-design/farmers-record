@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, ArrowLeft, Users, TrendingUp } from "lucide-react";
 import FarmersTable from "@/components/FarmersTable";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -14,13 +16,15 @@ export default function FarmersList() {
   const navigate = useNavigate();
   const { data: farmers, isLoading, error } = useFarmers();
   const deleteFarmer = useDeleteFarmer();
+  const { toasts, success, error: showError } = useToast();
 
   const handleDelete = async (farmer: Farmer) => {
     if (!window.confirm(`Delete ${farmer.fullName || "this farmer"}?`)) return;
     try {
       await deleteFarmer.mutateAsync(farmer.id);
+      success(`${farmer.fullName} has been deleted.`);
     } catch (e) {
-      alert("Failed to delete farmer.");
+      showError("Failed to delete farmer.");
     }
   };
   const [searchTerm, setSearchTerm] = useState("");
@@ -104,6 +108,9 @@ export default function FarmersList() {
 
   return (
     <div className="min-h-screen animate-fade-in">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} type={toast.type} message={toast.message} />
+      ))}
       {/* Header Section */}
       <div className="border-b-2 border-earth-200 bg-earth-50/90">
         <div className="container mx-auto px-4 py-6">

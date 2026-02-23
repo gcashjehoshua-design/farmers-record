@@ -7,6 +7,8 @@ import { exportVisitsToPdf } from "@/lib/pdfExport";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Receipt, UserPlus, TrendingUp, CheckCircle2, ArrowRight, CalendarDays, X, Save, FileDown } from "lucide-react";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 export default function Dashboard() {
   const now = new Date();
@@ -19,6 +21,7 @@ export default function Dashboard() {
   const [tempDay, setTempDay] = useState<number | null>(selectedDay);
   const [isPrintingVisits, setIsPrintingVisits] = useState(false);
 
+  const { toasts, success, error: showError } = useToast();
   const queryClient = useQueryClient();
   const { data: stats, isLoading, error } = useDashboardStats(selectedMonth, selectedYear, selectedDay !== null ? selectedDay : undefined);
 
@@ -31,9 +34,10 @@ export default function Dashboard() {
         year: selectedYear,
         day: selectedDay ?? undefined,
       });
+      success("PDF generated successfully!");
     } catch (e) {
       console.error(e);
-      alert("Failed to generate PDF.");
+      showError("Failed to generate PDF.");
     } finally {
       setIsPrintingVisits(false);
     }
@@ -110,6 +114,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} type={toast.type} message={toast.message} />
+      ))}
       {/* Statistics Cards */}
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.1s' }}>

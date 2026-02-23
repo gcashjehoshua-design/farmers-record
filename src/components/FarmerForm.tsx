@@ -6,6 +6,8 @@ import { Save, RotateCcw } from "lucide-react";
 import { useCreateFarmer, useUpdateFarmer } from "@/hooks/useApi";
 import type { Farmer } from "@/types";
 import { PASSI_BARANGAYS } from "@/constants/barangays";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 const farmerSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
@@ -26,6 +28,7 @@ interface FarmerFormProps {
 }
 
 export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) {
+  const { toasts, success, error } = useToast();
   const defaults = initialData
     ? {
         ...initialData,
@@ -63,9 +66,9 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
       }
       onSuccess?.();
       reset();
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("Failed to save farmer. Please try again.");
+    } catch (e) {
+      console.error("Error submitting form:", e);
+      error("Failed to save farmer. Please try again.");
     }
   };
 
@@ -114,7 +117,11 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
   );
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <>
+      {toasts.map((toast) => (
+        <Toast key={toast.id} type={toast.type} message={toast.message} />
+      ))}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
       {/* Personal Information Section */}
       <div className="p-6 bg-gradient-to-br from-sky-50 to-sky-100 border-2 border-sky-200 rounded-2xl space-y-5 shadow-sm">
         <div className="flex items-center gap-3 pb-3 border-b-2 border-sky-200">
@@ -289,5 +296,6 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
         </Button>
       </div>
     </form>
+    </>
   );
 }
