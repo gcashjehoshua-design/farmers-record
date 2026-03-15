@@ -208,6 +208,16 @@
     color: #9a8f7a;
   }
 
+  /* Hide browser's default password visibility toggle */
+  .input-modern::-webkit-outer-spin-button,
+  .input-modern::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .input-modern::-ms-reveal {
+    display: none;
+  }
+
   /* Animated Background Pattern - subtle grain/field */
   .bg-pattern-farm {
     background-image: 

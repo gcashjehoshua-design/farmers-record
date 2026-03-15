@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -103,13 +103,13 @@ export default function Login() {
   };
 
   // Load remembered email on mount
-  useState(() => {
+  useEffect(() => {
     const remembered = localStorage.getItem("rememberedEmail");
     if (remembered) {
       setEmail(remembered);
       setRememberMe(true);
     }
-  });
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center px-4 py-8">
@@ -193,7 +193,7 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className={`input-modern h-11 pl-9 pr-10 transition-colors ${
+                    className={`input-modern h-11 pl-9 pr-11 transition-colors ${
                       fieldErrors.password ? "border-red-300 bg-red-50" : ""
                     }`}
                     value={password}
@@ -207,7 +207,7 @@ export default function Login() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-400 hover:text-earth-600 transition-colors"
-                    disabled={isSubmitting}
+                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
