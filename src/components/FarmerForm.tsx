@@ -14,6 +14,7 @@ const farmerSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
   rsbsaNumber: z.string().min(1, "RSBSA Number is required"),
   dateOfBirth: z.string().optional(),
+  gender: z.string().optional(),
   address: z.string().optional(),
   barangay: z.string().optional(),
   farmType: z.string().optional(),
@@ -156,6 +157,32 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
                 />
                 {errors["dateOfBirth"] && (
                   <p className="text-red-500 text-xs mt-1">{(errors as any)["dateOfBirth"]?.message}</p>
+                )}
+              </div>
+            )}
+          />
+        </div>
+        <div>
+          <Controller
+            name="gender"
+            control={control}
+            render={({ field }) => (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">
+                  Gender
+                </label>
+                <select
+                  {...field}
+                  className="input-modern"
+                  value={field.value ?? ""}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                {errors["gender"] && (
+                  <p className="text-red-500 text-xs mt-1">{(errors as any)["gender"]?.message}</p>
                 )}
               </div>
             )}

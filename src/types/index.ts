@@ -4,13 +4,13 @@ export type Farmer = {
   phone: string;
   rsbsaNumber?: string;
   dateOfBirth?: Date;
+  gender?: string;
   address?: string;
   barangay?: string;
   zipCode?: string;
   farmType?: string;
   farmLocation?: string;
   organization?: string;
-  dateOfOfficeVisit?: Date;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;

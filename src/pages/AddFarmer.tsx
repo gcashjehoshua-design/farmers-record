@@ -2,9 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus, Sprout } from "lucide-react";
 import FarmerForm from "@/components/FarmerForm";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 export default function AddFarmer() {
   const navigate = useNavigate();
+  const { toasts, success } = useToast();
 
   return (
     <div className="min-h-screen animate-fade-in">
@@ -27,6 +30,9 @@ export default function AddFarmer() {
         </div>
       </div>
 
+      {toasts.map((toast) => (
+        <Toast key={toast.id} type={toast.type} message={toast.message} />
+      ))}
       {/* Main Content */}
       <div className="container mx-auto px-4 max-w-4xl py-8">
         <Card className="card-modern border-farm-200 animate-slide-up">
@@ -42,7 +48,8 @@ export default function AddFarmer() {
             </div>
             <FarmerForm
               onSuccess={() => {
-                navigate("/farmers");
+                success("Farmer added successfully!");
+                setTimeout(() => navigate("/farmers"), 500);
               }}
             />
           </CardContent>

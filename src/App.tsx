@@ -5,6 +5,8 @@ import LogoHeader from "@/components/LogoHeader";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import MenuToggle from "@/components/MenuToggle";
 import { BackButton } from "@/components/BackButton";
+import { RequireAuth } from "@/components/RequireAuth";
+import { AuthProvider } from "@/context/AuthContext";
 import Dashboard from "@/pages/Dashboard";
 import FarmersList from "@/pages/FarmersList";
 import AddFarmer from "@/pages/AddFarmer";
@@ -13,6 +15,8 @@ import TransactionHistory from "@/pages/TransactionHistory";
 import ViewFarmer from "@/pages/ViewFarmer";
 import EditFarmer from "@/pages/EditFarmer";
 import Settings from "@/pages/Settings";
+import UserManagement from "@/pages/UserManagement";
+import Login from "@/pages/Login";
 
 // Tailwind will provide global theming and styles.
 
@@ -63,6 +67,7 @@ function AppLayout() {
             <Route path="/farmers/:id" element={<ViewFarmer />} />
             <Route path="/farmers" element={<FarmersList />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/users" element={<UserManagement />} />
           </Routes>
         </main>
       </div>
@@ -73,11 +78,21 @@ function AppLayout() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          <Route path="/*" element={<AppLayout />} />
-        </Routes>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                <RequireAuth>
+                  <AppLayout />
+                </RequireAuth>
+              }
+            />
+          </Routes>
+        </Router>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

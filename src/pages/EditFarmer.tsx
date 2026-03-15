@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useFarmer } from "@/hooks/useApi";
 import FarmerForm from "@/components/FarmerForm";
 import { User, ArrowLeft } from "lucide-react";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 export default function EditFarmer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toasts, success } = useToast();
   const { data: farmer, isLoading, error } = useFarmer(id || "");
 
   if (error || (!isLoading && !farmer)) {
@@ -39,6 +42,9 @@ export default function EditFarmer() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} type={toast.type} message={toast.message} />
+      ))}
       {/* Header */}
       <div className="border-b-2 border-earth-200 bg-earth-50/90 rounded-2xl p-6">
         <div className="flex items-center justify-between gap-4 mb-4">
@@ -78,7 +84,10 @@ export default function EditFarmer() {
         <CardContent className="p-6">
           <FarmerForm
             initialData={farmer}
-            onSuccess={() => navigate(`/farmers/${id}`, { replace: true })}
+            onSuccess={() => {
+              success("Farmer profile updated!");
+              setTimeout(() => navigate(`/farmers/${id}`, { replace: true }), 500);
+            }}
           />
         </CardContent>
       </Card>

@@ -1,8 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFarmer, useTransactionsByFarmer } from "@/hooks/useApi";
+import { useFarmer, useTransactionsByFarmer, useDeleteFarmer } from "@/hooks/useApi";
 import FarmerForm from "@/components/FarmerForm";
-import { User, History, Calendar, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
+import { User, History, Calendar, ArrowLeft, Trash2, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 
 const transactionTypeColors: Record<string, string> = {
   "Loan": "bg-blue-100 text-blue-700",
@@ -19,8 +23,24 @@ function getTransactionTypeColor(type: string) {
 export default function FarmerProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: farmer, isLoading, error } = useFarmer(id || "");
   const { data: transactions = [] } = useTransactionsByFarmer(id || "");
+  const deleteFarmer = useDeleteFarmer();
+  const { toasts, success, error: showError } = useToast();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteFarmer = async () => {
+    if (!farmer?.id) return;
+    try {
+      await deleteFarmer.mutateAsync(farmer.id);
+      success(`Farmer "${farmer.fullName}" has been deleted successfully`);
+      setTimeout(() => navigate("/farmers"), 1500);
+    } catch (err) {
+      console.error("Error deleting farmer:", err);
+      showError("Failed to delete farmer. Please try again.");
+    }
+  };
 
   if (error || (!isLoading && !farmer)) {
     return (
@@ -51,6 +71,44 @@ export default function FarmerProfile() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} type={toast.type} message={toast.message} />
+      ))}
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="card-modern border-red-200 w-full max-w-md">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-red-100 rounded-xl">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-earth-800 mb-2">Delete Farmer?</h3>
+                  <p className="text-sm text-earth-600 mb-4">
+                    Are you sure you want to delete <strong>{farmer.fullName}</strong>? This action cannot be undone and will also delete all associated transactions and visit records.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 px-4 py-2 bg-earth-100 text-earth-700 rounded-lg font-medium hover:bg-earth-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteFarmer}
+                      disabled={deleteFarmer.isPending}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {deleteFarmer.isPending ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       {/* Header */}
       <div className="border-b-2 border-earth-200 bg-earth-900/5 rounded-2xl p-6">
         <div className="flex items-center gap-4">
@@ -69,12 +127,24 @@ export default function FarmerProfile() {
       {/* Editable Farmer Details */}
       <Card className="card-modern border-farm-200">
         <CardHeader className="bg-gradient-to-r from-farm-900/5 to-farm-900/10 border-b-2 border-farm-200 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <User className="w-6 h-6 text-farm-600" />
-            <div>
-              <CardTitle className="text-xl">Farmer Details</CardTitle>
-              <p className="text-sm text-earth-600 mt-0.5">Edit and save changes below</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <User className="w-6 h-6 text-farm-600" />
+              <div>
+                <CardTitle className="text-xl">Farmer Details</CardTitle>
+                <p className="text-sm text-earth-600 mt-0.5">Edit and save changes below</p>
+              </div>
             </div>
+            {user?.role === "admin" && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center gap-2"
+                title="Delete this farmer (admin only)"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-6">
@@ -120,7 +190,6 @@ export default function FarmerProfile() {
                   <tr className="border-b-2 border-earth-200 bg-earth-900/5">
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Date of Visit</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Transaction Type</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Amount</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Description</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Notes</th>
                   </tr>
@@ -152,9 +221,6 @@ export default function FarmerProfile() {
                           >
                             {tx.transactionType}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-earth-800">
-                          {tx.amount ? `₱${tx.amount.toLocaleString("en-PH")}` : "-"}
                         </td>
                         <td className="px-4 py-3 text-sm text-earth-600 max-w-xs truncate" title={tx.description || ""}>
                           {tx.description || "-"}

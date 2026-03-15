@@ -25,7 +25,7 @@ export interface Database {
           farm_type: string | null
           farm_location: string | null
           organization: string | null
-          date_of_office_visit: string
+          gender: string | null
           notes: string | null
           created_at: string
           updated_at: string
@@ -42,7 +42,7 @@ export interface Database {
           farm_type?: string | null
           farm_location?: string | null
           organization?: string | null
-          date_of_office_visit?: string
+          gender?: string | null
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -59,7 +59,7 @@ export interface Database {
           farm_type?: string | null
           farm_location?: string | null
           organization?: string | null
-          date_of_office_visit?: string
+          gender?: string | null
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -94,6 +94,35 @@ export interface Database {
           description?: string | null
           notes?: string | null
           office_visit_at?: string
+          created_at?: string
+        }
+      }
+      app_users: {
+        Row: {
+          id: string
+          auth_user_id: string
+          full_name: string
+          email: string
+          role: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          auth_user_id: string
+          full_name: string
+          email: string
+          role?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          auth_user_id?: string
+          full_name?: string
+          email?: string
+          role?: string
+          is_active?: boolean
           created_at?: string
         }
       }

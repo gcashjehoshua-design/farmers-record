@@ -8,9 +8,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false, // We're not using auth for this app
-    autoRefreshToken: false,
-  },
-});
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

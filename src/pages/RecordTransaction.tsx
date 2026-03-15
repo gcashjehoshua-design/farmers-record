@@ -20,7 +20,6 @@ export default function RecordTransaction() {
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
   const [transactionType, setTransactionType] = useState("");
   const [transactionTypeFilter, setTransactionTypeFilter] = useState("");
-  const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -52,12 +51,11 @@ export default function RecordTransaction() {
       await createTransaction.mutateAsync({
         farmerId: selectedFarmer.id,
         transactionType,
-        amount: amount ? parseFloat(amount) : undefined,
         description: description || undefined,
         notes: notes || undefined,
         date: new Date(),
       });
-      success("Transaction recorded successfully!");
+      success(`Transaction recorded for ${selectedFarmer.fullName}!`);
       handleReset();
     } catch (e) {
       console.error("Error recording transaction:", e);
@@ -70,7 +68,6 @@ export default function RecordTransaction() {
     setSearchTerm("");
     setSelectedFarmer(null);
     setTransactionType("");
-    setAmount("");
     setDescription("");
     setNotes("");
   };
@@ -302,21 +299,6 @@ export default function RecordTransaction() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-5 p-6">
-                <div>
-                  <label className="text-base font-semibold text-gray-900 mb-3 block">Amount (if any money involved)</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 font-bold text-lg">₱</span>
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="input-modern pl-10 h-14 text-base"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-
                 <div>
                   <label className="text-base font-semibold text-gray-900 mb-3 block">Brief Description</label>
                   <Input

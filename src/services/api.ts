@@ -15,7 +15,6 @@ const mapFarmerFromDb = (row: Database["public"]["Tables"]["farmers"]["Row"]): F
   farmType: row.farm_type || undefined,
   farmLocation: row.farm_location || undefined,
   organization: row.organization || undefined,
-  dateOfOfficeVisit: row.date_of_office_visit ? new Date(row.date_of_office_visit) : undefined,
   notes: row.notes || undefined,
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),
@@ -33,7 +32,6 @@ const mapFarmerToDb = (farmer: Omit<Farmer, "id" | "createdAt" | "updatedAt">) =
   farm_type: farmer.farmType || null,
   farm_location: farmer.farmLocation || null,
   organization: farmer.organization || null,
-  date_of_office_visit: farmer.dateOfOfficeVisit ? farmer.dateOfOfficeVisit.toISOString() : undefined,
   notes: farmer.notes || null,
 });
 
@@ -62,13 +60,18 @@ const mapTransactionToDb = (transaction: Omit<Transaction, "id" | "createdAt">) 
 // Farmers
 export const farmerService = {
   list: async (): Promise<Farmer[]> => {
+    console.log("📡 Fetching farmers from Supabase...");
     const { data, error } = await supabase
       .from("farmers")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
-    return data.map(mapFarmerFromDb);
+    if (error) {
+      console.error("❌ Error fetching farmers:", error);
+      throw error;
+    }
+    console.log("✅ Farmers fetched:", data?.length ?? 0);
+    return data?.map(mapFarmerFromDb) ?? [];
   },
 
   get: async (id: string): Promise<Farmer> => {
@@ -106,9 +109,6 @@ export const farmerService = {
     if (farmerData.farmType !== undefined) updateData.farm_type = farmerData.farmType || null;
     if (farmerData.farmLocation !== undefined) updateData.farm_location = farmerData.farmLocation || null;
     if (farmerData.organization !== undefined) updateData.organization = farmerData.organization || null;
-    if (farmerData.dateOfOfficeVisit !== undefined) {
-      updateData.date_of_office_visit = farmerData.dateOfOfficeVisit.toISOString();
-    }
     if (farmerData.notes !== undefined) updateData.notes = farmerData.notes || null;
 
     const { data, error } = await supabase

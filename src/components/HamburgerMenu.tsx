@@ -1,6 +1,7 @@
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { supabaseUrl } from "@/lib/supabase";
-import { Home, Users, Receipt, UserPlus, History, X } from "lucide-react";
+import { Home, Users, Receipt, UserPlus, History, X, UserCog, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LogoUrl {
   name: string;
@@ -13,6 +14,7 @@ const navItems = [
   { path: "/record-transaction", label: "Transaction", icon: Receipt },
   { path: "/transaction-history", label: "History", icon: History },
   { path: "/add-farmer", label: "Add Farmer", icon: UserPlus },
+  { path: "/users", label: "User Management", icon: UserCog, requiresAdmin: true },
 ];
 
 const LOGOS_BUCKET = "logos";
@@ -39,6 +41,7 @@ interface HamburgerMenuProps {
 
 export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
   const location = useLocation();
+  const { user, logout } = useAuth();
   // Build logo URLs directly without fetching - logos are static
   const logos: LogoUrl[] = (() => {
     const prefix = getLogosPathPrefix();
@@ -77,7 +80,9 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
       {/* Nav - no onClick so menu stays open when navigating */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => !("requiresAdmin" in item) || !item.requiresAdmin || user?.role === "admin")
+            .map((item) => {
             const isActive = location.pathname === item.path ||
               (item.path !== "/" && location.pathname.startsWith(item.path));
             const Icon = item.icon;
@@ -110,7 +115,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         </div>
       </nav>
 
-      {/* Footer - all 3 logos + full system name */}
+      {/* Footer - all 3 logos + full system name + user info */}
       <div className="shrink-0 px-4 py-4 border-t border-earth-200/80 bg-[#faf8f5]">
         <div className="flex justify-center gap-2 mb-3">
           {logos.length > 0
@@ -132,7 +137,24 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         <p className="text-xs font-semibold text-earth-800 text-center leading-tight mb-0.5">
           Farmers Record and Transactions System
         </p>
-        <p className="text-xs text-earth-600 text-center">City of Passi Agriculture Office</p>
+        <p className="text-xs text-earth-600 text-center mb-2">City of Passi Agriculture Office</p>
+
+        {user && (
+          <div className="mt-2 pt-2 border-t border-earth-200/80 flex items-center justify-between gap-3 text-xs">
+            <div className="flex flex-col">
+              <span className="font-semibold text-earth-800">{user.fullName}</span>
+              <span className="text-earth-600 capitalize">{user.role}</span>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-earth-300 text-earth-700 hover:bg-earth-100 hover:border-earth-400 text-xs font-medium transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
