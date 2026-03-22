@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, AlertCircle, CheckCircle, FileUp, ArrowLeft } from "lucide-react";
+import { Upload, CheckCircle, FileUp, ArrowLeft } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import * as XLSX from "xlsx";
