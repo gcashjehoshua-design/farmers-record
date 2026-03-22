@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/useToast";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase";
 import { buildOfficialFullName, formatCommoditySummary } from "@/lib/farmerDisplay";
+import { PASSI_BARANGAYS } from "@/constants/barangays";
 
 interface FarmerImportData {
   rsbsaCode: string;
@@ -92,6 +93,26 @@ function normalizeCommodityKey(name: string): string {
   return name.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+/** Normalize barangay name by matching against PASSI_BARANGAYS list case-insensitively */
+function normalizeBarangayName(input: string | undefined): string | undefined {
+  if (!input) return undefined;
+  const trimmed = input.trim();
+  if (!trimmed) return undefined;
+  
+  // Try exact match first
+  if (PASSI_BARANGAYS.includes(trimmed)) {
+    return trimmed;
+  }
+  
+  // Try case-insensitive match
+  const lowerInput = trimmed.toLowerCase();
+  const matched = PASSI_BARANGAYS.find(
+    (barangay) => barangay.toLowerCase() === lowerInput
+  );
+  
+  return matched || trimmed; // Return matched name or original if no match
+}
+
 function mergeCommodityRow(
   farmer: FarmerImportData,
   commodityName: string,
@@ -156,7 +177,7 @@ function parseExcelToFarmers(buffer: ArrayBuffer): FarmerImportData[] {
         isIndigenousPeople: cellStr(row["IF IP"]).toUpperCase() === "YES",
         isOrganicPractitioner: (cellNum(row["ORGANIC PRACTITIONERS"]) ?? 0) > 0,
         isArb: cellStr(row["ARB"]).toUpperCase() === "YES",
-        farmerAddress1: cellStr(row["FARMER ADDRESS 1"]) || undefined,
+        farmerAddress1: normalizeBarangayName(cellStr(row["FARMER ADDRESS 1"])) || undefined,
         farmerAddress2: cellStr(row["FARMER ADDRESS 2"]) || undefined,
         farmerAddress3: cellStr(row["FARMER ADDRESS 3"]) || undefined,
         parcelNo: cellNum(row["PARCEL NO"]),

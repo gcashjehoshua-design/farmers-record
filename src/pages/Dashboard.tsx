@@ -77,6 +77,16 @@ export default function Dashboard() {
     return stats;
   }, [farmers]);
 
+  const barangayStats = useMemo(() => {
+    const stats: Record<string, number> = {};
+    (farmers || []).forEach((farmer) => {
+      if (farmer.farmerAddress1) {
+        stats[farmer.farmerAddress1] = (stats[farmer.farmerAddress1] || 0) + 1;
+      }
+    });
+    return stats;
+  }, [farmers]);
+
   const genderStats = useMemo(() => {
     const stats = { Male: 0, Female: 0 };
     (farmers || []).forEach((farmer) => {
@@ -150,13 +160,24 @@ export default function Dashboard() {
 
   const organizationChartData = useMemo(() => {
     return Object.entries(organizationStats)
-      .map(([name, value]) => ({ name: name.substring(0, 30), value: Math.round(value as number) }));
+      .map(([name, value]) => ({ name: name.substring(0, 30), value: Math.round(value as number) }))
+      .sort((a, b) => (b.value as number) - (a.value as number));
   }, [organizationStats]);
 
+  const barangayChartData = useMemo(() => {
+    // Start with all Passi City barangays
+    return PASSI_BARANGAYS.map((barangay) => ({
+      name: barangay,
+      value: barangayStats[barangay] || 0,
+    })).sort((a, b) => (b.value as number) - (a.value as number));
+  }, [barangayStats]);
 
 
-  // Define chart colors
-  const COLORS = ['#16a34a', '#0284c7', '#ea580c', '#d946ef', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+
+  // Define chart colors - theme-compliant palette
+  const COLORS = ['#16a34a', '#ea580c', '#06b6d4', '#9333ea', '#f43f5e', '#14b8a6', '#f59e0b', '#7c3aed'];
+  const GENDER_COLORS = ['#f87171', '#60a5fa']; // Warm red for Female-like, Cool blue for Male-like
+  const ORG_COLORS = ['#16a34a', '#ea580c', '#06b6d4', '#9333ea', '#f43f5e', '#14b8a6', '#f59e0b', '#7c3aed', '#ec4899', '#10b981'];
 
   const handlePrintVisitsPdf = async () => {
     setIsPrintingVisits(true);
@@ -487,8 +508,8 @@ export default function Dashboard() {
           {/* Gender Pie Chart */}
           <div>
             {genderChartData.length > 0 ? (
-              <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
-                <CardHeader className="bg-gradient-to-r from-farm-50 to-farm-100 border-b-2 border-farm-200">
+              <Card className="card-modern border-rose-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
+                <CardHeader className="bg-gradient-to-r from-rose-50 to-blue-50 border-b-2 border-rose-200">
                   <CardTitle className="text-xl font-display">Farmers by Gender</CardTitle>
                   <CardDescription>Gender distribution</CardDescription>
                 </CardHeader>
@@ -507,7 +528,7 @@ export default function Dashboard() {
                           dataKey="value"
                         >
                           {genderChartData.map((_entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={GENDER_COLORS[index % GENDER_COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip />
@@ -517,8 +538,8 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
-                <CardHeader className="bg-gradient-to-r from-farm-50 to-farm-100 border-b-2 border-farm-200">
+              <Card className="card-modern border-rose-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
+                <CardHeader className="bg-gradient-to-r from-rose-50 to-blue-50 border-b-2 border-rose-200">
                   <CardTitle className="text-xl font-display">Farmers by Gender</CardTitle>
                   <CardDescription>Gender distribution</CardDescription>
                 </CardHeader>
@@ -532,8 +553,8 @@ export default function Dashboard() {
           {/* Organization Pie Chart */}
           <div>
             {organizationChartData.length > 0 ? (
-              <Card className="card-modern border-sky-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
-                <CardHeader className="bg-gradient-to-r from-sky-50 to-sky-100 border-b-2 border-sky-200">
+              <Card className="card-modern border-purple-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-orange-50 border-b-2 border-purple-200">
                   <CardTitle className="text-xl font-display">Farmers by Organization</CardTitle>
                   <CardDescription>Organization distribution</CardDescription>
                 </CardHeader>
@@ -552,7 +573,7 @@ export default function Dashboard() {
                           dataKey="value"
                         >
                           {organizationChartData.map((_entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={ORG_COLORS[index % ORG_COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip />
@@ -562,8 +583,8 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="card-modern border-sky-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
-                <CardHeader className="bg-gradient-to-r from-sky-50 to-sky-100 border-b-2 border-sky-200">
+              <Card className="card-modern border-purple-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-orange-50 border-b-2 border-purple-200">
                   <CardTitle className="text-xl font-display">Farmers by Organization</CardTitle>
                   <CardDescription>Organization distribution</CardDescription>
                 </CardHeader>
@@ -574,7 +595,28 @@ export default function Dashboard() {
             )}
           </div>
 
-
+          {/* Barangay Bar Chart */}
+          <div className="md:col-span-2">
+            <Card className="card-modern border-green-200 animate-slide-up" style={{ animationDelay: '0.65s' }}>
+              <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 border-b-2 border-green-200">
+                <CardTitle className="text-xl font-display">Farmers by Barangay</CardTitle>
+                <CardDescription>All Passi City barangays with farmer count</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="max-h-96 overflow-y-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(600, barangayChartData.length * 40)}>
+                    <BarChart data={barangayChartData} layout="vertical" margin={{ left: 0, right: 20, top: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 13, fontWeight: 600 }} />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#16a34a" radius={[0, 8, 8, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
