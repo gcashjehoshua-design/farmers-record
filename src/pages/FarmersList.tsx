@@ -1,28 +1,40 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useFarmers, useDeleteFarmer } from "@/hooks/useApi";
+import { useFarmers, useDeleteFarmer, useAllCommodities } from "@/hooks/useApi";
+import { formatFarmerDisplayName, formatCommoditySummary } from "@/lib/farmerDisplay";
 import type { Farmer } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, ArrowLeft, Users, TrendingUp } from "lucide-react";
+import { Search, Plus, ArrowLeft, Users, TrendingUp, Upload } from "lucide-react";
 import FarmersTable from "@/components/FarmersTable";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
+import { PASSI_BARANGAYS } from "@/constants/barangays";
 
 const ITEMS_PER_PAGE = 10;
+
+function genderFilterLabel(g: string | undefined): string {
+  if (!g) return "";
+  const x = g.trim().toLowerCase();
+  if (x === "male" || x === "m") return "Male";
+  if (x === "female" || x === "f") return "Female";
+  return g;
+}
 
 export default function FarmersList() {
   const navigate = useNavigate();
   const { data: farmers, isLoading, error } = useFarmers();
+  const { data: allCommodities = [] } = useAllCommodities();
   const deleteFarmer = useDeleteFarmer();
   const { toasts, success, error: showError } = useToast();
 
   const handleDelete = async (farmer: Farmer) => {
-    if (!window.confirm(`Delete ${farmer.fullName || "this farmer"}?`)) return;
+    const display = formatFarmerDisplayName(farmer);
+    if (!window.confirm(`Delete ${display || "this farmer"}?`)) return;
     try {
-      await deleteFarmer.mutateAsync(farmer.id);
-      success(`${farmer.fullName} has been deleted.`);
+      await deleteFarmer.mutateAsync(farmer.rsbsaCode);
+      success(`${display} has been deleted.`);
     } catch (e) {
       showError("Failed to delete farmer.");
     }
@@ -30,60 +42,73 @@ export default function FarmersList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBarangay, setSelectedBarangay] = useState<string>("all");
   const [selectedOrganization, setSelectedOrganization] = useState<string>("all");
+  const [selectedGender, setSelectedGender] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const allBarangays = useMemo(() => {
-    const set = new Set<string>();
-    (farmers || []).forEach((farmer) => {
-      if (farmer.barangay) {
-        set.add(farmer.barangay);
-      }
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [farmers]);
 
   const allOrganizations = useMemo(() => {
     const set = new Set<string>();
     (farmers || []).forEach((farmer) => {
-      if (farmer.organization) {
-        set.add(farmer.organization);
+      if (farmer.agency) {
+        set.add(farmer.agency);
       }
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [farmers]);
 
+  const commoditySummaryByRsbsa = useMemo(() => {
+    const byCode = new Map<string, string[]>();
+    for (const c of allCommodities) {
+      const code = c.rsbsaCode;
+      if (!byCode.has(code)) byCode.set(code, []);
+      byCode.get(code)!.push(c.commodityName);
+    }
+    const out = new Map<string, string>();
+    for (const [code, names] of byCode) {
+      out.set(code, formatCommoditySummary(names));
+    }
+    return out;
+  }, [allCommodities]);
+
   const filteredFarmers = useMemo(() => {
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm.trim().toLowerCase();
+    const phoneDigits = searchTerm.replace(/\D/g, "");
     const base = (farmers || []).filter((farmer) => {
+      const displayName = formatFarmerDisplayName(farmer).toLowerCase();
+      const commodityText = (commoditySummaryByRsbsa.get(farmer.rsbsaCode) || "").toLowerCase();
+      const rsbsa = farmer.rsbsaCode.toLowerCase();
       const matchesSearch =
-        farmer.fullName.toLowerCase().includes(term) ||
-        (farmer.phone && farmer.phone.includes(searchTerm));
+        !term ||
+        displayName.includes(term) ||
+        rsbsa.includes(term) ||
+        commodityText.includes(term) ||
+        (farmer.phone && farmer.phone.toLowerCase().includes(term)) ||
+        (phoneDigits.length > 0 && farmer.phone && farmer.phone.replace(/\D/g, "").includes(phoneDigits)) ||
+        (farmer.firstName && farmer.firstName.toLowerCase().includes(term)) ||
+        (farmer.lastName && farmer.lastName.toLowerCase().includes(term)) ||
+        (farmer.middleName && farmer.middleName.toLowerCase().includes(term)) ||
+        (farmer.fullName && farmer.fullName.toLowerCase().includes(term));
       const matchesBarangay =
         selectedBarangay === "all" ||
         !selectedBarangay ||
-        farmer.barangay === selectedBarangay;
+        farmer.farmerAddress1 === selectedBarangay;
       const matchesOrganization =
         selectedOrganization === "all" ||
         !selectedOrganization ||
-        farmer.organization === selectedOrganization;
-      return matchesSearch && matchesBarangay && matchesOrganization;
+        farmer.agency === selectedOrganization;
+      const matchesGender =
+        selectedGender === "all" ||
+        !selectedGender ||
+        genderFilterLabel(farmer.gender) === selectedGender;
+      return matchesSearch && matchesBarangay && matchesOrganization && matchesGender;
     });
 
-    // Sort by organization, then barangay, then name for easier browsing
+    // Sort by creation date in ascending order (oldest/first added first)
     return base.sort((a, b) => {
-      const orgA = a.organization || "";
-      const orgB = b.organization || "";
-      if (orgA !== orgB) {
-        return orgA.localeCompare(orgB);
-      }
-      const barangayA = a.barangay || "";
-      const barangayB = b.barangay || "";
-      if (barangayA !== barangayB) {
-        return barangayA.localeCompare(barangayB);
-      }
-      return a.fullName.localeCompare(b.fullName);
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateA - dateB;
     });
-  }, [farmers, searchTerm, selectedBarangay, selectedOrganization]);
+  }, [farmers, searchTerm, selectedBarangay, selectedOrganization, selectedGender, commoditySummaryByRsbsa]);
 
   const totalPages = Math.ceil(filteredFarmers.length / ITEMS_PER_PAGE);
   const paginatedFarmers = filteredFarmers.slice(
@@ -138,7 +163,7 @@ export default function FarmersList() {
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
-                placeholder="Search by full name or phone number..."
+                placeholder="Search by name, RSBSA code, phone, or commodity..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="input-modern pl-12 h-14 text-base"
@@ -157,11 +182,28 @@ export default function FarmersList() {
                 className="input-modern w-full sm:w-64"
               >
                 <option value="all">All barangays</option>
-                {allBarangays.map((bgy) => (
+                {PASSI_BARANGAYS.map((bgy) => (
                   <option key={bgy} value={bgy}>
                     {bgy}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <label className="text-sm font-medium text-earth-700">
+                Filter by Gender:
+              </label>
+              <select
+                value={selectedGender}
+                onChange={(e) => {
+                  setSelectedGender(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="input-modern w-full sm:w-64"
+              >
+                <option value="all">All genders</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
               </select>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -185,7 +227,14 @@ export default function FarmersList() {
               </select>
             </div>
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-3">
+            <Button
+              onClick={() => navigate("/import-farmers")}
+              className="btn-secondary h-14 px-8 text-base"
+            >
+              <Upload className="w-5 h-5 mr-2" />
+              Import from Excel
+            </Button>
             <Button
               onClick={() => navigate("/add-farmer")}
               className="btn-farm h-14 px-8 text-base w-full lg:w-auto"
@@ -233,7 +282,11 @@ export default function FarmersList() {
                 <p className="text-sm text-gray-500 mt-2">Please wait while we fetch the data</p>
               </div>
             ) : (
-              <FarmersTable farmers={paginatedFarmers} onDelete={handleDelete} />
+              <FarmersTable
+                farmers={paginatedFarmers}
+                onDelete={handleDelete}
+                commoditySummaryByRsbsa={commoditySummaryByRsbsa}
+              />
             )}
           </CardContent>
         </Card>

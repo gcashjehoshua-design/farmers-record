@@ -1,6 +1,6 @@
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { supabaseUrl } from "@/lib/supabase";
-import { Home, Users, Receipt, UserPlus, History, X, UserCog, LogOut } from "lucide-react";
+import { Home, Users, Clipboard, UserPlus, History, X, UserCog, LogOut, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface LogoUrl {
@@ -11,7 +11,8 @@ interface LogoUrl {
 const navItems = [
   { path: "/", label: "Home", icon: Home },
   { path: "/farmers", label: "Farmers", icon: Users },
-  { path: "/record-transaction", label: "Transaction", icon: Receipt },
+  { path: "/import-farmers", label: "Import Farmers", icon: Upload },
+  { path: "/record-transaction", label: "Transaction", icon: Clipboard },
   { path: "/transaction-history", label: "History", icon: History },
   { path: "/add-farmer", label: "Add Farmer", icon: UserPlus },
   { path: "/users", label: "User Management", icon: UserCog, requiresAdmin: true },

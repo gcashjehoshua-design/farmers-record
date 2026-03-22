@@ -4,8 +4,9 @@ import { useFarmers, useCreateTransaction } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User, Edit, Receipt, RotateCcw, Check, Loader, Search as SearchIcon } from "lucide-react";
+import { User, Edit, Clipboard, RotateCcw, Check, Loader } from "lucide-react";
 import type { Farmer } from "@/types";
+import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
 import { ALL_TRANSACTION_TYPES } from "@/constants/transactionTypes";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
@@ -19,15 +20,24 @@ export default function RecordTransaction() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
   const [transactionType, setTransactionType] = useState("");
-  const [transactionTypeFilter, setTransactionTypeFilter] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
 
-  const filteredFarmers = farmers?.filter(
-    (farmer) =>
-      farmer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (farmer.phone && farmer.phone.includes(searchTerm))
-  ) || [];
+  const term = searchTerm.trim().toLowerCase();
+  const filteredFarmers =
+    farmers?.filter((farmer) => {
+      if (!term) return true;
+      const display = formatFarmerDisplayName(farmer).toLowerCase();
+      return (
+        display.includes(term) ||
+        farmer.rsbsaCode.toLowerCase().includes(term) ||
+        (farmer.phone && farmer.phone.toLowerCase().includes(term)) ||
+        (farmer.firstName && farmer.firstName.toLowerCase().includes(term)) ||
+        (farmer.lastName && farmer.lastName.toLowerCase().includes(term)) ||
+        (farmer.middleName && farmer.middleName.toLowerCase().includes(term)) ||
+        (farmer.fullName && farmer.fullName.toLowerCase().includes(term))
+      );
+    }) || [];
 
   const handleSelectFarmer = (farmer: Farmer) => {
     setSelectedFarmer(farmer);
@@ -49,13 +59,12 @@ export default function RecordTransaction() {
 
     try {
       await createTransaction.mutateAsync({
-        farmerId: selectedFarmer.id,
+        rsbsaCode: selectedFarmer.rsbsaCode,
         transactionType,
         description: description || undefined,
         notes: notes || undefined,
-        date: new Date(),
       });
-      success(`Transaction recorded for ${selectedFarmer.fullName}!`);
+      success(`Transaction recorded for ${formatFarmerDisplayName(selectedFarmer)}!`);
       handleReset();
     } catch (e) {
       console.error("Error recording transaction:", e);
@@ -72,10 +81,6 @@ export default function RecordTransaction() {
     setNotes("");
   };
 
-  const filteredTransactionTypes = ALL_TRANSACTION_TYPES.filter((t) =>
-    t.toLowerCase().includes(transactionTypeFilter.toLowerCase())
-  );
-
   const steps = ["Select Farmer", "Transaction Type", "Details"];
 
   return (
@@ -88,7 +93,7 @@ export default function RecordTransaction() {
         <div className="container mx-auto px-4 max-w-4xl py-6">
           <div className="flex items-center gap-4">
             <div className="p-4 bg-harvest-100 rounded-2xl">
-              <Receipt className="w-10 h-10 text-harvest-700" />
+              <Clipboard className="w-10 h-10 text-harvest-700" />
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-display font-bold mb-1 text-gray-900">
@@ -152,7 +157,7 @@ export default function RecordTransaction() {
               </CardHeader>
               <CardContent className="space-y-4 p-6">
                 <Input
-                  placeholder="Search farmer by name or phone number..."
+                  placeholder="Search by name, RSBSA code, or phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   disabled={!!selectedFarmer}
@@ -169,7 +174,7 @@ export default function RecordTransaction() {
                     </div>
                     <div className="p-4 bg-white rounded-xl border-2 border-farm-200 shadow-sm">
                       <h3 className="font-bold text-xl mb-2 text-gray-900">
-                        {selectedFarmer.fullName}
+                        {formatFarmerDisplayName(selectedFarmer)}
                       </h3>
                       <p className="text-gray-600 flex items-center gap-2">
                         <span className="text-lg">📱</span>
@@ -200,13 +205,13 @@ export default function RecordTransaction() {
                       <div className="divide-y divide-gray-100">
                         {filteredFarmers.map((farmer) => (
                           <button
-                            key={farmer.id}
+                            key={farmer.rsbsaCode}
                             type="button"
                             onClick={() => handleSelectFarmer(farmer)}
                             className="w-full text-left p-4 hover:bg-farm-50 transition-all duration-200 group"
                           >
                             <p className="font-semibold text-gray-900 text-base group-hover:text-farm-700">
-                              {farmer.fullName}
+                              {formatFarmerDisplayName(farmer)}
                             </p>
                             <p className="text-sm text-gray-600 mt-1">{farmer.phone}</p>
                           </button>
@@ -245,40 +250,18 @@ export default function RecordTransaction() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex gap-3 items-center">
-                    <div className="relative flex-1">
-                      <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        placeholder="Search transaction types..."
-                        value={transactionTypeFilter}
-                        onChange={(e) => setTransactionTypeFilter(e.target.value)}
-                        className="input-modern pl-10 h-12"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-12 border-2 border-harvest-200 hover:bg-harvest-50"
-                      onClick={() => setTransactionTypeFilter(transactionTypeFilter.trim())}
-                    >
-                      <SearchIcon className="w-5 h-5 mr-2" />
-                      Search
-                    </Button>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Select Transaction Type</label>
-                    <select
-                      value={transactionType}
-                      onChange={(e) => handleTransactionTypeSelect(e.target.value)}
-                      className="input-modern w-full h-12"
-                    >
-                      <option value="">Choose a transaction type...</option>
-                      {filteredTransactionTypes.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Select Transaction Type</label>
+                  <select
+                    value={transactionType}
+                    onChange={(e) => handleTransactionTypeSelect(e.target.value)}
+                    className="input-modern w-full h-12"
+                  >
+                    <option value="">Choose a transaction type...</option>
+                    {ALL_TRANSACTION_TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
               </CardContent>
             </Card>
@@ -290,7 +273,7 @@ export default function RecordTransaction() {
               <CardHeader className="bg-gradient-to-r from-earth-50 to-earth-100 border-b-2 border-earth-200">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-earth-200 rounded-xl">
-                    <Receipt className="w-6 h-6 text-earth-700" />
+                    <Clipboard className="w-6 h-6 text-earth-700" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-display">Step 3: Transaction Details</CardTitle>

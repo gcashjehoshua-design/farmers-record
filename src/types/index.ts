@@ -1,29 +1,65 @@
 export type Farmer = {
-  id: string;
+  rsbsaCode: string; // Primary key
+  lastName: string;
+  firstName: string;
+  middleName?: string;
   fullName: string;
-  phone: string;
-  rsbsaNumber?: string;
-  dateOfBirth?: Date;
   gender?: string;
-  address?: string;
-  barangay?: string;
-  zipCode?: string;
-  farmType?: string;
-  farmLocation?: string;
-  organization?: string;
+  birthdate?: Date;
+  phone?: string;
+  
+  // Farmer classifications
+  isFarmer?: boolean;
+  isFarmworker?: boolean;
+  isFisherfolk?: boolean;
+  isAgriyouth?: boolean;
+  isIndigenousPeople?: boolean;
+  isOrganicPractitioner?: boolean;
+  isArb?: boolean;
+  
+  // Address fields
+  farmerAddress1?: string;
+  farmerAddress2?: string;
+  farmerAddress3?: string;
+  
+  // Parcel/Farm information
+  parcelNo?: number;
+  parcelAddress1?: string;
+  parcelAddress2?: string;
+  parcelAddress3?: string;
+  parcelArea?: number;
+  cropArea?: number;
+  
+  // Additional information
+  tribe?: string;
+  agency?: string;
+  ownershipType?: string;
+  ownerName?: string;
+  dateEncoded?: Date;
+  
+  // Metadata
   notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type FarmerCommodity = {
+  id: string;
+  rsbsaCode: string;
+  commodityName: string;
+  numberOfHeads?: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type Transaction = {
   id: string;
-  farmerId: string;
+  rsbsaCode: string;
   transactionType: string;
   amount?: number;
   description?: string;
   notes?: string;
-  date: Date;
+  officeVisitAt?: Date;
   createdAt: Date;
 }
 

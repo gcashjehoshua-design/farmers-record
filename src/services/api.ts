@@ -1,91 +1,150 @@
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
-import type { Farmer, Transaction, DashboardStats } from "@/types";
+import type { Farmer, FarmerCommodity, Transaction, DashboardStats } from "@/types";
+
+/** PostgREST/Supabase default max rows per request — paginate past this for full lists. */
+const REST_PAGE_SIZE = 1000;
 
 // Helper function to map database row to Farmer type
 const mapFarmerFromDb = (row: Database["public"]["Tables"]["farmers"]["Row"]): Farmer => ({
-  id: row.id,
+  rsbsaCode: row.rsbsa_code,
+  lastName: row.last_name,
+  firstName: row.first_name,
+  middleName: row.middle_name || undefined,
   fullName: row.full_name,
-  phone: row.phone,
-  rsbsaNumber: row.rsbsa_number || undefined,
-  dateOfBirth: row.date_of_birth ? new Date(row.date_of_birth) : undefined,
-  address: row.address || undefined,
-  barangay: row.barangay || undefined,
-  zipCode: row.zip_code || undefined,
-  farmType: row.farm_type || undefined,
-  farmLocation: row.farm_location || undefined,
-  organization: row.organization || undefined,
+  gender: row.gender || undefined,
+  birthdate: row.birthdate ? new Date(row.birthdate) : undefined,
+  phone: row.phone || undefined,
+  isFarmer: row.is_farmer ?? false,
+  isFarmworker: row.is_farmworker ?? false,
+  isFisherfolk: row.is_fisherfolk ?? false,
+  isAgriyouth: row.is_agriyouth ?? false,
+  isIndigenousPeople: row.is_indigenous_people ?? false,
+  isOrganicPractitioner: row.is_organic_practitioner ?? false,
+  isArb: row.is_arb ?? false,
+  farmerAddress1: row.farmer_address_1 || undefined,
+  farmerAddress2: row.farmer_address_2 || undefined,
+  farmerAddress3: row.farmer_address_3 || undefined,
+  parcelNo: row.parcel_no || undefined,
+  parcelAddress1: row.parcel_address_1 || undefined,
+  parcelAddress2: row.parcel_address_2 || undefined,
+  parcelAddress3: row.parcel_address_3 || undefined,
+  parcelArea: row.parcel_area || undefined,
+  cropArea: row.crop_area || undefined,
+  tribe: row.tribe || undefined,
+  agency: row.agency || undefined,
+  ownershipType: row.ownership_type || undefined,
+  ownerName: row.owner_name || undefined,
+  dateEncoded: row.date_encoded ? new Date(row.date_encoded) : undefined,
   notes: row.notes || undefined,
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),
 });
 
 // Helper function to map Farmer type to database row
-const mapFarmerToDb = (farmer: Omit<Farmer, "id" | "createdAt" | "updatedAt">) => ({
+const mapFarmerToDb = (farmer: Omit<Farmer, "createdAt" | "updatedAt">) => ({
+  rsbsa_code: farmer.rsbsaCode,
+  last_name: farmer.lastName,
+  first_name: farmer.firstName,
+  middle_name: farmer.middleName || null,
   full_name: farmer.fullName,
-  phone: farmer.phone,
-  rsbsa_number: farmer.rsbsaNumber ?? null,
-  date_of_birth: farmer.dateOfBirth ? farmer.dateOfBirth.toISOString() : null,
-  address: farmer.address || null,
-  barangay: farmer.barangay || null,
-  zip_code: farmer.zipCode || null,
-  farm_type: farmer.farmType || null,
-  farm_location: farmer.farmLocation || null,
-  organization: farmer.organization || null,
+  gender: farmer.gender || null,
+  birthdate: farmer.birthdate ? farmer.birthdate.toISOString().split('T')[0] : null,
+  phone: farmer.phone || null,
+  is_farmer: farmer.isFarmer || false,
+  is_farmworker: farmer.isFarmworker || false,
+  is_fisherfolk: farmer.isFisherfolk || false,
+  is_agriyouth: farmer.isAgriyouth || false,
+  is_indigenous_people: farmer.isIndigenousPeople || false,
+  is_organic_practitioner: farmer.isOrganicPractitioner || false,
+  is_arb: farmer.isArb || false,
+  farmer_address_1: farmer.farmerAddress1 || null,
+  farmer_address_2: farmer.farmerAddress2 || null,
+  farmer_address_3: farmer.farmerAddress3 || null,
+  parcel_no: farmer.parcelNo || null,
+  parcel_address_1: farmer.parcelAddress1 || null,
+  parcel_address_2: farmer.parcelAddress2 || null,
+  parcel_address_3: farmer.parcelAddress3 || null,
+  parcel_area: farmer.parcelArea || null,
+  crop_area: farmer.cropArea || null,
+  tribe: farmer.tribe || null,
+  agency: farmer.agency || null,
+  ownership_type: farmer.ownershipType || null,
+  owner_name: farmer.ownerName || null,
+  date_encoded: farmer.dateEncoded ? farmer.dateEncoded.toISOString() : null,
   notes: farmer.notes || null,
+});
+
+// Helper function to map database row to FarmerCommodity type
+const mapCommodityFromDb = (row: Database["public"]["Tables"]["farmer_commodities"]["Row"]): FarmerCommodity => ({
+  id: row.id,
+  rsbsaCode: row.rsbsa_code,
+  commodityName: row.commodity_name,
+  numberOfHeads: row.number_of_heads || undefined,
+  createdAt: new Date(row.created_at),
+  updatedAt: new Date(row.updated_at),
 });
 
 // Helper function to map database row to Transaction type
 const mapTransactionFromDb = (row: Database["public"]["Tables"]["transactions"]["Row"]): Transaction => ({
   id: row.id,
-  farmerId: row.farmer_id,
+  rsbsaCode: row.rsbsa_code,
   transactionType: row.transaction_type,
   amount: row.amount !== null && row.amount !== undefined ? Number(row.amount) : undefined,
   description: row.description || undefined,
   notes: row.notes || undefined,
-  date: new Date(row.office_visit_at),
+  officeVisitAt: row.office_visit_at ? new Date(row.office_visit_at) : undefined,
   createdAt: new Date(row.created_at),
 });
 
 // Helper function to map Transaction type to database row
 const mapTransactionToDb = (transaction: Omit<Transaction, "id" | "createdAt">) => ({
-  farmer_id: transaction.farmerId,
+  rsbsa_code: transaction.rsbsaCode,
   transaction_type: transaction.transactionType,
   amount: transaction.amount ?? null,
   description: transaction.description || null,
   notes: transaction.notes || null,
-  office_visit_at: transaction.date.toISOString(),
+  office_visit_at: transaction.officeVisitAt ? transaction.officeVisitAt.toISOString() : new Date().toISOString(),
 });
 
 // Farmers
 export const farmerService = {
   list: async (): Promise<Farmer[]> => {
     console.log("📡 Fetching farmers from Supabase...");
-    const { data, error } = await supabase
-      .from("farmers")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const allRows: Database["public"]["Tables"]["farmers"]["Row"][] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("farmers")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + REST_PAGE_SIZE - 1);
 
-    if (error) {
-      console.error("❌ Error fetching farmers:", error);
-      throw error;
+      if (error) {
+        console.error("❌ Error fetching farmers:", error);
+        throw error;
+      }
+      const batch = data ?? [];
+      allRows.push(...batch);
+      if (batch.length < REST_PAGE_SIZE) break;
+      from += REST_PAGE_SIZE;
     }
-    console.log("✅ Farmers fetched:", data?.length ?? 0);
-    return data?.map(mapFarmerFromDb) ?? [];
+    console.log("✅ Farmers fetched:", allRows.length);
+    return allRows.map(mapFarmerFromDb);
   },
 
-  get: async (id: string): Promise<Farmer> => {
+  get: async (rsbsaCode: string): Promise<Farmer> => {
     const { data, error } = await supabase
       .from("farmers")
       .select("*")
-      .eq("id", id)
+      .eq("rsbsa_code", rsbsaCode)
       .single();
 
     if (error) throw error;
     return mapFarmerFromDb(data);
   },
 
-  create: async (farmerData: Omit<Farmer, "id" | "createdAt" | "updatedAt">): Promise<Farmer> => {
+  create: async (farmerData: Omit<Farmer, "createdAt" | "updatedAt">): Promise<Farmer> => {
     const { data, error } = await supabase
       .from("farmers")
       .insert(mapFarmerToDb(farmerData) as never)
@@ -96,25 +155,42 @@ export const farmerService = {
     return mapFarmerFromDb(data);
   },
 
-  update: async (id: string, farmerData: Partial<Farmer>): Promise<Farmer> => {
+  update: async (rsbsaCode: string, farmerData: Partial<Farmer>): Promise<Farmer> => {
     const updateData: Database["public"]["Tables"]["farmers"]["Update"] = {};
     
+    if (farmerData.lastName !== undefined) updateData.last_name = farmerData.lastName;
+    if (farmerData.firstName !== undefined) updateData.first_name = farmerData.firstName;
+    if (farmerData.middleName !== undefined) updateData.middle_name = farmerData.middleName || null;
     if (farmerData.fullName !== undefined) updateData.full_name = farmerData.fullName;
-    if (farmerData.phone !== undefined) updateData.phone = farmerData.phone;
-    if (farmerData.rsbsaNumber !== undefined) updateData.rsbsa_number = farmerData.rsbsaNumber ?? null;
-    if (farmerData.dateOfBirth !== undefined) updateData.date_of_birth = farmerData.dateOfBirth ? farmerData.dateOfBirth.toISOString() : null;
-    if (farmerData.address !== undefined) updateData.address = farmerData.address || null;
-    if (farmerData.barangay !== undefined) updateData.barangay = farmerData.barangay || null;
-    if (farmerData.zipCode !== undefined) updateData.zip_code = farmerData.zipCode || null;
-    if (farmerData.farmType !== undefined) updateData.farm_type = farmerData.farmType || null;
-    if (farmerData.farmLocation !== undefined) updateData.farm_location = farmerData.farmLocation || null;
-    if (farmerData.organization !== undefined) updateData.organization = farmerData.organization || null;
+    if (farmerData.phone !== undefined) updateData.phone = farmerData.phone || null;
+    if (farmerData.birthdate !== undefined) updateData.birthdate = farmerData.birthdate ? farmerData.birthdate.toISOString().split('T')[0] : null;
+    if (farmerData.gender !== undefined) updateData.gender = farmerData.gender || null;
+    if (farmerData.isFarmer !== undefined) updateData.is_farmer = farmerData.isFarmer;
+    if (farmerData.isFarmworker !== undefined) updateData.is_farmworker = farmerData.isFarmworker;
+    if (farmerData.isFisherfolk !== undefined) updateData.is_fisherfolk = farmerData.isFisherfolk;
+    if (farmerData.isAgriyouth !== undefined) updateData.is_agriyouth = farmerData.isAgriyouth;
+    if (farmerData.isIndigenousPeople !== undefined) updateData.is_indigenous_people = farmerData.isIndigenousPeople;
+    if (farmerData.isOrganicPractitioner !== undefined) updateData.is_organic_practitioner = farmerData.isOrganicPractitioner;
+    if (farmerData.isArb !== undefined) updateData.is_arb = farmerData.isArb;
+    if (farmerData.farmerAddress1 !== undefined) updateData.farmer_address_1 = farmerData.farmerAddress1 || null;
+    if (farmerData.farmerAddress2 !== undefined) updateData.farmer_address_2 = farmerData.farmerAddress2 || null;
+    if (farmerData.farmerAddress3 !== undefined) updateData.farmer_address_3 = farmerData.farmerAddress3 || null;
+    if (farmerData.parcelNo !== undefined) updateData.parcel_no = farmerData.parcelNo || null;
+    if (farmerData.parcelAddress1 !== undefined) updateData.parcel_address_1 = farmerData.parcelAddress1 || null;
+    if (farmerData.parcelAddress2 !== undefined) updateData.parcel_address_2 = farmerData.parcelAddress2 || null;
+    if (farmerData.parcelAddress3 !== undefined) updateData.parcel_address_3 = farmerData.parcelAddress3 || null;
+    if (farmerData.parcelArea !== undefined) updateData.parcel_area = farmerData.parcelArea || null;
+    if (farmerData.cropArea !== undefined) updateData.crop_area = farmerData.cropArea || null;
+    if (farmerData.tribe !== undefined) updateData.tribe = farmerData.tribe || null;
+    if (farmerData.agency !== undefined) updateData.agency = farmerData.agency || null;
+    if (farmerData.ownershipType !== undefined) updateData.ownership_type = farmerData.ownershipType || null;
+    if (farmerData.ownerName !== undefined) updateData.owner_name = farmerData.ownerName || null;
     if (farmerData.notes !== undefined) updateData.notes = farmerData.notes || null;
 
     const { data, error } = await supabase
       .from("farmers")
       .update(updateData as never)
-      .eq("id", id)
+      .eq("rsbsa_code", rsbsaCode)
       .select()
       .single();
 
@@ -122,37 +198,132 @@ export const farmerService = {
     return mapFarmerFromDb(data);
   },
 
-  delete: async (id: string): Promise<void> => {
+  delete: async (rsbsaCode: string): Promise<void> => {
     const { error } = await supabase
       .from("farmers")
+      .delete()
+      .eq("rsbsa_code", rsbsaCode);
+
+    if (error) throw error;
+  },
+
+  search: async (query: string): Promise<Farmer[]> => {
+    const allRows: Database["public"]["Tables"]["farmers"]["Row"][] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("farmers")
+        .select("*")
+        .or(
+          `full_name.ilike.%${query}%,phone.ilike.%${query}%,rsbsa_code.ilike.%${query}%,first_name.ilike.%${query}%,last_name.ilike.%${query}%,middle_name.ilike.%${query}%`
+        )
+        .order("created_at", { ascending: false })
+        .range(from, from + REST_PAGE_SIZE - 1);
+
+      if (error) throw error;
+      const batch = data ?? [];
+      allRows.push(...batch);
+      if (batch.length < REST_PAGE_SIZE) break;
+      from += REST_PAGE_SIZE;
+    }
+    return allRows.map(mapFarmerFromDb);
+  },
+};
+
+// Commodities
+export const commodityService = {
+  listByFarmer: async (rsbsaCode: string): Promise<FarmerCommodity[]> => {
+    const { data, error } = await supabase
+      .from("farmer_commodities")
+      .select("*")
+      .eq("rsbsa_code", rsbsaCode)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data?.map(mapCommodityFromDb) ?? [];
+  },
+
+  create: async (commodity: Omit<FarmerCommodity, "id" | "createdAt" | "updatedAt">): Promise<FarmerCommodity> => {
+    const { data, error } = await supabase
+      .from("farmer_commodities")
+      .insert({
+        rsbsa_code: commodity.rsbsaCode,
+        commodity_name: commodity.commodityName,
+        number_of_heads: commodity.numberOfHeads || 0,
+      } as never)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapCommodityFromDb(data);
+  },
+
+  update: async (id: string, commodity: Partial<FarmerCommodity>): Promise<FarmerCommodity> => {
+    const updateData: Database["public"]["Tables"]["farmer_commodities"]["Update"] = {};
+    
+    if (commodity.commodityName !== undefined) updateData.commodity_name = commodity.commodityName;
+    if (commodity.numberOfHeads !== undefined) updateData.number_of_heads = commodity.numberOfHeads || 0;
+
+    const { data, error } = await supabase
+      .from("farmer_commodities")
+      .update(updateData as never)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapCommodityFromDb(data);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from("farmer_commodities")
       .delete()
       .eq("id", id);
 
     if (error) throw error;
   },
 
-  search: async (query: string): Promise<Farmer[]> => {
-    const { data, error } = await supabase
-      .from("farmers")
-      .select("*")
-      .or(`full_name.ilike.%${query}%,phone.ilike.%${query}%,rsbsa_number.ilike.%${query}%`)
-      .order("created_at", { ascending: false });
+  /** All commodity rows (paginated) — used for dashboard farm-type analytics */
+  listAll: async (): Promise<FarmerCommodity[]> => {
+    const allRows: Database["public"]["Tables"]["farmer_commodities"]["Row"][] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("farmer_commodities")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + REST_PAGE_SIZE - 1);
 
-    if (error) throw error;
-    return data.map(mapFarmerFromDb);
+      if (error) throw error;
+      const batch = data ?? [];
+      allRows.push(...batch);
+      if (batch.length < REST_PAGE_SIZE) break;
+      from += REST_PAGE_SIZE;
+    }
+    return allRows.map(mapCommodityFromDb);
   },
 };
 
 // Transactions
 export const transactionService = {
   list: async (): Promise<Transaction[]> => {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .order("office_visit_at", { ascending: false });
+    const allRows: Database["public"]["Tables"]["transactions"]["Row"][] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("office_visit_at", { ascending: false })
+        .range(from, from + REST_PAGE_SIZE - 1);
 
-    if (error) throw error;
-    return data.map(mapTransactionFromDb);
+      if (error) throw error;
+      const batch = data ?? [];
+      allRows.push(...batch);
+      if (batch.length < REST_PAGE_SIZE) break;
+      from += REST_PAGE_SIZE;
+    }
+    return allRows.map(mapTransactionFromDb);
   },
 
   get: async (id: string): Promise<Transaction> => {
@@ -180,12 +351,12 @@ export const transactionService = {
   update: async (id: string, transactionData: Partial<Transaction>): Promise<Transaction> => {
     const updateData: Database["public"]["Tables"]["transactions"]["Update"] = {};
     
-    if (transactionData.farmerId !== undefined) updateData.farmer_id = transactionData.farmerId;
+    if (transactionData.rsbsaCode !== undefined) updateData.rsbsa_code = transactionData.rsbsaCode;
     if (transactionData.transactionType !== undefined) updateData.transaction_type = transactionData.transactionType;
     if (transactionData.amount !== undefined) updateData.amount = transactionData.amount ?? null;
     if (transactionData.description !== undefined) updateData.description = transactionData.description || null;
     if (transactionData.notes !== undefined) updateData.notes = transactionData.notes || null;
-    if (transactionData.date !== undefined) updateData.office_visit_at = transactionData.date.toISOString();
+    if (transactionData.officeVisitAt !== undefined) updateData.office_visit_at = transactionData.officeVisitAt ? transactionData.officeVisitAt.toISOString() : null;
 
     const { data, error } = await supabase
       .from("transactions")
@@ -207,62 +378,122 @@ export const transactionService = {
     if (error) throw error;
   },
 
-  listByFarmer: async (farmerId: string): Promise<Transaction[]> => {
+  listByFarmer: async (rsbsaCode: string): Promise<Transaction[]> => {
+    const allRows: Database["public"]["Tables"]["transactions"]["Row"][] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("rsbsa_code", rsbsaCode)
+        .order("office_visit_at", { ascending: false })
+        .range(from, from + REST_PAGE_SIZE - 1);
+
+      if (error) throw error;
+      const batch = data ?? [];
+      allRows.push(...batch);
+      if (batch.length < REST_PAGE_SIZE) break;
+      from += REST_PAGE_SIZE;
+    }
+    return allRows.map(mapTransactionFromDb);
+  },
+};
+
+async function resolveTotalFarmerCount(): Promise<number> {
+  const { data, error } = await supabase.from("dashboard_stats").select("total_farmers").maybeSingle();
+  if (!error && data != null && data.total_farmers != null) {
+    return Number(data.total_farmers);
+  }
+  const { count, error: countError } = await supabase
+    .from("farmers")
+    .select("rsbsa_code", { count: "exact", head: true });
+  if (countError) throw countError;
+  return count ?? 0;
+}
+
+/** Paginate transactions in a visit date range (PostgREST row limit is typically 1000). */
+async function fetchRsbsaCodesInVisitRange(startIso: string, endIso: string): Promise<string[]> {
+  const codes: string[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("rsbsa_code")
+      .gte("office_visit_at", startIso)
+      .lte("office_visit_at", endIso)
+      .order("office_visit_at", { ascending: true })
+      .range(from, from + REST_PAGE_SIZE - 1);
+
+    if (error) throw error;
+    const batch = data ?? [];
+    for (const row of batch) {
+      if (row?.rsbsa_code) codes.push(row.rsbsa_code);
+    }
+    if (batch.length < REST_PAGE_SIZE) break;
+    from += REST_PAGE_SIZE;
+  }
+  return codes;
+}
+
+async function fetchTransactionRowsInVisitRange(
+  startIso: string,
+  endIso: string
+): Promise<Database["public"]["Tables"]["transactions"]["Row"][]> {
+  const allRows: Database["public"]["Tables"]["transactions"]["Row"][] = [];
+  let from = 0;
+  for (;;) {
     const { data, error } = await supabase
       .from("transactions")
       .select("*")
-      .eq("farmer_id", farmerId)
-      .order("office_visit_at", { ascending: false });
+      .gte("office_visit_at", startIso)
+      .lte("office_visit_at", endIso)
+      .order("office_visit_at", { ascending: true })
+      .range(from, from + REST_PAGE_SIZE - 1);
 
     if (error) throw error;
-    return data.map(mapTransactionFromDb);
-  },
-};
+    const batch = data ?? [];
+    allRows.push(...batch);
+    if (batch.length < REST_PAGE_SIZE) break;
+    from += REST_PAGE_SIZE;
+  }
+  return allRows;
+}
+
+const RSBSA_IN_CHUNK = 150;
 
 // Dashboard
 export const dashboardService = {
   stats: async (month?: number, year?: number, day?: number): Promise<DashboardStats> => {
-    // Use provided month/year/day or default to current
     const now = new Date();
-    const selectedMonth = month !== undefined ? month : now.getMonth() + 1; // 1-12
+    const selectedMonth = month !== undefined ? month : now.getMonth() + 1;
     const selectedYear = year !== undefined ? year : now.getFullYear();
     const selectedDay = day !== undefined ? day : undefined;
 
-    // Calculate the start and end dates
     let startDate: Date;
     let endDate: Date;
 
     if (selectedDay !== undefined) {
-      // Specific day
-      startDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 0, 0, 0);
-      endDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59);
+      startDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 0, 0, 0, 0);
+      endDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59, 999);
     } else {
-      // Entire month
-      startDate = new Date(selectedYear, selectedMonth - 1, 1);
-      endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
+      startDate = new Date(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0);
+      endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
     }
 
-    const [farmersRes, transRes] = await Promise.all([
-      supabase.from("farmers").select("*", { count: "exact", head: true }),
-      supabase
-        .from("transactions")
-        .select("farmer_id")
-        .gte("office_visit_at", startDate.toISOString())
-        .lte("office_visit_at", endDate.toISOString()),
+    const startIso = startDate.toISOString();
+    const endIso = endDate.toISOString();
+
+    const [totalFarmers, visitCodes] = await Promise.all([
+      resolveTotalFarmerCount(),
+      fetchRsbsaCodesInVisitRange(startIso, endIso),
     ]);
 
-    if (farmersRes.error) throw farmersRes.error;
-    if (transRes.error) throw transRes.error;
-
-    // Calculate unique farmers and total visits for the selected period
-    const transactions = transRes.data as Array<Pick<Database["public"]["Tables"]["transactions"]["Row"], "farmer_id">> | null;
-    const uniqueFarmers = new Set(transactions?.map((t) => t.farmer_id) || []);
-    const visits = transactions?.length || 0;
+    const uniqueFarmers = new Set(visitCodes);
 
     return {
-      totalFarmers: farmersRes.count || 0,
+      totalFarmers,
       farmersVisitedThisMonth: uniqueFarmers.size,
-      visitsThisMonth: visits,
+      visitsThisMonth: visitCodes.length,
     };
   },
 
@@ -271,40 +502,36 @@ export const dashboardService = {
     let startDate: Date;
     let endDate: Date;
     if (day !== undefined) {
-      startDate = new Date(year, month - 1, day, 0, 0, 0);
-      endDate = new Date(year, month - 1, day, 23, 59, 59);
+      startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
     } else {
-      startDate = new Date(year, month - 1, 1);
-      endDate = new Date(year, month, 0, 23, 59, 59);
+      startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+      endDate = new Date(year, month, 0, 23, 59, 59, 999);
     }
 
-    const { data: txData, error: txError } = await supabase
-      .from("transactions")
-      .select("*")
-      .gte("office_visit_at", startDate.toISOString())
-      .lte("office_visit_at", endDate.toISOString())
-      .order("office_visit_at", { ascending: true });
+    const txRows = await fetchTransactionRowsInVisitRange(startDate.toISOString(), endDate.toISOString());
+    const transactions = txRows.map(mapTransactionFromDb);
 
-    if (txError) throw txError;
-    const transactions = (txData || []).map(mapTransactionFromDb);
+    const rsbsaCodes = [...new Set(transactions.map((t) => t.rsbsaCode))];
+    if (rsbsaCodes.length === 0) return [];
 
-    const farmerIds = [...new Set(transactions.map((t) => t.farmerId))];
-    if (farmerIds.length === 0) return [];
+    const nameByRsbsaCode: Record<string, string> = {};
+    for (let i = 0; i < rsbsaCodes.length; i += RSBSA_IN_CHUNK) {
+      const chunk = rsbsaCodes.slice(i, i + RSBSA_IN_CHUNK);
+      const { data: farmersData, error: farmersError } = await supabase
+        .from("farmers")
+        .select("rsbsa_code, full_name")
+        .in("rsbsa_code", chunk);
 
-    const { data: farmersData, error: farmersError } = await supabase
-      .from("farmers")
-      .select("id, full_name")
-      .in("id", farmerIds);
+      if (farmersError) throw farmersError;
+      (farmersData || []).forEach((f) => {
+        nameByRsbsaCode[f.rsbsa_code] = f.full_name || "Unknown";
+      });
+    }
 
-    if (farmersError) throw farmersError;
-    const nameByFarmerId: Record<string, string> = {};
-    (farmersData || []).forEach((f: { id: string; full_name: string }) => {
-      nameByFarmerId[f.id] = f.full_name || "Unknown";
-    });
-
-    return transactions.map((t: typeof transactions[0]) => ({
+    return transactions.map((t) => ({
       ...t,
-      farmerName: nameByFarmerId[t.farmerId] || "Unknown",
+      farmerName: nameByRsbsaCode[t.rsbsaCode] || "Unknown",
     }));
   },
 };

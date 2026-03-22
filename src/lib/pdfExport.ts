@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { Transaction } from "@/types";
+import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
 import { supabaseUrl } from "@/lib/supabase";
 
 const MARGIN = 15;
@@ -192,7 +193,7 @@ export async function exportVisitsToPdf(
   doc.setFont("helvetica", "normal");
 
   const rows = visits.map((v) => {
-    const date = new Date(v.date);
+    const date = new Date(v.officeVisitAt || v.createdAt);
     const dateStr = date.toLocaleDateString("en-PH", {
       month: "short",
       day: "numeric",
@@ -272,9 +273,9 @@ export async function exportProfileTransactionsToPdf(
   y += ROW_HEIGHT;
   doc.setFont("helvetica", "normal");
 
-  const sorted = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sorted = [...transactions].sort((a, b) => new Date(b.officeVisitAt || b.createdAt).getTime() - new Date(a.officeVisitAt || a.createdAt).getTime());
   const rows = sorted.map((tx) => {
-    const date = new Date(tx.date);
+    const date = new Date(tx.officeVisitAt || tx.createdAt);
     const dateStr = date.toLocaleDateString("en-PH", {
       month: "short",
       day: "numeric",
@@ -312,4 +313,90 @@ export async function exportProfileTransactionsToPdf(
 
   addFootersToAllPages(doc);
   doc.save(`transaction-history-${farmerName.replace(/\s+/g, "-")}.pdf`);
+}
+
+/** Export filtered farmers list to PDF */
+export async function exportFilteredFarmersToPdf(
+  farmers: Array<any>,
+  appliedFilters: string[]
+): Promise<void> {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  await addPdfHeader(doc, "Farmers Record List Report");
+  let y = CONTENT_TOP;
+
+  // Add filters info
+  if (appliedFilters.length > 0) {
+    doc.setFontSize(BODY_FONT);
+    doc.setFont("helvetica", "bold");
+    doc.text("Applied Filters:", MARGIN, y);
+    y += 6;
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    for (const filter of appliedFilters) {
+      const [label, value] = filter.split(":");
+      doc.text(`${label}: ${value}`, MARGIN + 5, y);
+      y += 4;
+    }
+    y += 4;
+  }
+
+  doc.setFontSize(BODY_FONT);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Total Farmers: ${farmers.length}`, MARGIN, y);
+  doc.text(`Generated: ${new Date().toLocaleDateString("en-PH", { dateStyle: "long" })}`, MARGIN, y + 6);
+  y += 18;
+
+  if (farmers.length === 0) {
+    doc.text("No records match the selected filters.", MARGIN, y);
+    addFootersToAllPages(doc);
+    doc.save("farmers-record-list.pdf");
+    return;
+  }
+
+  // Table headers
+  const colWidths = [28, 12, 18, 25, 25, 32];
+  const headers = ["Full Name", "Gender", "Farm Type", "Barangay", "Organization", "Phone"];
+
+  doc.setFontSize(HEADER_FONT);
+  doc.setFont("helvetica", "bold");
+  doc.setFillColor(238, 245, 238); // farm-50
+  doc.rect(MARGIN, y - 5, colWidths.reduce((a, b) => a + b, 0), ROW_HEIGHT, "F");
+  let x = MARGIN;
+  headers.forEach((h, i) => {
+    doc.text(h, x + 2, y + 2);
+    x += colWidths[i];
+  });
+  y += ROW_HEIGHT;
+  doc.setFont("helvetica", "normal");
+
+  // Table rows
+  for (const farmer of farmers) {
+    if (y > CONTENT_BOTTOM - ROW_HEIGHT) {
+      doc.addPage();
+      await addPdfHeader(doc, "Farmers Record List Report (continued)");
+      y = CONTENT_TOP;
+    }
+    
+    doc.setFontSize(BODY_FONT);
+    const row = [
+      truncateToFit(formatFarmerDisplayName(farmer) || "-", "name"),
+      truncateToFit(farmer.gender || "-", "gender"),
+      truncateToFit(farmer.farmType || "-", "type"),
+      truncateToFit(farmer.barangay || "-", "barangay"),
+      truncateToFit(farmer.organization || "-", "org"),
+      truncateToFit(farmer.phone || "-", "phone"),
+    ];
+    
+    x = MARGIN;
+    row.forEach((cell, i) => {
+      doc.text(String(cell), x + 2, y + 2);
+      x += colWidths[i];
+    });
+    y += ROW_HEIGHT;
+  }
+
+  addFootersToAllPages(doc);
+  doc.save("farmers-record-list.pdf");
 }

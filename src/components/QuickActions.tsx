@@ -1,10 +1,10 @@
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { Home, Users, Receipt, UserPlus, History } from "lucide-react";
+import { Home, Users, Clipboard, UserPlus, History } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Home", icon: Home },
   { path: "/farmers", label: "Farmers", icon: Users },
-  { path: "/record-transaction", label: "Transaction", icon: Receipt },
+  { path: "/record-transaction", label: "Transaction", icon: Clipboard },
   { path: "/transaction-history", label: "History", icon: History },
   { path: "/add-farmer", label: "Add Farmer", icon: UserPlus },
 ];

@@ -6,10 +6,12 @@ import HamburgerMenu from "@/components/HamburgerMenu";
 import MenuToggle from "@/components/MenuToggle";
 import { BackButton } from "@/components/BackButton";
 import { RequireAuth } from "@/components/RequireAuth";
+import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import Dashboard from "@/pages/Dashboard";
 import FarmersList from "@/pages/FarmersList";
 import AddFarmer from "@/pages/AddFarmer";
+import ImportFarmers from "@/pages/ImportFarmers";
 import RecordTransaction from "@/pages/RecordTransaction";
 import TransactionHistory from "@/pages/TransactionHistory";
 import ViewFarmer from "@/pages/ViewFarmer";
@@ -61,6 +63,7 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/add-farmer" element={<AddFarmer />} />
+            <Route path="/import-farmers" element={<ImportFarmers />} />
             <Route path="/record-transaction" element={<RecordTransaction />} />
             <Route path="/transaction-history" element={<TransactionHistory />} />
             <Route path="/farmers/:id/edit" element={<EditFarmer />} />
@@ -70,6 +73,7 @@ function AppLayout() {
             <Route path="/users" element={<UserManagement />} />
           </Routes>
         </main>
+        <Footer />
       </div>
     </div>
   );

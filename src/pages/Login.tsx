@@ -15,9 +15,9 @@ interface LogoUrl {
 
 const LOGOS_BUCKET = "logos";
 const FALLBACK_LOGOS = [
+  "agriculture-office-logo.png",
   "passi-city-logo.png",
   "palangga-passi-logo.png",
-  "agriculture-office-logo.png",
 ];
 
 function getLogosPathPrefix(): string {
@@ -59,9 +59,9 @@ export default function Login() {
     const errors: { email?: string; password?: string } = {};
     
     if (!email.trim()) {
-      errors.email = "Email is required";
+      errors.email = "Username is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "Please enter a valid email address";
+      errors.email = "Please enter a valid username";
     }
     
     if (!password) {
@@ -138,9 +138,9 @@ export default function Login() {
                   <Lock className="w-6 h-6 text-farm-700" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl font-display">Sign in to the System</CardTitle>
+                  <CardTitle className="text-2xl font-display">Department of Agriculture</CardTitle>
                   <CardDescription className="text-sm">
-                    Access the Farmers Record and Transactions System
+                    Farmers Record and Transactions System
                   </CardDescription>
                 </div>
               </div>
@@ -155,17 +155,17 @@ export default function Login() {
             )}
 
             <form className="space-y-4" onSubmit={handleSubmit}>
-              {/* Email Field */}
+              {/* Username Field */}
               <div>
                 <label className="block text-sm font-semibold text-earth-800 mb-1.5">
-                  Email Address
+                  Username
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
                     type="email"
                     autoComplete="username"
-                    placeholder="admin@example.com"
+                    placeholder="Enter your username"
                     className={`input-modern h-11 pl-9 transition-colors ${
                       fieldErrors.email ? "border-red-300 bg-red-50" : ""
                     }`}

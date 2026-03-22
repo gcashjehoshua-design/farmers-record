@@ -7,6 +7,7 @@ import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import { User, History, Calendar, ArrowLeft, Trash2, AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
 
 const transactionTypeColors: Record<string, string> = {
   "Loan": "bg-blue-100 text-blue-700",
@@ -31,10 +32,10 @@ export default function FarmerProfile() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDeleteFarmer = async () => {
-    if (!farmer?.id) return;
+    if (!farmer?.rsbsaCode) return;
     try {
-      await deleteFarmer.mutateAsync(farmer.id);
-      success(`Farmer "${farmer.fullName}" has been deleted successfully`);
+      await deleteFarmer.mutateAsync(farmer.rsbsaCode);
+      success(`Farmer "${formatFarmerDisplayName(farmer)}" has been deleted successfully`);
       setTimeout(() => navigate("/farmers"), 1500);
     } catch (err) {
       console.error("Error deleting farmer:", err);
@@ -86,7 +87,7 @@ export default function FarmerProfile() {
                 <div className="flex-1">
                   <h3 className="font-bold text-earth-800 mb-2">Delete Farmer?</h3>
                   <p className="text-sm text-earth-600 mb-4">
-                    Are you sure you want to delete <strong>{farmer.fullName}</strong>? This action cannot be undone and will also delete all associated transactions and visit records.
+                    Are you sure you want to delete <strong>{formatFarmerDisplayName(farmer)}</strong>? This action cannot be undone and will also delete all associated transactions and visit records.
                   </p>
                   <div className="flex gap-3">
                     <button
@@ -113,11 +114,11 @@ export default function FarmerProfile() {
       <div className="border-b-2 border-earth-200 bg-earth-900/5 rounded-2xl p-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-farmer text-white text-2xl font-bold flex items-center justify-center shadow-farm">
-            {farmer.fullName?.[0] ?? "F"}
+            {formatFarmerDisplayName(farmer).charAt(0) || "F"}
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold text-earth-800">
-              {farmer.fullName}
+              {formatFarmerDisplayName(farmer)}
             </h1>
             <p className="text-earth-600 mt-1">Farmer Profile & Transaction History</p>
           </div>
@@ -196,7 +197,7 @@ export default function FarmerProfile() {
                 </thead>
                 <tbody>
                   {transactions
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .sort((a, b) => new Date(b.officeVisitAt || b.createdAt).getTime() - new Date(a.officeVisitAt || a.createdAt).getTime())
                     .map((tx, index) => (
                       <tr
                         key={tx.id}
@@ -205,12 +206,10 @@ export default function FarmerProfile() {
                         }`}
                       >
                         <td className="px-4 py-3 text-sm text-earth-700">
-                          {new Date(tx.date).toLocaleDateString("en-PH", {
+                          {new Date(tx.officeVisitAt || tx.createdAt).toLocaleDateString("en-PH", {
                             year: "numeric",
                             month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
+                            day: "numeric"
                           })}
                         </td>
                         <td className="px-4 py-3">

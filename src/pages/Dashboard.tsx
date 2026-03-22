@@ -1,14 +1,30 @@
 import { Link as RouterLink } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDashboardStats, useFarmers, useTransactions } from "@/hooks/useApi";
+import { useDashboardStats, useFarmers, useTransactions, useAllCommodities } from "@/hooks/useApi";
 import { dashboardService } from "@/services/api";
-import { exportVisitsToPdf } from "@/lib/pdfExport";
+import { exportVisitsToPdf, exportFilteredFarmersToPdf } from "@/lib/pdfExport";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Receipt, UserPlus, TrendingUp, ArrowRight, CalendarDays, X, Save, FileDown, BarChart3 } from "lucide-react";
+import { Users, UserPlus, TrendingUp, ArrowRight, CalendarDays, X, Save, FileDown, BarChart3, Clipboard } from "lucide-react";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
+import { PASSI_BARANGAYS } from "@/constants/barangays";
+import {
+  PRINT_FARM_TYPE_KEYS,
+  cropCommodityChartData,
+  livestockCommodityChartData,
+} from "@/lib/commodityClassification";
+
+/** Map DB values like MALE / FEMALE to chart buckets */
+function bucketGender(g: string | undefined): "Male" | "Female" | null {
+  if (!g) return null;
+  const x = g.trim().toLowerCase();
+  if (x === "male" || x === "m") return "Male";
+  if (x === "female" || x === "f") return "Female";
+  return null;
+}
 
 export default function Dashboard() {
   const now = new Date();
@@ -20,85 +36,66 @@ export default function Dashboard() {
   const [tempYear, setTempYear] = useState(selectedYear);
   const [tempDay, setTempDay] = useState<number | null>(selectedDay);
   const [isPrintingVisits, setIsPrintingVisits] = useState(false);
-  const [selectedFarmType, setSelectedFarmType] = useState<string>("all");
-  const [selectedOrganization, setSelectedOrganization] = useState<string>("all");
-  const [selectedGender, setSelectedGender] = useState<string>("all");
-  const [selectedBarangay, setSelectedBarangay] = useState<string>("all");
-  const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  const [isPrintingFiltered, setIsPrintingFiltered] = useState(false);
+  const [printFilters, setPrintFilters] = useState<{
+    genders: { [key: string]: boolean };
+    farmTypes: { [key: string]: boolean };
+    organizations: { [key: string]: boolean };
+    barangays: { [key: string]: boolean };
+  }>({
+    genders: { Male: true, Female: true },
+    farmTypes: {},
+    organizations: {},
+    barangays: {},
+  });
 
   const { toasts, success, error: showError } = useToast();
   const queryClient = useQueryClient();
-  const { data: stats, isLoading, error } = useDashboardStats(selectedMonth, selectedYear, selectedDay !== null ? selectedDay : undefined);
-  const { data: farmers } = useFarmers();
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useDashboardStats(selectedMonth, selectedYear, selectedDay !== null ? selectedDay : undefined);
+  const {
+    data: farmers,
+    isLoading: farmersLoading,
+    error: farmersError,
+    refetch: refetchFarmers,
+  } = useFarmers();
   const { data: transactions } = useTransactions();
+  const { data: commodities } = useAllCommodities();
 
-  // Calculate farm types, organizations, and gender distribution
-  const farmTypeStats = useMemo(() => {
-    const stats: Record<string, number> = {};
-    (farmers || []).forEach((farmer) => {
-      if (farmer.farmType) {
-        stats[farmer.farmType] = (stats[farmer.farmType] || 0) + 1;
-      }
-    });
-    return stats;
-  }, [farmers]);
-
+  // Calculate organizations and gender distribution
   const organizationStats = useMemo(() => {
     const stats: Record<string, number> = {};
     (farmers || []).forEach((farmer) => {
-      if (farmer.organization) {
-        stats[farmer.organization] = (stats[farmer.organization] || 0) + 1;
+      if (farmer.agency) {
+        stats[farmer.agency] = (stats[farmer.agency] || 0) + 1;
       }
     });
     return stats;
   }, [farmers]);
 
   const genderStats = useMemo(() => {
-    const stats = { Male: 0, Female: 0, Other: 0 };
+    const stats = { Male: 0, Female: 0 };
     (farmers || []).forEach((farmer) => {
-      if (farmer.gender === "Male") stats.Male++;
-      else if (farmer.gender === "Female") stats.Female++;
-      else if (farmer.gender === "Other") stats.Other++;
+      const b = bucketGender(farmer.gender);
+      if (b === "Male") stats.Male++;
+      else if (b === "Female") stats.Female++;
     });
     return stats;
   }, [farmers]);
 
-  const barangayStats = useMemo(() => {
-    const stats: Record<string, number> = {};
-    (farmers || []).forEach((farmer) => {
-      if (farmer.barangay) {
-        stats[farmer.barangay] = (stats[farmer.barangay] || 0) + 1;
-      }
-    });
-    return stats;
-  }, [farmers]);
-
-  const allFarmTypes = useMemo(() => {
-    return Object.keys(farmTypeStats).sort();
-  }, [farmTypeStats]);
-
-  const allOrganizations = useMemo(() => {
-    return Object.keys(organizationStats).sort();
+  // Sync print filter options when organization list (from farmers) changes
+  useEffect(() => {
+    setPrintFilters((prev) => ({
+      genders: prev.genders,
+      farmTypes: Object.fromEntries(PRINT_FARM_TYPE_KEYS.map((type) => [type, true])),
+      organizations: Object.fromEntries(Object.keys(organizationStats).map((org) => [org, true])),
+      barangays: Object.fromEntries(PASSI_BARANGAYS.map((barangay) => [barangay, true])),
+    }));
   }, [organizationStats]);
-
-  const allBarangays = useMemo(() => {
-    return Object.keys(barangayStats).sort();
-  }, [barangayStats]);
-
-  // Calculate filtered stats based on selected filters
-  const filteredStats = useMemo(() => {
-    const filtered = (farmers || []).filter((farmer) => {
-      const matchesFarmType = selectedFarmType === "all" || farmer.farmType === selectedFarmType;
-      const matchesOrganization = selectedOrganization === "all" || farmer.organization === selectedOrganization;
-      const matchesGender = selectedGender === "all" || farmer.gender === selectedGender;
-      const matchesBarangay = selectedBarangay === "all" || farmer.barangay === selectedBarangay;
-      return matchesFarmType && matchesOrganization && matchesGender && matchesBarangay;
-    });
-    return {
-      totalInFilter: filtered.length,
-      farmTypeCount: selectedFarmType === "all" ? stats?.totalFarmers : farmTypeStats[selectedFarmType] || 0,
-    };
-  }, [farmers, selectedFarmType, selectedOrganization, selectedGender, selectedBarangay, stats, farmTypeStats]);
 
   // Calculate visits per organization for the selected date period
   const visitsPerOrganization = useMemo(() => {
@@ -108,35 +105,49 @@ export default function Dashboard() {
     let startDate: Date;
     let endDate: Date;
     if (selectedDay !== null) {
-      startDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 0, 0, 0);
-      endDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59);
+      startDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 0, 0, 0, 0);
+      endDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59, 999);
     } else {
-      startDate = new Date(selectedYear, selectedMonth - 1, 1);
-      endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
+      startDate = new Date(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0);
+      endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
     }
 
-    // Filter transactions by date and farmers by selected filters
-    const farmerMap = new Map((farmers || []).map((f) => [f.id, f]));
-    
+    // Filter transactions by date
     (transactions || []).forEach((tx) => {
-      const txDate = new Date(tx.date);
+      const txDate = new Date(tx.officeVisitAt || tx.createdAt);
       if (txDate >= startDate && txDate <= endDate) {
-        const farmer = farmerMap.get(tx.farmerId);
-        if (farmer) {
-          // Apply farmType, gender, barangay filters
-          const matchesFarmType = selectedFarmType === "all" || farmer.farmType === selectedFarmType;
-          const matchesGender = selectedGender === "all" || farmer.gender === selectedGender;
-          const matchesBarangay = selectedBarangay === "all" || farmer.barangay === selectedBarangay;
-          
-          if (matchesFarmType && matchesGender && matchesBarangay && farmer.organization) {
-            orgVisits[farmer.organization] = (orgVisits[farmer.organization] || 0) + 1;
-          }
+        const farmer = (farmers || []).find(f => f.rsbsaCode === tx.rsbsaCode);
+        if (farmer && farmer.agency) {
+          orgVisits[farmer.agency] = (orgVisits[farmer.agency] || 0) + 1;
         }
       }
     });
     
     return orgVisits;
-  }, [transactions, farmers, selectedMonth, selectedYear, selectedDay, selectedFarmType, selectedGender, selectedBarangay]);
+  }, [transactions, farmers, selectedMonth, selectedYear, selectedDay]);
+
+  const cropChartData = useMemo(() => cropCommodityChartData(commodities), [commodities]);
+  const livestockChartData = useMemo(() => livestockCommodityChartData(commodities), [commodities]);
+
+  const farmChartsHaveData = useMemo(
+    () =>
+      cropChartData.some((d) => d.value > 0) || livestockChartData.some((d) => d.value > 0),
+    [cropChartData, livestockChartData]
+  );
+
+  const genderChartData = useMemo(() => {
+    return Object.entries(genderStats).map(([name, value]) => ({ name, value: Math.round(value as number) }));
+  }, [genderStats]);
+
+  const organizationChartData = useMemo(() => {
+    return Object.entries(organizationStats)
+      .map(([name, value]) => ({ name: name.substring(0, 30), value: Math.round(value as number) }));
+  }, [organizationStats]);
+
+
+
+  // Define chart colors
+  const COLORS = ['#16a34a', '#0284c7', '#ea580c', '#d946ef', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
   const handlePrintVisitsPdf = async () => {
     setIsPrintingVisits(true);
@@ -175,21 +186,59 @@ export default function Dashboard() {
     setIsDatePickerOpen(false);
   };
 
-  if (error)
-    return (
-      <div className="container mx-auto px-4 py-8 animate-fade-in">
-        <div className="bg-red-50 border-2 border-red-300 text-red-700 px-6 py-4 rounded-2xl shadow-lg">
-          <p className="font-semibold">Error loading dashboard</p>
-          <p className="text-sm mt-1">Please try refreshing the page</p>
-        </div>
-      </div>
-    );
+  const handleExportFilteredFarmersPdf = async () => {
+    setIsPrintingFiltered(true);
+    try {
+      const filtered = (farmers || []).filter((farmer) => {
+        const genderKey = bucketGender(farmer.gender);
+        const genderSelected =
+          genderKey != null
+            ? !!printFilters.genders[genderKey]
+            : printFilters.genders.Male && printFilters.genders.Female;
+        const farmTypeSelected = true; // Print dialog farm-type filters are legacy; commodity-based chart is separate
+        const organizationSelected = printFilters.organizations[farmer.agency || ""];
+        const barangaySelected = printFilters.barangays[farmer.farmerAddress1 || ""];
+        
+        return genderSelected && farmTypeSelected && organizationSelected && barangaySelected;
+      });
+
+      const appliedFiltersList = [];
+      const selectedGenders = Object.entries(printFilters.genders)
+        .filter(([_, selected]) => selected)
+        .map(([gender]) => gender);
+      if (selectedGenders.length > 0) appliedFiltersList.push(`Gender: ${selectedGenders.join(", ")}`);
+
+      const selectedFarmTypes = Object.entries(printFilters.farmTypes)
+        .filter(([_, selected]) => selected)
+        .map(([type]) => type);
+      if (selectedFarmTypes.length > 0) appliedFiltersList.push(`Farm Type: ${selectedFarmTypes.join(", ")}`);
+
+      const selectedOrgs = Object.entries(printFilters.organizations)
+        .filter(([_, selected]) => selected)
+        .map(([org]) => org);
+      if (selectedOrgs.length > 0) appliedFiltersList.push(`Organization: ${selectedOrgs.join(", ")}`);
+
+      const selectedBarangays = Object.entries(printFilters.barangays)
+        .filter(([_, selected]) => selected)
+        .map(([barangay]) => barangay);
+      if (selectedBarangays.length > 0) appliedFiltersList.push(`Barangay: ${selectedBarangays.join(", ")}`);
+
+      await exportFilteredFarmersToPdf(filtered, appliedFiltersList);
+      success("Farmers report exported successfully!");
+      setIsPrintDialogOpen(false);
+    } catch (e) {
+      console.error(e);
+      showError("Failed to export report.");
+    } finally {
+      setIsPrintingFiltered(false);
+    }
+  };
 
   const actions = [
     {
       title: "Record Transaction",
       description: "Register a new farmer visit and record the transaction type",
-      icon: Receipt,
+      icon: Clipboard,
       path: "/record-transaction",
       gradient: "from-harvest-500 to-harvest-600",
       bgGradient: "from-harvest-50 to-harvest-100",
@@ -221,7 +270,7 @@ export default function Dashboard() {
     },
   ];
 
-  const totalFarmers = filteredStats.totalInFilter;
+  const totalFarmers = stats?.totalFarmers ?? farmers?.length ?? 0;
   const farmersVisitedThisMonth = stats?.farmersVisitedThisMonth || 0;
   const visitsThisMonth = stats?.visitsThisMonth || 0;
 
@@ -230,6 +279,26 @@ export default function Dashboard() {
       {toasts.map((toast) => (
         <Toast key={toast.id} type={toast.type} message={toast.message} />
       ))}
+      {(statsError || farmersError) && (
+        <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm">
+          <p className="font-semibold">Some data could not be loaded</p>
+          <p className="text-sm mt-1">
+            {statsError && <span>Statistics: {String((statsError as Error).message)}. </span>}
+            {farmersError && (
+              <span>
+                Farmer list: {String((farmersError as Error).message)}.{" "}
+                <button
+                  type="button"
+                  className="underline font-medium text-amber-900"
+                  onClick={() => void refetchFarmers()}
+                >
+                  Retry farmers
+                </button>
+              </span>
+            )}
+          </p>
+        </div>
+      )}
       {/* Statistics Cards */}
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.1s' }}>
@@ -240,22 +309,20 @@ export default function Dashboard() {
               </div>
               <div className="px-3 py-1 bg-farm-100 rounded-full">
                 <span className="text-xs font-semibold text-farm-700">
-                  {selectedFarmType !== "all" || selectedOrganization !== "all" || selectedGender !== "all" ? "Filtered" : "Total"}
+                  Total
                 </span>
               </div>
             </div>
             <p className="text-sm text-earth-700 mb-2">Farmers</p>
             <p className="text-4xl font-bold text-gradient-farm mb-1">
-              {isLoading ? (
+              {statsLoading && farmersLoading ? (
                 <span className="inline-block w-16 h-10 bg-gray-200 rounded animate-pulse"></span>
               ) : (
                 totalFarmers
               )}
             </p>
             <p className="text-xs text-earth-600">
-              {selectedFarmType !== "all" || selectedOrganization !== "all" || selectedGender !== "all" 
-                ? "Matching selected filters"
-                : "In the system"}
+              In the system
             </p>
           </CardContent>
         </Card>
@@ -281,7 +348,7 @@ export default function Dashboard() {
             </div>
             <p className="text-sm text-earth-700 mb-2">Farmers Visited</p>
             <p className="text-4xl font-bold text-sky-700 mb-1">
-              {isLoading ? (
+              {statsLoading ? (
                 <span className="inline-block w-16 h-10 bg-gray-200 rounded animate-pulse"></span>
               ) : (
                 farmersVisitedThisMonth
@@ -290,7 +357,7 @@ export default function Dashboard() {
             <p className="text-xs text-earth-600">
               Visits:{" "}
               <span className="font-semibold text-earth-800">
-                {isLoading ? "..." : visitsThisMonth}
+                {statsLoading ? "..." : visitsThisMonth}
               </span>
               <span className="block mt-1 text-earth-500">Click date above → Save to filter</span>
             </p>
@@ -342,222 +409,202 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Separated Filter Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* Farm Type Filter Card */}
-        <Card className="card-modern border-harvest-200 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-harvest-100 rounded-xl">
-                <TrendingUp className="w-6 h-6 text-harvest-600" />
-              </div>
-              <div className="px-3 py-1 bg-harvest-100 rounded-full">
-                <span className="text-xs font-semibold text-harvest-700">Farm Type</span>
-              </div>
-            </div>
-            <p className="text-sm text-earth-700 mb-3 font-medium">Filter by Farm Type</p>
-            <div className="relative">
-              <button
-                onClick={() => setOpenFilter(openFilter === "farmType" ? null : "farmType")}
-                className="w-full px-3 py-2 rounded-lg text-left bg-harvest-50 text-harvest-700 hover:bg-harvest-100 border border-harvest-200 transition-colors text-sm font-medium"
-              >
-                {selectedFarmType === "all" ? "All Types" : selectedFarmType}
-              </button>
-              {openFilter === "farmType" && (
-                <div className="absolute top-full left-0 right-0 bg-white border-2 border-harvest-200 rounded-lg mt-1 shadow-lg z-10">
-                  <div className="max-h-48 overflow-y-auto">
-                    <button onClick={() => { setSelectedFarmType("all"); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-harvest-50 font-medium">All Types</button>
-                    {allFarmTypes.map((type) => (
-                      <button key={type} onClick={() => { setSelectedFarmType(type); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-harvest-50 flex justify-between">
-                        <span>{type}</span> <span className="text-xs text-earth-600">({farmTypeStats[type]})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Gender Filter Card */}
-        <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.35s' }}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-farm-100 rounded-xl">
-                <Users className="w-6 h-6 text-farm-600" />
-              </div>
-              <div className="px-3 py-1 bg-farm-100 rounded-full">
-                <span className="text-xs font-semibold text-farm-700">Gender</span>
-              </div>
-            </div>
-            <p className="text-sm text-earth-700 mb-3 font-medium">Filter by Gender</p>
-            <div className="relative">
-              <button
-                onClick={() => setOpenFilter(openFilter === "gender" ? null : "gender")}
-                className="w-full px-3 py-2 rounded-lg text-left bg-farm-50 text-farm-700 hover:bg-farm-100 border border-farm-200 transition-colors text-sm font-medium"
-              >
-                {selectedGender === "all" ? "All Genders" : selectedGender}
-              </button>
-              {openFilter === "gender" && (
-                <div className="absolute top-full left-0 right-0 bg-white border-2 border-farm-200 rounded-lg mt-1 shadow-lg z-10">
-                  <button onClick={() => { setSelectedGender("all"); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-farm-50 font-medium">All Genders</button>
-                  <button onClick={() => { setSelectedGender("Male"); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-farm-50 flex justify-between"><span>Male</span> <span className="text-xs text-earth-600">({genderStats.Male})</span></button>
-                  <button onClick={() => { setSelectedGender("Female"); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-farm-50 flex justify-between"><span>Female</span> <span className="text-xs text-earth-600">({genderStats.Female})</span></button>
-                  <button onClick={() => { setSelectedGender("Other"); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-farm-50 flex justify-between"><span>Other</span> <span className="text-xs text-earth-600">({genderStats.Other})</span></button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Organization Filter Card */}
-        <Card className="card-modern border-sky-200 animate-slide-up" style={{ animationDelay: '0.40s' }}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-sky-100 rounded-xl">
-                <Users className="w-6 h-6 text-sky-600" />
-              </div>
-              <div className="px-3 py-1 bg-sky-100 rounded-full">
-                <span className="text-xs font-semibold text-sky-700">Organization</span>
-              </div>
-            </div>
-            <p className="text-sm text-earth-700 mb-3 font-medium">Filter by Organization</p>
-            <div className="relative">
-              <button
-                onClick={() => setOpenFilter(openFilter === "organization" ? null : "organization")}
-                className="w-full px-3 py-2 rounded-lg text-left bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition-colors text-sm font-medium truncate"
-              >
-                {selectedOrganization === "all" ? "All Organizations" : selectedOrganization.substring(0, 20) + (selectedOrganization.length > 20 ? "..." : "")}
-              </button>
-              {openFilter === "organization" && (
-                <div className="absolute top-full left-0 right-0 bg-white border-2 border-sky-200 rounded-lg mt-1 shadow-lg z-10">
-                  <div className="max-h-48 overflow-y-auto">
-                    <button onClick={() => { setSelectedOrganization("all"); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-sky-50 font-medium">All Organizations</button>
-                    {allOrganizations.map((org) => (
-                      <button key={org} onClick={() => { setSelectedOrganization(org); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-sky-50 flex justify-between">
-                        <span className="truncate">{org}</span> <span className="text-xs text-earth-600 ml-2">({organizationStats[org]})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Barangay Filter Card */}
-        <Card className="card-modern border-earth-200 animate-slide-up" style={{ animationDelay: '0.45s' }}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-earth-100 rounded-xl">
-                <Users className="w-6 h-6 text-earth-700" />
-              </div>
-              <div className="px-3 py-1 bg-earth-100 rounded-full">
-                <span className="text-xs font-semibold text-earth-800">Barangay</span>
-              </div>
-            </div>
-            <p className="text-sm text-earth-700 mb-3 font-medium">Filter by Barangay</p>
-            <div className="relative">
-              <button
-                onClick={() => setOpenFilter(openFilter === "barangay" ? null : "barangay")}
-                className="w-full px-3 py-2 rounded-lg text-left bg-earth-50 text-earth-700 hover:bg-earth-100 border border-earth-200 transition-colors text-sm font-medium truncate"
-              >
-                {selectedBarangay === "all" ? "All Barangays" : selectedBarangay.substring(0, 20) + (selectedBarangay.length > 20 ? "..." : "")}
-              </button>
-              {openFilter === "barangay" && (
-                <div className="absolute top-full left-0 right-0 bg-white border-2 border-earth-200 rounded-lg mt-1 shadow-lg z-10">
-                  <div className="max-h-48 overflow-y-auto">
-                    <button onClick={() => { setSelectedBarangay("all"); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-earth-50 font-medium">All Barangays</button>
-                    {allBarangays.map((barangay) => (
-                      <button key={barangay} onClick={() => { setSelectedBarangay(barangay); setOpenFilter(null); }} className="w-full text-left px-3 py-2 text-sm hover:bg-earth-50 flex justify-between">
-                        <span>{barangay}</span> <span className="text-xs text-earth-600">({barangayStats[barangay]})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filtered Farmers Display */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-display font-bold text-earth-800">Filtered Farmers</h2>
-          <Users className="w-6 h-6 text-farm-600" />
+      {/* Charts Section */}
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-display font-bold text-earth-800">Analytics & Visualizations</h2>
+          <BarChart3 className="w-6 h-6 text-farm-600" />
         </div>
-        <Card className="card-modern border-farm-200 animate-slide-up">
-          <CardContent className="p-6">
-            {(() => {
-              const filtered = (farmers || []).filter((farmer) => {
-                const matchesFarmType = selectedFarmType === "all" || farmer.farmType === selectedFarmType;
-                const matchesOrganization = selectedOrganization === "all" || farmer.organization === selectedOrganization;
-                const matchesGender = selectedGender === "all" || farmer.gender === selectedGender;
-                const matchesBarangay = selectedBarangay === "all" || farmer.barangay === selectedBarangay;
-                return matchesFarmType && matchesOrganization && matchesGender && matchesBarangay;
-              });
-              
-              return (
-                <div>
-                  <p className="text-sm text-earth-700 mb-4 font-semibold">
-                    Showing {filtered.length} farmer{filtered.length !== 1 ? 's' : ''}
-                    {selectedFarmType !== "all" && ` • Farm Type: ${selectedFarmType}`}
-                    {selectedOrganization !== "all" && ` • Organization: ${selectedOrganization}`}
-                    {selectedGender !== "all" && ` • Gender: ${selectedGender}`}
-                    {selectedBarangay !== "all" && ` • Barangay: ${selectedBarangay}`}
-                  </p>
-                  {filtered.length === 0 ? (
-                    <p className="text-center text-earth-600 py-8">No farmers match the selected filters</p>
-                  ) : (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {filtered.slice(0, 10).map((farmer) => (
-                        <RouterLink
-                          key={farmer.id}
-                          to={`/farmers/${farmer.id}`}
-                          className="block p-4 bg-farm-50 border border-farm-200 rounded-lg hover:bg-farm-100 hover:border-farm-300 transition-colors no-underline group"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-semibold text-earth-800 group-hover:text-farm-700">{farmer.fullName}</h3>
-                              <p className="text-xs text-earth-600 mt-1">
-                                {farmer.farmType && <span className="inline-block mr-3"><strong>Farm:</strong> {farmer.farmType}</span>}
-                                {farmer.gender && <span className="inline-block"><strong>Gender:</strong> {farmer.gender}</span>}
-                              </p>
-                              {(farmer.organization || farmer.barangay) && (
-                                <p className="text-xs text-earth-600 mt-1">
-                                  {farmer.organization && <span className="inline-block mr-3"><strong>Org:</strong> {farmer.organization}</span>}
-                                  {farmer.barangay && <span><strong>Barangay:</strong> {farmer.barangay}</span>}
-                                </p>
-                              )}
-                            </div>
-                            <ArrowRight className="w-5 h-5 text-farm-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                        </RouterLink>
-                      ))}
-                      {filtered.length > 10 && (
-                        <p className="text-xs text-earth-600 text-center pt-4">
-                          And {filtered.length - 10} more farmers...
-                        </p>
-                      )}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Crops vs livestock (commodity rows) */}
+          <div className="md:col-span-2 grid gap-6 lg:grid-cols-2">
+            {farmChartsHaveData ? (
+              <>
+                <Card className="card-modern border-harvest-200 animate-slide-up" style={{ animationDelay: "0.5s" }}>
+                  <CardHeader className="bg-gradient-to-r from-harvest-50 to-harvest-100 border-b-2 border-harvest-200">
+                    <CardTitle className="text-xl font-display">Crops</CardTitle>
+                    <CardDescription>Commodity records under crop categories (rice, corn, vegetables, fruit trees, etc.)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="max-h-96 overflow-y-auto">
+                      <ResponsiveContainer width="100%" height={Math.max(280, cropChartData.length * 48)}>
+                        <BarChart data={cropChartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={72} tick={{ fontSize: 10 }} />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="#16a34a" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                  )}
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+                <Card className="card-modern border-amber-200 animate-slide-up" style={{ animationDelay: "0.52s" }}>
+                  <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 border-b-2 border-amber-200">
+                    <CardTitle className="text-xl font-display">Livestock</CardTitle>
+                    <CardDescription>Commodity records under livestock (pig, chicken, other)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="max-h-96 overflow-y-auto">
+                      <ResponsiveContainer width="100%" height={Math.max(220, livestockChartData.length * 52)}>
+                        <BarChart data={livestockChartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="#d97706" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card className="card-modern border-harvest-200 animate-slide-up lg:col-span-2" style={{ animationDelay: "0.5s" }}>
+                <CardHeader className="bg-gradient-to-r from-harvest-50 to-harvest-100 border-b-2 border-harvest-200">
+                  <CardTitle className="text-xl font-display">Farmers by farm type</CardTitle>
+                  <CardDescription>Crops and livestock from commodity records</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <p className="text-center text-earth-600 py-12">
+                    No commodity records yet. Add commodities on farmer profiles or import from Excel to see these charts.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Gender Pie Chart */}
+          <div>
+            {genderChartData.length > 0 ? (
+              <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
+                <CardHeader className="bg-gradient-to-r from-farm-50 to-farm-100 border-b-2 border-farm-200">
+                  <CardTitle className="text-xl font-display">Farmers by Gender</CardTitle>
+                  <CardDescription>Gender distribution</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="max-h-96 overflow-y-auto">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={genderChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${Math.round(value as number)}`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {genderChartData.map((_entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
+                <CardHeader className="bg-gradient-to-r from-farm-50 to-farm-100 border-b-2 border-farm-200">
+                  <CardTitle className="text-xl font-display">Farmers by Gender</CardTitle>
+                  <CardDescription>Gender distribution</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <p className="text-center text-earth-600 py-12">No data available</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Organization Pie Chart */}
+          <div>
+            {organizationChartData.length > 0 ? (
+              <Card className="card-modern border-sky-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
+                <CardHeader className="bg-gradient-to-r from-sky-50 to-sky-100 border-b-2 border-sky-200">
+                  <CardTitle className="text-xl font-display">Farmers by Organization</CardTitle>
+                  <CardDescription>Organization distribution</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="max-h-96 overflow-y-auto">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={organizationChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name: _name, value }) => `${Math.round(value as number)}`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {organizationChartData.map((_entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="card-modern border-sky-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
+                <CardHeader className="bg-gradient-to-r from-sky-50 to-sky-100 border-b-2 border-sky-200">
+                  <CardTitle className="text-xl font-display">Farmers by Organization</CardTitle>
+                  <CardDescription>Organization distribution</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <p className="text-center text-earth-600 py-12">No data available</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+
+        </div>
       </div>
 
       {/* Quick Actions */}
       <div>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-4">
           <h2 className="text-3xl font-display font-bold text-earth-800">Quick Actions</h2>
           <TrendingUp className="w-6 h-6 text-farm-600" />
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
           {actions.map((action, index) => {
             const Icon = action.icon;
+            
+            const content = (
+              <Card className={`card-modern bg-gradient-to-br ${action.bgGradient} border-2 ${action.borderColor} h-full overflow-hidden relative cursor-pointer hover:shadow-lg transition-shadow`}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                <CardHeader className="relative z-10">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-4 ${action.iconBg} rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className={`w-8 h-8 ${action.iconColor}`} />
+                    </div>
+                    <ArrowRight className={`w-5 h-5 ${action.iconColor} opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300`} />
+                  </div>
+                  <CardTitle className="text-xl font-display font-bold text-earth-800 mb-2">
+                    {action.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <CardDescription className="text-earth-700 leading-relaxed">
+                    {action.description}
+                  </CardDescription>
+                  <div className={`mt-4 inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r ${action.gradient} bg-clip-text text-transparent`}>
+                    Get Started
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+            
             return (
               <RouterLink 
                 key={action.path} 
@@ -565,34 +612,14 @@ export default function Dashboard() {
                 className="no-underline animate-scale-in group"
                 style={{ animationDelay: `${0.4 + index * 0.1}s` }}
               >
-                <Card className={`card-modern bg-gradient-to-br ${action.bgGradient} border-2 ${action.borderColor} h-full overflow-hidden relative`}>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                  <CardHeader className="relative z-10">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`p-4 ${action.iconBg} rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className={`w-8 h-8 ${action.iconColor}`} />
-                      </div>
-                      <ArrowRight className={`w-5 h-5 ${action.iconColor} opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300`} />
-                    </div>
-                    <CardTitle className="text-xl font-display font-bold text-earth-800 mb-2">
-                      {action.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="relative z-10">
-                    <CardDescription className="text-earth-700 leading-relaxed">
-                      {action.description}
-                    </CardDescription>
-                    <div className={`mt-4 inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r ${action.gradient} bg-clip-text text-transparent`}>
-                      Get Started
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </CardContent>
-                </Card>
+                {content}
               </RouterLink>
             );
           })}
         </div>
       </div>
+
+
 
       {/* Date Picker Modal */}
       {isDatePickerOpen && (
@@ -684,6 +711,143 @@ export default function Dashboard() {
                 </button>
               </div>
             </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Print Filter Dialog */}
+      {isPrintDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl shadow-2xl animate-scale-in max-h-[90vh] overflow-hidden flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-farm-50 to-farm-100 border-b-2 border-farm-200 flex-shrink-0">
+              <div>
+                <CardTitle className="text-2xl font-display font-bold text-earth-800">Filter Farmers Report</CardTitle>
+                <p className="text-sm text-earth-600 mt-1">Select categories to include in the printed report</p>
+              </div>
+              <button
+                onClick={() => setIsPrintDialogOpen(false)}
+                className="text-earth-600 hover:text-earth-800 hover:bg-earth-200 transition-colors p-2 rounded-lg flex-shrink-0"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </CardHeader>
+            <CardContent className="space-y-6 p-8 overflow-y-auto flex-1">
+
+              {/* Filter Sections in Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Gender Checkboxes */}
+                <div className="space-y-3 p-4 bg-farm-50/50 rounded-lg border border-farm-200">
+                  <h3 className="font-semibold text-farm-700 text-base mb-3">Gender</h3>
+                  {Object.entries(printFilters.genders).map(([gender, checked]) => (
+                    <label key={gender} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) =>
+                          setPrintFilters((prev) => ({
+                            ...prev,
+                            genders: { ...prev.genders, [gender]: e.target.checked },
+                          }))
+                        }
+                        className="w-4 h-4 rounded cursor-pointer accent-farm-600"
+                      />
+                      <span className="text-sm text-earth-700 font-medium">{gender}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Farm Type Checkboxes */}
+                {Object.keys(printFilters.farmTypes).length > 0 && (
+                  <div className="space-y-3 p-4 bg-harvest-50/50 rounded-lg border border-harvest-200">
+                    <h3 className="font-semibold text-harvest-700 text-base mb-3">Farm Type</h3>
+                    {Object.entries(printFilters.farmTypes).map(([farmType, checked]) => (
+                      <label key={farmType} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            setPrintFilters((prev) => ({
+                              ...prev,
+                              farmTypes: { ...prev.farmTypes, [farmType]: e.target.checked },
+                            }))
+                          }
+                          className="w-4 h-4 rounded cursor-pointer accent-harvest-600"
+                        />
+                        <span className="text-sm text-earth-700 font-medium">{farmType}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Organization & Barangay in separate sections */}
+              {Object.keys(printFilters.organizations).length > 0 && (
+                <div className="space-y-3 p-4 bg-sky-50/50 rounded-lg border border-sky-200">
+                  <h3 className="font-semibold text-sky-700 text-base mb-3">Organization</h3>
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {Object.entries(printFilters.organizations).map(([org, checked]) => (
+                      <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            setPrintFilters((prev) => ({
+                              ...prev,
+                              organizations: { ...prev.organizations, [org]: e.target.checked },
+                            }))
+                          }
+                          className="w-4 h-4 rounded cursor-pointer accent-sky-600"
+                        />
+                        <span className="text-sm text-earth-700 font-medium truncate" title={org}>{org.substring(0, 30)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Barangay Checkboxes */}
+              {Object.keys(printFilters.barangays).length > 0 && (
+                <div className="space-y-3 p-4 bg-earth-50/50 rounded-lg border border-earth-200">
+                  <h3 className="font-semibold text-earth-700 text-base mb-3">Barangay</h3>
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {Object.entries(printFilters.barangays).map(([barangay, checked]) => (
+                      <label key={barangay} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            setPrintFilters((prev) => ({
+                              ...prev,
+                              barangays: { ...prev.barangays, [barangay]: e.target.checked },
+                            }))
+                          }
+                          className="w-4 h-4 rounded cursor-pointer accent-earth-600"
+                        />
+                        <span className="text-sm text-earth-700 font-medium truncate" title={barangay}>{barangay.substring(0, 30)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+
+            {/* Action Buttons - Fixed at bottom */}
+            <div className="flex gap-4 p-8 pt-6 border-t-2 border-earth-300 bg-white flex-shrink-0">
+              <button
+                onClick={() => setIsPrintDialogOpen(false)}
+                className="flex-1 px-6 py-3 border-2 border-earth-400 text-earth-700 font-semibold text-base rounded-lg hover:bg-earth-100 transition-all duration-200 active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExportFilteredFarmersPdf}
+                disabled={isPrintingFiltered}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-farm-600 to-farm-700 hover:from-farm-700 hover:to-farm-800 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold text-base rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
+              >
+                <FileDown className="w-5 h-5" />
+                {isPrintingFiltered ? "Exporting..." : "Export to PDF"}
+              </button>
+            </div>
           </Card>
         </div>
       )}

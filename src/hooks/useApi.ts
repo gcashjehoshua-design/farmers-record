@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { farmerService, transactionService, dashboardService } from "@/services/api";
-import type { Farmer, Transaction } from "@/types";
+import { farmerService, commodityService, transactionService, dashboardService } from "@/services/api";
+import type { Farmer, FarmerCommodity, Transaction } from "@/types";
 
 // Farmers hooks
 export const useFarmers = () => {
@@ -10,11 +10,11 @@ export const useFarmers = () => {
   });
 };
 
-export const useFarmer = (id: string) => {
+export const useFarmer = (rsbsaCode: string) => {
   return useQuery({
-    queryKey: ["farmer", id],
-    queryFn: () => farmerService.get(id),
-    enabled: !!id,
+    queryKey: ["farmer", rsbsaCode],
+    queryFn: () => farmerService.get(rsbsaCode),
+    enabled: !!rsbsaCode,
   });
 };
 
@@ -22,11 +22,12 @@ export const useCreateFarmer = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (data: Omit<Farmer, "id" | "createdAt" | "updatedAt">) => 
+    mutationFn: (data: Omit<Farmer, "createdAt" | "updatedAt">) => 
       farmerService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["farmers"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["commodities"] });
     },
   });
 };
@@ -35,11 +36,11 @@ export const useUpdateFarmer = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Farmer> }) =>
-      farmerService.update(id, data),
+    mutationFn: ({ rsbsaCode, data }: { rsbsaCode: string; data: Partial<Farmer> }) =>
+      farmerService.update(rsbsaCode, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["farmers"] });
-      queryClient.invalidateQueries({ queryKey: ["farmer", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["farmer", variables.rsbsaCode] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
@@ -49,11 +50,65 @@ export const useDeleteFarmer = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => farmerService.delete(id),
+    mutationFn: (rsbsaCode: string) => farmerService.delete(rsbsaCode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["farmers"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
+  });
+};
+
+// Commodities hooks
+export const useCommoditiesByFarmer = (rsbsaCode: string) => {
+  return useQuery({
+    queryKey: ["commodities", "farmer", rsbsaCode],
+    queryFn: () => commodityService.listByFarmer(rsbsaCode),
+    enabled: !!rsbsaCode,
+  });
+};
+
+export const useCreateCommodity = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: Omit<FarmerCommodity, "id" | "createdAt" | "updatedAt">) =>
+      commodityService.create(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["commodities", "farmer", variables.rsbsaCode] });
+      queryClient.invalidateQueries({ queryKey: ["commodities", "all"] });
+    },
+  });
+};
+
+export const useUpdateCommodity = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<FarmerCommodity> }) =>
+      commodityService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commodities"] });
+      queryClient.invalidateQueries({ queryKey: ["commodities", "all"] });
+    },
+  });
+};
+
+export const useDeleteCommodity = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => commodityService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commodities"] });
+      queryClient.invalidateQueries({ queryKey: ["commodities", "all"] });
+    },
+  });
+};
+
+export const useAllCommodities = () => {
+  return useQuery({
+    queryKey: ["commodities", "all"],
+    queryFn: () => commodityService.listAll(),
   });
 };
 
@@ -79,17 +134,18 @@ export const useCreateTransaction = () => {
   return useMutation({
     mutationFn: (data: Omit<Transaction, "id" | "createdAt">) =>
       transactionService.create(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions", "farmer", variables.rsbsaCode] });
     },
   });
 };
 
-export const useTransactionsByFarmer = (farmerId: string) => {
+export const useTransactionsByFarmer = (rsbsaCode: string) => {
   return useQuery({
-    queryKey: ["transactions", "farmer", farmerId],
-    queryFn: () => transactionService.listByFarmer(farmerId),
-    enabled: !!farmerId,
+    queryKey: ["transactions", "farmer", rsbsaCode],
+    queryFn: () => transactionService.listByFarmer(rsbsaCode),
+    enabled: !!rsbsaCode,
   });
 };
 
@@ -105,6 +161,6 @@ export const useVisitsList = (month: number, year: number, day?: number) => {
   return useQuery({
     queryKey: ["visitsList", month, year, day],
     queryFn: () => dashboardService.visitsList(month, year, day),
-    enabled: !!month && !!year,
+    enabled: month >= 1 && month <= 12 && year > 0,
   });
 };

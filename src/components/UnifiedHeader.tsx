@@ -9,9 +9,9 @@ interface LogoUrl {
 
 const LOGOS_BUCKET = "logos";
 const FALLBACK_LOGOS = [
+  "agriculture-office-logo.png",
   "passi-city-logo.png",
   "palangga-passi-logo.png",
-  "agriculture-office-logo.png",
 ];
 
 const navItems = [
@@ -93,12 +93,12 @@ export default function UnifiedHeader() {
           {/* Title Section */}
           <div className="text-center space-y-2">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-earth-900">
-              Farmers Record and Transactions System
+              Department of Agriculture
             </h1>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-earth-600">
               <span className="font-medium">City of Passi Agriculture Office</span>
               <span className="hidden sm:inline">•</span>
-              <span>Modern Agriculture Management System of Passi City</span>
+              <span>Farmers Record and Transactions System</span>
             </div>
           </div>
         </div>

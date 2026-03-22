@@ -5,6 +5,7 @@ import { useFarmer } from "@/hooks/useApi";
 import FarmerForm from "@/components/FarmerForm";
 import { User, ArrowLeft } from "lucide-react";
 import Toast from "@/components/Toast";
+import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
 import { useToast } from "@/hooks/useToast";
 
 export default function EditFarmer() {
@@ -59,7 +60,7 @@ export default function EditFarmer() {
         </div>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-farmer text-white text-2xl font-bold flex items-center justify-center shadow-farm">
-            {farmer.fullName?.[0] ?? "F"}
+            {formatFarmerDisplayName(farmer).charAt(0) || "F"}
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold text-earth-800">

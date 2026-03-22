@@ -6,48 +6,83 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Drops existing tables and creates them from scratch
 -- ============================================================
 
--- Drop existing triggers and views first
-DROP TRIGGER IF EXISTS update_farmers_updated_at ON farmers;
-DROP FUNCTION IF EXISTS update_updated_at_column();
+-- Drop view first (references farmers / transactions)
 DROP VIEW IF EXISTS dashboard_stats CASCADE;
 
--- Drop existing tables
+-- Drop tables (triggers on these tables go away with the tables — required before dropping update_updated_at_column())
 DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS farmer_commodities CASCADE;
 DROP TABLE IF EXISTS farmers CASCADE;
 DROP TABLE IF EXISTS app_users CASCADE;
 
+-- Shared trigger function: drop only after no trigger references it
+DROP FUNCTION IF EXISTS update_updated_at_column();
+
 -- Create FARMERS table
 CREATE TABLE farmers (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  rsbsa_code VARCHAR(50) PRIMARY KEY,
+  last_name VARCHAR(100) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  middle_name VARCHAR(100),
   full_name VARCHAR(200) NOT NULL,
-  phone VARCHAR(20) NOT NULL,
-  address TEXT,
-  barangay VARCHAR(200),
-  zip_code VARCHAR(20),
-  rsbsa_number TEXT,
-  date_of_birth DATE,
   gender VARCHAR(20),
-  farm_type VARCHAR(100),
-  farm_location TEXT,
-  organization VARCHAR(200),
+  birthdate DATE,
+  phone VARCHAR(20),
+  
+  -- Farmer classifications
+  is_farmer BOOLEAN DEFAULT false,
+  is_farmworker BOOLEAN DEFAULT false,
+  is_fisherfolk BOOLEAN DEFAULT false,
+  is_agriyouth BOOLEAN DEFAULT false,
+  is_indigenous_people BOOLEAN DEFAULT false,
+  is_organic_practitioner BOOLEAN DEFAULT false,
+  is_arb BOOLEAN DEFAULT false,
+  
+  -- Address fields
+  farmer_address_1 VARCHAR(200),
+  farmer_address_2 VARCHAR(200),
+  farmer_address_3 VARCHAR(200),
+  
+  -- Parcel/Farm information
+  parcel_no INTEGER,
+  parcel_address_1 VARCHAR(200),
+  parcel_address_2 VARCHAR(200),
+  parcel_address_3 VARCHAR(200),
+  parcel_area DECIMAL(10, 2),
+  crop_area DECIMAL(10, 2),
+  
+  -- Additional information
+  tribe VARCHAR(100),
+  agency VARCHAR(100),
+  ownership_type VARCHAR(50),
+  owner_name VARCHAR(200),
+  date_encoded TIMESTAMP WITH TIME ZONE,
+  
+  -- Metadata
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  -- Constraint for farm_type
-  CONSTRAINT farmers_farm_type_check CHECK (
-    farm_type IS NULL OR farm_type IN ('Rice farms', 'Corn', 'Sugar cane', 'Vegetable', 'Fruit')
-  ),
-  -- Constraint for gender
+  -- Constraints
   CONSTRAINT farmers_gender_check CHECK (
-    gender IS NULL OR gender IN ('Male', 'Female', 'Other')
+    gender IS NULL OR gender IN ('MALE', 'FEMALE', 'Male', 'Female')
   )
+);
+
+-- Create COMMODITIES/LIVESTOCK table (one farmer can have multiple commodities)
+CREATE TABLE farmer_commodities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  rsbsa_code VARCHAR(50) NOT NULL REFERENCES farmers(rsbsa_code) ON DELETE CASCADE,
+  commodity_name VARCHAR(100) NOT NULL,
+  number_of_heads INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create TRANSACTIONS table
 CREATE TABLE transactions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  farmer_id UUID NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
+  rsbsa_code VARCHAR(50) NOT NULL REFERENCES farmers(rsbsa_code) ON DELETE CASCADE,
   transaction_type VARCHAR(100) NOT NULL,
   amount DECIMAL(12, 2),
   description TEXT,
@@ -55,7 +90,7 @@ CREATE TABLE transactions (
   office_visit_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  FOREIGN KEY (farmer_id) REFERENCES farmers(id) ON DELETE CASCADE
+  FOREIGN KEY (rsbsa_code) REFERENCES farmers(rsbsa_code) ON DELETE CASCADE
 );
 
 -- Create APP_USERS table for authentication roles and status
@@ -70,13 +105,13 @@ CREATE TABLE app_users (
 );
 
 -- Create indexes for better query performance
-CREATE INDEX idx_farmers_name_barangay ON farmers(full_name, barangay);
-CREATE INDEX idx_farmers_organization ON farmers(organization);
-CREATE INDEX idx_farmers_rsbsa ON farmers(rsbsa_number);
+CREATE INDEX idx_farmers_name ON farmers(last_name, first_name);
+CREATE INDEX idx_farmers_rsbsa ON farmers(rsbsa_code);
 CREATE INDEX idx_farmers_phone ON farmers(phone);
-CREATE INDEX idx_transactions_farmer_id ON transactions(farmer_id);
+CREATE INDEX idx_farmers_is_farmer ON farmers(is_farmer);
+CREATE INDEX idx_farmer_commodities_rsbsa ON farmer_commodities(rsbsa_code);
+CREATE INDEX idx_transactions_rsbsa_code ON transactions(rsbsa_code);
 CREATE INDEX idx_transactions_office_visit_at ON transactions(office_visit_at);
-CREATE INDEX idx_app_users_auth_user_id ON app_users(auth_user_id);
 
 -- Create function to update updated_at timestamp with restricted search_path
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -94,6 +129,12 @@ $$;
 -- Create trigger to automatically update updated_at
 CREATE TRIGGER update_farmers_updated_at
   BEFORE UPDATE ON farmers
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Create trigger for farmer_commodities
+CREATE TRIGGER update_farmer_commodities_updated_at
+  BEFORE UPDATE ON farmer_commodities
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -146,6 +187,28 @@ CREATE POLICY "admin_can_delete_transactions" ON transactions
     AND app_users.role = 'admin'
   ));
 
+-- farmer_commodities: RLS (required for Supabase API); rows removed automatically when farmer is deleted (ON DELETE CASCADE)
+ALTER TABLE farmer_commodities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "authenticated_can_read_farmer_commodities" ON farmer_commodities
+  FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "authenticated_can_insert_farmer_commodities" ON farmer_commodities
+  FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "authenticated_can_update_farmer_commodities" ON farmer_commodities
+  FOR UPDATE
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "authenticated_can_delete_farmer_commodities" ON farmer_commodities
+  FOR DELETE
+  USING (auth.role() = 'authenticated');
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON farmer_commodities TO authenticated;
+
 -- Create policies for app_users table
 -- Allow all authenticated users to read all profiles (needed for auth/UI)
 CREATE POLICY "authenticated_can_read_users" ON app_users
@@ -195,8 +258,9 @@ CREATE POLICY "admin_can_delete_users" ON app_users
     )
   );
 
--- Dashboard analytics view (with SECURITY DEFINER for safety)
-CREATE OR REPLACE VIEW dashboard_stats WITH (security_definer=on) AS
+-- Dashboard analytics view (security_invoker: runs with caller's rights + RLS — fixes "Security definer view" advisor warning)
+CREATE OR REPLACE VIEW dashboard_stats
+WITH (security_invoker = true) AS
 SELECT
   (SELECT COUNT(*) FROM farmers) AS total_farmers,
   (SELECT COUNT(*) FROM transactions) AS total_transactions,
@@ -204,8 +268,11 @@ SELECT
     WHERE office_visit_at >= date_trunc('month', now())
       AND office_visit_at < (date_trunc('month', now()) + interval '1 month')
   ) AS visits_this_month,
-  (SELECT COUNT(DISTINCT farmer_id) FROM transactions
+  (SELECT COUNT(DISTINCT rsbsa_code) FROM transactions
     WHERE office_visit_at >= date_trunc('month', now())
       AND office_visit_at < (date_trunc('month', now()) + interval '1 month')
   ) AS farmers_visited_this_month;
+
+-- Allow API roles to read analytics view (needed for dashboard total counts)
+GRANT SELECT ON dashboard_stats TO anon, authenticated;
 

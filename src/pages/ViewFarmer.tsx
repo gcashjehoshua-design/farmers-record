@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFarmer, useTransactionsByFarmer } from "@/hooks/useApi";
+import { useFarmer, useTransactionsByFarmer, useCommoditiesByFarmer } from "@/hooks/useApi";
 import { exportProfileTransactionsToPdf } from "@/lib/pdfExport";
-import { User, History, Calendar, ArrowLeft, Edit, Phone, MapPin, Calendar as CalendarIcon, FileText, Building2, FileDown } from "lucide-react";
+import { User, History, Calendar, ArrowLeft, Edit, Phone, MapPin, Calendar as CalendarIcon, FileText, Building2, FileDown, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatFarmerDisplayName, formatCommoditySummary } from "@/lib/farmerDisplay";
 
 const transactionTypeColors: Record<string, string> = {
   "Loan": "bg-blue-100 text-blue-700",
@@ -22,6 +23,7 @@ export default function ViewFarmer() {
   const navigate = useNavigate();
   const { data: farmer, isLoading, error } = useFarmer(id || "");
   const { data: transactions = [] } = useTransactionsByFarmer(id || "");
+  const { data: commodities = [] } = useCommoditiesByFarmer(id || "");
 
   if (error || (!isLoading && !farmer)) {
     return (
@@ -50,6 +52,8 @@ export default function ViewFarmer() {
     );
   }
 
+  const commoditySummary = formatCommoditySummary(commodities.map((c) => c.commodityName));
+
   return (
     <div className="space-y-8 animate-fade-in bg-earth-100/70 rounded-2xl p-6 sm:p-8">
       {/* Header - matches Farmer Directory style */}
@@ -58,11 +62,17 @@ export default function ViewFarmer() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-display font-bold text-earth-800">
-                {farmer.fullName}
+                {formatFarmerDisplayName(farmer)}
               </h1>
               <p className="text-base text-earth-700 mt-1">
                 Farmer profile & visit history
               </p>
+              {commoditySummary ? (
+                <p className="text-sm text-earth-600 mt-2">
+                  <span className="font-semibold text-farm-800">Commodities: </span>
+                  {commoditySummary}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -100,15 +110,33 @@ export default function ViewFarmer() {
         </CardHeader>
         <CardContent className="p-6 sm:p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Personal */}
+            {/* Personal — aligned with Excel / import */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-farm-700 border-b-2 border-farm-200 pb-2">
                 Personal information
               </h3>
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-earth-700 mb-1">Full name</p>
-                  <p className="text-base font-bold text-earth-800">{farmer.fullName || "—"}</p>
+                  <p className="text-sm font-medium text-earth-700 mb-1">RSBSA code</p>
+                  <p className="text-base font-mono font-bold text-earth-800">{farmer.rsbsaCode || "—"}</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-earth-700 mb-1">First name</p>
+                    <p className="text-base font-bold text-earth-800">{farmer.firstName || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-earth-700 mb-1">Middle name</p>
+                    <p className="text-base font-bold text-earth-800">{farmer.middleName || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-earth-700 mb-1">Last name</p>
+                    <p className="text-base font-bold text-earth-800">{farmer.lastName || "—"}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Display name</p>
+                  <p className="text-base font-bold text-earth-800">{formatFarmerDisplayName(farmer) || "—"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
@@ -116,17 +144,19 @@ export default function ViewFarmer() {
                   </p>
                   <p className="text-base font-bold text-earth-800">{farmer.phone || "—"}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-earth-700 mb-1">RSBSA number</p>
-                  <p className="text-base font-bold text-earth-800">{farmer.rsbsaNumber || "—"}</p>
-                </div>
-                {farmer.dateOfBirth && (
+                {farmer.gender && (
+                  <div>
+                    <p className="text-sm font-medium text-earth-700 mb-1">Gender</p>
+                    <p className="text-base font-bold text-earth-800">{farmer.gender}</p>
+                  </div>
+                )}
+                {farmer.birthdate && (
                   <div>
                     <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
-                      <CalendarIcon className="w-4 h-4 text-harvest-600" /> Date of birth
+                      <CalendarIcon className="w-4 h-4 text-harvest-600" /> Birthdate
                     </p>
                     <p className="text-base font-bold text-earth-800">
-                      {new Date(farmer.dateOfBirth).toLocaleDateString("en-PH", {
+                      {new Date(farmer.birthdate).toLocaleDateString("en-PH", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
@@ -134,51 +164,117 @@ export default function ViewFarmer() {
                     </p>
                   </div>
                 )}
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-2">Classifications</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      ["Farmer", farmer.isFarmer],
+                      ["Farmworker", farmer.isFarmworker],
+                      ["Fisherfolk", farmer.isFisherfolk],
+                      ["Agriyouth", farmer.isAgriyouth],
+                      ["Indigenous (IF IP)", farmer.isIndigenousPeople],
+                      ["Organic practitioner", farmer.isOrganicPractitioner],
+                      ["ARB", farmer.isArb],
+                    ]
+                      .filter(([, on]) => on)
+                      .map(([label]) => (
+                        <span
+                          key={String(label)}
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-farm-100 text-farm-800 border border-farm-200"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    {![
+                      farmer.isFarmer,
+                      farmer.isFarmworker,
+                      farmer.isFisherfolk,
+                      farmer.isAgriyouth,
+                      farmer.isIndigenousPeople,
+                      farmer.isOrganicPractitioner,
+                      farmer.isArb,
+                    ].some(Boolean) && (
+                      <span className="text-earth-500 text-sm">None recorded</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Location & Farm */}
+            {/* Farmer address & parcel — Excel column labels */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-farm-700 border-b-2 border-farm-200 pb-2">
-                Location & farm
+                Address &amp; parcel
               </h3>
               <div className="space-y-4">
-                {farmer.address && (
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-farm-600" /> Farmer address 1 (Barangay)
+                  </p>
+                  <p className="text-base font-bold text-earth-800">{farmer.farmerAddress1 || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Farmer address 2</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.farmerAddress2 || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Farmer address 3</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.farmerAddress3 || "—"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-farm-600" /> Address
-                    </p>
-                    <p className="text-base font-bold text-earth-800">{farmer.address}</p>
+                    <p className="text-sm font-medium text-earth-700 mb-1">Parcel no.</p>
+                    <p className="text-base font-bold text-earth-800">{farmer.parcelNo ?? "—"}</p>
                   </div>
-                )}
-                {farmer.barangay && (
                   <div>
-                    <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-harvest-600" /> Barangay
+                    <p className="text-sm font-medium text-earth-700 mb-1">Parcel / crop area</p>
+                    <p className="text-base font-bold text-earth-800">
+                      {farmer.parcelArea != null || farmer.cropArea != null
+                        ? `${farmer.parcelArea ?? "—"} / ${farmer.cropArea ?? "—"}`
+                        : "—"}
                     </p>
-                    <p className="text-base font-bold text-earth-800">{farmer.barangay}</p>
                   </div>
-                )}
-                {farmer.farmType && (
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Parcel address 1</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.parcelAddress1 || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Parcel address 2</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.parcelAddress2 || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Parcel address 3</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.parcelAddress3 || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Tribe</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.tribe || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-farm-600" /> Agency
+                  </p>
+                  <p className="text-base font-bold text-earth-800">{farmer.agency || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Ownership type</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.ownershipType || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-earth-700 mb-1">Owner name</p>
+                  <p className="text-base font-bold text-earth-800">{farmer.ownerName || "—"}</p>
+                </div>
+                {farmer.dateEncoded && (
                   <div>
-                    <p className="text-sm font-medium text-earth-700 mb-1">Farm type</p>
-                    <p className="text-base font-bold text-earth-800">{farmer.farmType}</p>
-                  </div>
-                )}
-                {farmer.farmLocation && (
-                  <div>
-                    <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-farm-600" /> Farm location
+                    <p className="text-sm font-medium text-earth-700 mb-1">Date encoded</p>
+                    <p className="text-base font-bold text-earth-800">
+                      {new Date(farmer.dateEncoded).toLocaleDateString("en-PH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
                     </p>
-                    <p className="text-base font-bold text-earth-800">{farmer.farmLocation}</p>
-                  </div>
-                )}
-                {farmer.organization && (
-                  <div>
-                    <p className="text-sm font-medium text-earth-700 mb-1 flex items-center gap-1.5">
-                      <Building2 className="w-4 h-4 text-farm-600" /> Organization
-                    </p>
-                    <p className="text-base font-bold text-earth-800">{farmer.organization}</p>
                   </div>
                 )}
               </div>
@@ -194,6 +290,45 @@ export default function ViewFarmer() {
               <p className="text-earth-800 font-bold bg-farm-50/60 border border-farm-200 p-4 rounded-xl leading-relaxed">
                 {farmer.notes}
               </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Commodities — same as Excel import */}
+      <Card className="card-modern border-green-200">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-green-200 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <Sprout className="w-6 h-6 text-green-700" />
+            </div>
+            <div>
+              <CardTitle className="text-xl text-earth-800">Commodities</CardTitle>
+              <p className="text-sm text-earth-600 mt-0.5">COMMODITY NAME and NUMBER OF HEADS (from import or records)</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          {commodities.length === 0 ? (
+            <p className="text-earth-600 text-sm">No commodity records for this farmer.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-green-200 bg-green-50/80">
+                    <th className="text-left py-2 px-3 font-semibold text-earth-800">Commodity name</th>
+                    <th className="text-left py-2 px-3 font-semibold text-earth-800">Number of heads</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commodities.map((c) => (
+                    <tr key={c.id} className="border-b border-green-100">
+                      <td className="py-2 px-3 font-medium text-earth-800">{c.commodityName}</td>
+                      <td className="py-2 px-3 text-earth-700">{c.numberOfHeads ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
@@ -218,7 +353,9 @@ export default function ViewFarmer() {
                 variant="outline"
                 size="sm"
                 className="border-sky-300 text-sky-700 hover:bg-sky-50"
-                onClick={async () => await exportProfileTransactionsToPdf(farmer.fullName, transactions)}
+                onClick={async () =>
+                  await exportProfileTransactionsToPdf(formatFarmerDisplayName(farmer), transactions)
+                }
               >
                 <FileDown className="w-4 h-4 mr-2" />
                 Print to PDF
@@ -255,7 +392,7 @@ export default function ViewFarmer() {
                 </thead>
                 <tbody>
                   {transactions
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .sort((a, b) => new Date(b.officeVisitAt || b.createdAt).getTime() - new Date(a.officeVisitAt || a.createdAt).getTime())
                     .map((tx, index) => (
                       <tr
                         key={tx.id}
@@ -264,7 +401,7 @@ export default function ViewFarmer() {
                         }`}
                       >
                         <td className="px-4 py-3 text-sm text-earth-700">
-                          {new Date(tx.date).toLocaleDateString("en-PH", {
+                          {new Date(tx.officeVisitAt || tx.createdAt).toLocaleDateString("en-PH", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",

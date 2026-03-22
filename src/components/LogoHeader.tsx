@@ -7,10 +7,11 @@ interface LogoUrl {
 
 const LOGOS_BUCKET = "logos";
 const FALLBACK_LOGOS = [
+  "agriculture-office-logo.png",
   "passi-city-logo.png",
   "palangga-passi-logo.png",
-  "agriculture-office-logo.png",
 ];
+const BACKGROUND_IMAGE = "agri-logo.jpg";
 
 function getLogosPathPrefix(): string {
   return (import.meta.env.VITE_LOGOS_PATH_PREFIX as string) || "";
@@ -41,9 +42,18 @@ export default function LogoHeader() {
 
 
 
+  // Get background image URL
+  const backgroundImageUrl = buildPublicLogoUrl(BACKGROUND_IMAGE);
+
   return (
     <header className="relative overflow-hidden rounded-2xl shadow-farm-lg border-2 border-earth-200 mb-8">
-      <div className="absolute inset-0 bg-gradient-to-br from-earth-100 via-[#fffefb] to-farm-100" />
+      <div className="absolute inset-0" style={{
+        backgroundImage: `url('${backgroundImageUrl}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }} />
+      <div className="absolute inset-0 bg-gradient-to-br from-earth-100/90 via-[#fffefb]/85 to-farm-100/90" />
       <div className="absolute inset-0 opacity-20 bg-pattern-farm" />
       <div className="relative z-10 py-6 px-6 flex flex-col items-center">
           {/* Logos Section */}
