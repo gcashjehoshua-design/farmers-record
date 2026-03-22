@@ -173,9 +173,7 @@ export default function Dashboard() {
   }, [barangayStats]);
 
 
-
   // Define chart colors - theme-compliant palette
-  const COLORS = ['#16a34a', '#ea580c', '#06b6d4', '#9333ea', '#f43f5e', '#14b8a6', '#f59e0b', '#7c3aed'];
   const GENDER_COLORS = ['#f87171', '#60a5fa']; // Warm red for Female-like, Cool blue for Male-like
   const ORG_COLORS = ['#16a34a', '#ea580c', '#06b6d4', '#9333ea', '#f43f5e', '#14b8a6', '#f59e0b', '#7c3aed', '#ec4899', '#10b981'];
 
