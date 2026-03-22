@@ -89,13 +89,22 @@ export default function Dashboard() {
 
   // Sync print filter options when organization list (from farmers) changes
   useEffect(() => {
+    const barangaysFromFarmers = new Set<string>();
+    (farmers || []).forEach((farmer) => {
+      if (farmer.farmerAddress1) {
+        barangaysFromFarmers.add(farmer.farmerAddress1);
+      }
+    });
+    // Combine with static list
+    PASSI_BARANGAYS.forEach((b) => barangaysFromFarmers.add(b));
+    
     setPrintFilters((prev) => ({
       genders: prev.genders,
       farmTypes: Object.fromEntries(PRINT_FARM_TYPE_KEYS.map((type) => [type, true])),
       organizations: Object.fromEntries(Object.keys(organizationStats).map((org) => [org, true])),
-      barangays: Object.fromEntries(PASSI_BARANGAYS.map((barangay) => [barangay, true])),
+      barangays: Object.fromEntries(Array.from(barangaysFromFarmers).map((barangay) => [barangay, true])),
     }));
-  }, [organizationStats]);
+  }, [organizationStats, farmers]);
 
   // Calculate visits per organization for the selected date period
   const visitsPerOrganization = useMemo(() => {

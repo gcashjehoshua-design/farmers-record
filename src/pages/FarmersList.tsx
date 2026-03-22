@@ -45,6 +45,18 @@ export default function FarmersList() {
   const [selectedGender, setSelectedGender] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
+  const allBarangays = useMemo(() => {
+    const set = new Set<string>();
+    (farmers || []).forEach((farmer) => {
+      if (farmer.farmerAddress1) {
+        set.add(farmer.farmerAddress1);
+      }
+    });
+    // Combine with static list and remove duplicates
+    PASSI_BARANGAYS.forEach((b) => set.add(b));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [farmers]);
+
   const allOrganizations = useMemo(() => {
     const set = new Set<string>();
     (farmers || []).forEach((farmer) => {
@@ -182,7 +194,7 @@ export default function FarmersList() {
                 className="input-modern w-full sm:w-64"
               >
                 <option value="all">All barangays</option>
-                {PASSI_BARANGAYS.map((bgy) => (
+                {allBarangays.map((bgy) => (
                   <option key={bgy} value={bgy}>
                     {bgy}
                   </option>
