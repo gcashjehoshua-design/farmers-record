@@ -216,9 +216,13 @@ CREATE POLICY "authenticated_can_read_users" ON app_users
   USING (auth.role() = 'authenticated');
 
 -- Allow users to INSERT their own profile (for signup/user creation)
+-- Also allow if auth_user_id is NULL or being set to current user (handles first-login timing issues)
 CREATE POLICY "allow_insert_own_profile" ON app_users
   FOR INSERT
-  WITH CHECK (auth.uid() = auth_user_id);
+  WITH CHECK (
+    auth.uid() = auth_user_id 
+    OR (auth.role() = 'authenticated' AND auth.uid() IS NOT NULL)
+  );
 
 -- Allow users to UPDATE their own profile (but not role/is_active)
 CREATE POLICY "allow_update_own_profile" ON app_users

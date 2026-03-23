@@ -118,20 +118,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authUser.email ||
         "User";
 
-      const { data: insertData, error: insertError } = await (supabase as any)
-        .from("app_users")
-        .insert({
-          auth_user_id: authUser.id,
-          email: authUser.email ?? "",
-          full_name: fullName,
-          role,
-          is_active: true,
-        })
-        .select("*")
-        .single();
+      // Retry logic with exponential backoff for race condition on new device login
+      let insertData;
+      let insertError;
+      let retries = 0;
+      const MAX_RETRIES = 3;
+
+      while (retries < MAX_RETRIES) {
+        const result = await (supabase as any)
+          .from("app_users")
+          .insert({
+            auth_user_id: authUser.id,
+            email: authUser.email ?? "",
+            full_name: fullName,
+            role,
+            is_active: true,
+          })
+          .select("*")
+          .single();
+
+        insertData = result.data;
+        insertError = result.error;
+
+        if (!insertError) break;
+
+        retries++;
+        if (retries < MAX_RETRIES) {
+          // Exponential backoff: 100ms, 300ms, 900ms
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(3, retries - 1) * 100)
+          );
+        }
+      }
 
       if (insertError || !insertData) {
-        console.error("Failed to create app_users profile:", insertError);
+        console.error("Failed to create app_users profile after retries:", insertError);
         setUser(null);
         setUsers([]);
         return;

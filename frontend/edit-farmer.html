@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Farmer - Farmers Record System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header-with-back">
+            <a href="farmer-directory.html" class="btn-back">← Back</a>
+            <div>
+                <h1>✎ Edit Farmer Profile</h1>
+                <p>Update farmer information</p>
+            </div>
+        </header>
+
+        <form id="editFarmerForm" class="add-farmer-form">
+            
+            <fieldset class="form-section">
+                <legend>Personal Information</legend>
+
+                <div class="form-group">
+                    <label for="firstName">First Name *</label>
+                    <input 
+                        type="text" 
+                        id="firstName" 
+                        name="first_name" 
+                        placeholder="Enter first name"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="middleName">Middle Name</label>
+                    <input 
+                        type="text" 
+                        id="middleName" 
+                        name="middle_name" 
+                        placeholder="Enter middle name"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Last Name *</label>
+                    <input 
+                        type="text" 
+                        id="lastName" 
+                        name="last_name" 
+                        placeholder="Enter last name"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input 
+                        type="tel" 
+                        id="phone" 
+                        name="phone" 
+                        placeholder="555-0101"
+                        required
+                    >
+                </div>
+            </fieldset>
+
+            <fieldset class="form-section">
+                <legend>Address Information</legend>
+
+                <div class="form-group">
+                    <label for="barangay">Barangay</label>
+                    <input 
+                        type="text" 
+                        id="barangay" 
+                        name="address" 
+                        placeholder="Enter barangay"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="postalCode">Zip Code</label>
+                    <input 
+                        type="text" 
+                        id="postalCode" 
+                        name="postal_code" 
+                        placeholder="12345"
+                    >
+                </div>
+            </fieldset>
+
+            <fieldset class="form-section">
+                <legend>Farm Information</legend>
+                
+                <div class="form-group">
+                    <label for="farmName">Farm Name</label>
+                    <input 
+                        type="text" 
+                        id="farmName" 
+                        name="farm_name" 
+                        placeholder="Name of the farm"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="farmType">Type of Farm</label>
+                    <select id="farmType" name="farm_type">
+                        <option value="">-- Select farm type --</option>
+                        <option value="Crop">🌾 Crop</option>
+                        <option value="Livestock">🐄 Livestock</option>
+                        <option value="Mixed">🌾🐄 Mixed (Crop & Livestock)</option>
+                        <option value="Poultry">🐔 Poultry</option>
+                        <option value="Fishery">🐟 Fishery</option>
+                        <option value="Orchard">🌳 Orchard</option>
+                        <option value="Vegetable">🥬 Vegetable</option>
+                        <option value="Other">❓ Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="farmSize">Farm Size (in hectares)</label>
+                    <input 
+                        type="number" 
+                        id="farmSize" 
+                        name="farm_size" 
+                        placeholder="50.5"
+                        step="0.1"
+                        min="0"
+                    >
+                </div>
+            </fieldset>
+
+            <fieldset class="form-section">
+                <legend>Additional Notes</legend>
+                
+                <div class="form-group">
+                    <label for="notes">Notes/Comments</label>
+                    <textarea 
+                        id="notes" 
+                        name="notes" 
+                        placeholder="Any additional information about the farmer..."
+                        rows="4"
+                    ></textarea>
+                </div>
+            </fieldset>
+
+            <div class="form-actions" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 40px;">
+                <button type="reset" class="btn-secondary">🔄 Reset</button>
+                <button type="button" class="btn-secondary" onclick="goBack()">← Cancel</button>
+                <button type="submit" class="btn-primary">✓ Save Changes</button>
+            </div>
+        </form>
+
+        <!-- SUCCESS MESSAGE -->
+        <div id="successMessage" class="message success hidden">
+            <p>✓ Farmer updated successfully!</p>
+            <p id="successDetails"></p>
+            <button type="button" class="btn-primary" onclick="goBack()">Back to Profile</button>
+        </div>
+
+        <!-- ERROR MESSAGE -->
+        <div id="errorMessage" class="message error hidden">
+            <p id="errorText"></p>
+            <button type="button" class="btn-secondary" onclick="closeError()">Close</button>
+        </div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    <script src="js/edit-farmer.js"></script>
+</body>
+</html>
