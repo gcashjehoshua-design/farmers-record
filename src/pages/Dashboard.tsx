@@ -437,6 +437,56 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Quick Actions */}
+      <div>
+        <div className="flex items-center justify-between mb-6 gap-4">
+          <h2 className="text-3xl font-display font-bold text-earth-800">Quick Actions</h2>
+          <TrendingUp className="w-6 h-6 text-farm-600" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
+          {actions.map((action, index) => {
+            const Icon = action.icon;
+            
+            const content = (
+              <Card className={`card-modern bg-gradient-to-br ${action.bgGradient} border-2 ${action.borderColor} h-full overflow-hidden relative cursor-pointer hover:shadow-lg transition-shadow`}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                <CardHeader className="relative z-10">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-4 ${action.iconBg} rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className={`w-8 h-8 ${action.iconColor}`} />
+                    </div>
+                    <ArrowRight className={`w-5 h-5 ${action.iconColor} opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300`} />
+                  </div>
+                  <CardTitle className="text-xl font-display font-bold text-earth-800 mb-2">
+                    {action.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <CardDescription className="text-earth-700 leading-relaxed">
+                    {action.description}
+                  </CardDescription>
+                  <div className={`mt-4 inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r ${action.gradient} bg-clip-text text-transparent`}>
+                    Get Started
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+            
+            return (
+              <RouterLink 
+                key={action.path} 
+                to={action.path} 
+                className="no-underline animate-scale-in group"
+                style={{ animationDelay: `${0.4 + index * 0.1}s` }}
+              >
+                {content}
+              </RouterLink>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Charts Section */}
       <div className="space-y-8">
         <div className="flex items-center justify-between">
@@ -460,7 +510,7 @@ export default function Dashboard() {
                         <BarChart data={cropChartData}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={72} tick={{ fontSize: 10 }} />
-                          <YAxis allowDecimals={false} />
+                          <YAxis allowDecimals={false} domain={[0, 'auto']} />
                           <Tooltip />
                           <Bar dataKey="value" fill="#16a34a" radius={[8, 8, 0, 0]} />
                         </BarChart>
@@ -479,7 +529,7 @@ export default function Dashboard() {
                         <BarChart data={livestockChartData}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
-                          <YAxis allowDecimals={false} />
+                          <YAxis allowDecimals={false} domain={[0, 'auto']} />
                           <Tooltip />
                           <Bar dataKey="value" fill="#d97706" radius={[8, 8, 0, 0]} />
                         </BarChart>
@@ -615,56 +665,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <div className="flex items-center justify-between mb-6 gap-4">
-          <h2 className="text-3xl font-display font-bold text-earth-800">Quick Actions</h2>
-          <TrendingUp className="w-6 h-6 text-farm-600" />
-        </div>
-        <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
-          {actions.map((action, index) => {
-            const Icon = action.icon;
-            
-            const content = (
-              <Card className={`card-modern bg-gradient-to-br ${action.bgGradient} border-2 ${action.borderColor} h-full overflow-hidden relative cursor-pointer hover:shadow-lg transition-shadow`}>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                <CardHeader className="relative z-10">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-4 ${action.iconBg} rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className={`w-8 h-8 ${action.iconColor}`} />
-                    </div>
-                    <ArrowRight className={`w-5 h-5 ${action.iconColor} opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300`} />
-                  </div>
-                  <CardTitle className="text-xl font-display font-bold text-earth-800 mb-2">
-                    {action.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative z-10">
-                  <CardDescription className="text-earth-700 leading-relaxed">
-                    {action.description}
-                  </CardDescription>
-                  <div className={`mt-4 inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r ${action.gradient} bg-clip-text text-transparent`}>
-                    Get Started
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-            
-            return (
-              <RouterLink 
-                key={action.path} 
-                to={action.path} 
-                className="no-underline animate-scale-in group"
-                style={{ animationDelay: `${0.4 + index * 0.1}s` }}
-              >
-                {content}
-              </RouterLink>
-            );
-          })}
         </div>
       </div>
 
