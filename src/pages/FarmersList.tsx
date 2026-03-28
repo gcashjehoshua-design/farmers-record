@@ -157,7 +157,7 @@ export default function FarmersList() {
       // Filter the full farmers list based on modal selection
       const dataToPrint = (farmers || []).filter(f => {
         const matchesBarangay = printFilters.barangay === "all" || f.farmerAddress1 === printFilters.barangay;
-        const matchesGender = printFilters.gender === "all" || f.gender === printFilters.gender;
+        const matchesGender = printFilters.gender === "all" || genderFilterLabel(f.gender) === printFilters.gender;
         const matchesAgency = printFilters.agency === "all" || f.agency === printFilters.agency;
         return matchesBarangay && matchesGender && matchesAgency;
       });
@@ -210,6 +210,8 @@ export default function FarmersList() {
         onClose={() => setShowPrintModal(false)}
         onPrint={handlePrintPdf}
         isPrinting={isPrinting}
+        barangays={allBarangays}
+        agencies={allAgencies}
       />
       {/* Header Section */}
       <div className="border-b-2 border-earth-200 bg-earth-50/90">

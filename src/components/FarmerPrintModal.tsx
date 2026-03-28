@@ -2,20 +2,23 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, X, FileText, Filter, Info } from "lucide-react";
-import { PASSI_BARANGAYS } from "@/constants/barangays";
 
 interface FarmerPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPrint: (filters: { barangay: string; gender: string; agency: string }) => void;
   isPrinting?: boolean;
+  barangays: string[];
+  agencies: string[];
 }
 
 export default function FarmerPrintModal({
   isOpen,
   onClose,
   onPrint,
-  isPrinting = false
+  isPrinting = false,
+  barangays,
+  agencies
 }: FarmerPrintModalProps) {
   const [filters, setFilters] = useState({
     barangay: 'all',
@@ -66,7 +69,7 @@ export default function FarmerPrintModal({
                 className="input-modern w-full bg-white border-2 border-earth-200 focus:border-farm-500 transition-all h-11"
               >
                 <option value="all">All Barangays</option>
-                {PASSI_BARANGAYS.map((b) => (
+                {barangays.map((b) => (
                   <option key={b} value={b}>{b}</option>
                 ))}
               </select>
@@ -101,11 +104,9 @@ export default function FarmerPrintModal({
                 className="input-modern w-full bg-white border-2 border-earth-200 focus:border-farm-500 transition-all h-11"
               >
                 <option value="all">All Agencies</option>
-                <option value="DA">DA</option>
-                <option value="DAR">DAR</option>
-                <option value="BFAR">BFAR</option>
-                <option value="LGU">LGU</option>
-                <option value="Others">Others</option>
+                {agencies.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
               </select>
             </div>
           </div>
