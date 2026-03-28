@@ -7,7 +7,7 @@ import type { Farmer } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, ArrowLeft, Users, TrendingUp, Upload, Printer } from "lucide-react";
+import { Search, Plus, ArrowLeft, Users, TrendingUp, Printer } from "lucide-react";
 import FarmersTable from "@/components/FarmersTable";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
