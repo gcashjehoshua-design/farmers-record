@@ -3,10 +3,10 @@ import { farmerService, commodityService, transactionService, dashboardService }
 import type { Farmer, FarmerCommodity, Transaction } from "@/types";
 
 // Farmers hooks
-export const useFarmers = () => {
+export const useFarmers = (includeInactive = false) => {
   return useQuery({
-    queryKey: ["farmers"],
-    queryFn: () => farmerService.list(),
+    queryKey: ["farmers", includeInactive],
+    queryFn: () => farmerService.list(includeInactive),
   });
 };
 
@@ -42,6 +42,7 @@ export const useUpdateFarmer = () => {
       queryClient.invalidateQueries({ queryKey: ["farmers"] });
       queryClient.invalidateQueries({ queryKey: ["farmer", variables.rsbsaCode] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["commodities"] });
     },
   });
 };

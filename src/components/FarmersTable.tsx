@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Phone, MapPin, Sprout } from "lucide-react";
+import { Edit, Trash2, Phone, MapPin, Sprout, RotateCcw } from "lucide-react";
 import type { Farmer } from "@/types";
 import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
 
@@ -25,6 +25,8 @@ export default function FarmersTable({ farmers, onDelete, commoditySummaryByRsbs
     );
   }
 
+  const isInactiveFarmer = (farmer: Farmer) => farmer.isActive === false;
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -39,81 +41,102 @@ export default function FarmersTable({ farmers, onDelete, commoditySummaryByRsbs
           </tr>
         </thead>
         <tbody className="divide-y divide-farm-100">
-          {farmers.map((farmer, index) => (
-            <tr
-              key={farmer.rsbsaCode}
-              onClick={() => navigate(`/farmers/${farmer.rsbsaCode}`)}
-              className={`transition-all duration-200 hover:bg-farm-50/50 hover:shadow-sm cursor-pointer ${
-                index % 2 === 0 ? "bg-[#fffefb]" : "bg-farm-50/30"
-              }`}
-            >
-              <td className="px-6 py-5">
-                <div>
-                  <span className="text-base font-semibold text-earth-800 block">
-                    {formatFarmerDisplayName(farmer)}
-                  </span>
-                  {farmer.agency && (
-                    <span className="text-xs text-earth-600 mt-1 flex items-center gap-1">
-                      <Sprout className="w-3 h-3" />
-                      {farmer.agency}
+          {farmers.map((farmer, index) => {
+            const inactive = isInactiveFarmer(farmer);
+            return (
+              <tr
+                key={farmer.rsbsaCode}
+                onClick={() => navigate(`/farmers/${farmer.rsbsaCode}`)}
+                className={`transition-all duration-200 hover:bg-farm-50/50 hover:shadow-sm cursor-pointer ${
+                  index % 2 === 0 ? "bg-[#fffefb]" : "bg-farm-50/30"
+                } ${inactive ? "opacity-75 grayscale-[0.3]" : ""}`}
+              >
+                <td className="px-6 py-5">
+                  <div>
+                    <span className={`text-base font-semibold block ${inactive ? "text-gray-600" : "text-earth-800"}`}>
+                      {formatFarmerDisplayName(farmer)}
+                      {inactive && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider">Inactive</span>}
                     </span>
+                    {farmer.agency && (
+                      <span className="text-xs text-earth-600 mt-1 flex items-center gap-1">
+                        <Sprout className="w-3 h-3" />
+                        {farmer.agency}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-5 max-w-[12rem] sm:max-w-xs">
+                  <span className={`text-xs leading-snug ${inactive ? "text-gray-500" : "text-earth-700"}`}>
+                    {commoditySummaryByRsbsa?.get(farmer.rsbsaCode) || "—"}
+                  </span>
+                </td>
+                <td className="px-6 py-5">
+                  <span className={`text-sm font-mono font-bold ${inactive ? "text-gray-500" : "text-earth-700"}`}>{farmer.rsbsaCode}</span>
+                </td>
+                <td className="px-6 py-5">
+                  {farmer.phone ? (
+                    <div className="flex items-center gap-2 text-sm text-earth-700">
+                      <Phone className={`w-4 h-4 ${inactive ? "text-gray-400" : "text-farm-600"}`} />
+                      <span className={`font-medium ${inactive ? "text-gray-500" : ""}`}>{farmer.phone}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-earth-500">-</span>
                   )}
-                </div>
-              </td>
-              <td className="px-6 py-5 max-w-[12rem] sm:max-w-xs">
-                <span className="text-xs text-earth-700 leading-snug">
-                  {commoditySummaryByRsbsa?.get(farmer.rsbsaCode) || "—"}
-                </span>
-              </td>
-              <td className="px-6 py-5">
-                <span className="text-sm font-mono font-bold text-earth-700">{farmer.rsbsaCode}</span>
-              </td>
-              <td className="px-6 py-5">
-                {farmer.phone ? (
-                  <div className="flex items-center gap-2 text-sm text-earth-700">
-                    <Phone className="w-4 h-4 text-farm-600" />
-                    <span className="font-medium">{farmer.phone}</span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-earth-500">-</span>
-                )}
-              </td>
-              <td className="px-6 py-5">
-                {farmer.farmerAddress2 ? (
-                  <div className="flex items-center gap-2 text-sm text-earth-700">
-                    <MapPin className="w-4 h-4 text-harvest-600" />
-                    <span>{farmer.farmerAddress2}</span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-earth-500">-</span>
-                )}
-              </td>
-              <td className="px-6 py-5" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-2 border-sky-200 text-sky-600 hover:bg-sky-50 hover:border-sky-400 transition-all"
-                    onClick={() => navigate(`/farmers/${farmer.rsbsaCode}`)}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    View/Edit
-                  </Button>
-                  {onDelete ? (
+                </td>
+                <td className="px-6 py-5">
+                  {farmer.farmerAddress2 ? (
+                    <div className="flex items-center gap-2 text-sm text-earth-700">
+                      <MapPin className={`w-4 h-4 ${inactive ? "text-gray-400" : "text-harvest-600"}`} />
+                      <span className={inactive ? "text-gray-500" : ""}>{farmer.farmerAddress2}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-earth-500">-</span>
+                  )}
+                </td>
+                <td className="px-6 py-5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-center gap-2">
                     <Button
                       size="sm"
-                      variant="destructive"
-                      className="bg-red-500 hover:bg-red-600 text-white border-0 shadow-sm"
-                      onClick={() => onDelete(farmer)}
+                      variant="outline"
+                      className={`border-2 transition-all ${
+                        inactive 
+                          ? "border-gray-200 text-gray-500 hover:bg-gray-50" 
+                          : "border-sky-200 text-sky-600 hover:bg-sky-50 hover:border-sky-400"
+                      }`}
+                      onClick={() => navigate(`/farmers/${farmer.rsbsaCode}`)}
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
+                      <Edit className="w-4 h-4 mr-1" />
+                      View/Edit
                     </Button>
-                  ) : null}
-                </div>
-              </td>
-            </tr>
-          ))}
+                    {onDelete ? (
+                      <Button
+                        size="sm"
+                        variant={inactive ? "default" : "destructive"}
+                        className={`border-0 shadow-sm ${
+                          inactive 
+                            ? "bg-farm-600 hover:bg-farm-700 text-white" 
+                            : "bg-red-500 hover:bg-red-600 text-white"
+                        }`}
+                        onClick={() => onDelete(farmer)}
+                      >
+                        {inactive ? (
+                          <>
+                            <RotateCcw className="w-4 h-4 mr-1" />
+                            Reactivate
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Make Inactive
+                          </>
+                        )}
+                      </Button>
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

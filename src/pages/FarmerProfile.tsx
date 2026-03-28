@@ -1,13 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFarmer, useTransactionsByFarmer, useDeleteFarmer } from "@/hooks/useApi";
+import { useFarmer, useTransactionsByFarmer, useUpdateFarmer } from "@/hooks/useApi";
 import FarmerForm from "@/components/FarmerForm";
 import { useAuth } from "@/hooks/useAuth";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
-import { User, History, Calendar, ArrowLeft, Trash2, AlertTriangle } from "lucide-react";
+import { User, History, Calendar, ArrowLeft, Trash2, AlertTriangle, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
+import { Button } from "@/components/ui/button";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 const transactionTypeColors: Record<string, string> = {
   "Loan": "bg-blue-100 text-blue-700",
@@ -27,19 +29,23 @@ export default function FarmerProfile() {
   const { user } = useAuth();
   const { data: farmer, isLoading, error } = useFarmer(id || "");
   const { data: transactions = [] } = useTransactionsByFarmer(id || "");
-  const deleteFarmer = useDeleteFarmer();
+  const updateFarmer = useUpdateFarmer();
   const { toasts, success, error: showError } = useToast();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleDeleteFarmer = async () => {
+  const isInactive = farmer?.isActive === false;
+
+  const handleToggleStatus = async () => {
     if (!farmer?.rsbsaCode) return;
+    const newStatus = !farmer.isActive;
+    const action = newStatus ? "reactivate" : "deactivate";
     try {
-      await deleteFarmer.mutateAsync(farmer.rsbsaCode);
-      success(`Farmer "${formatFarmerDisplayName(farmer)}" has been deleted successfully`);
-      setTimeout(() => navigate("/farmers"), 1500);
+      await updateFarmer.mutateAsync({ rsbsaCode: farmer.rsbsaCode, data: { isActive: newStatus } });
+      success(`Farmer "${formatFarmerDisplayName(farmer)}" has been ${action}d successfully`);
+      setShowDeleteConfirm(false);
     } catch (err) {
-      console.error("Error deleting farmer:", err);
-      showError("Failed to delete farmer. Please try again.");
+      console.error(`Error ${action}ing farmer:`, err);
+      showError(`Failed to ${action} farmer. Please try again.`);
     }
   };
 
@@ -70,48 +76,78 @@ export default function FarmerProfile() {
     );
   }
 
+  if (isInactive) {
+    return (
+      <div className="space-y-8 animate-fade-in bg-earth-100/30 min-h-screen p-6 sm:p-8 rounded-2xl">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} type={toast.type} message={toast.message} />
+        ))}
+        
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleToggleStatus}
+          title="Reactivate Farmer Profile?"
+          message={`Would you like to reactivate the profile of ${formatFarmerDisplayName(farmer)}? This will make them visible to all users again.`}
+          confirmText="Yes, reactivate"
+          cancelText="No, keep inactive"
+          type="info"
+          isLoading={updateFarmer.isPending}
+        />
+
+        <div className="p-12 text-center bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-red-200 shadow-lg">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-10 h-10 text-red-600" />
+          </div>
+          <h2 className="text-3xl font-display font-bold text-earth-800 mb-2">Profile Locked</h2>
+          <p className="text-earth-600 text-lg mb-8 max-w-md mx-auto">
+            This farmer profile is <strong>Inactive</strong>. Information is hidden and locked for security.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button
+              onClick={() => navigate("/farmers")}
+              variant="outline"
+              className="w-full sm:w-auto h-12 px-8 border-2 border-earth-300"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Directory
+            </Button>
+            {user?.role === "admin" && (
+              <Button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full sm:w-auto h-12 px-8 bg-farm-600 hover:bg-farm-700 text-white border-0 shadow-md"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reactivate Profile
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in bg-earth-100/30 min-h-screen p-6 sm:p-8 rounded-2xl">
       {toasts.map((toast) => (
         <Toast key={toast.id} type={toast.type} message={toast.message} />
       ))}
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="card-modern border-red-200 w-full max-w-md">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-red-100 rounded-xl">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-earth-800 mb-2">Delete Farmer?</h3>
-                  <p className="text-sm text-earth-600 mb-4">
-                    Are you sure you want to delete <strong>{formatFarmerDisplayName(farmer)}</strong>? This action cannot be undone and will also delete all associated transactions and visit records.
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="flex-1 px-4 py-2 bg-earth-100 text-earth-700 rounded-lg font-medium hover:bg-earth-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleDeleteFarmer}
-                      disabled={deleteFarmer.isPending}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-                    >
-                      {deleteFarmer.isPending ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleToggleStatus}
+        title={farmer.isActive ? "Make Profile Inactive?" : "Reactivate Profile?"}
+        message={farmer.isActive 
+          ? `Would you like to make the profile of ${formatFarmerDisplayName(farmer)} inactive? This will hide them from the regular directory.`
+          : `Would you like to reactivate the profile of ${formatFarmerDisplayName(farmer)}? This will make them visible to all users again.`}
+        confirmText={farmer.isActive ? "Yes, make inactive" : "Yes, reactivate"}
+        cancelText="Cancel"
+        type={farmer.isActive ? "danger" : "info"}
+        isLoading={updateFarmer.isPending}
+      />
       {/* Header */}
-      <div className="border-b-2 border-earth-200 bg-earth-900/5 rounded-2xl p-6">
+      <div className="border-b-2 border-earth-200 bg-earth-50 rounded-2xl p-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-farmer text-white text-2xl font-bold flex items-center justify-center shadow-farm">
             {formatFarmerDisplayName(farmer).charAt(0) || "F"}
@@ -140,11 +176,15 @@ export default function FarmerProfile() {
             {user?.role === "admin" && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center gap-2"
-                title="Delete this farmer (admin only)"
+                className={`px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  farmer.isActive 
+                    ? "bg-red-100 text-red-700 hover:bg-red-200" 
+                    : "bg-farm-100 text-farm-700 hover:bg-farm-200"
+                }`}
+                title={farmer.isActive ? "Deactivate this farmer (admin only)" : "Reactivate this farmer (admin only)"}
               >
                 <Trash2 className="w-4 h-4" />
-                Delete
+                {farmer.isActive ? "Deactivate" : "Reactivate"}
               </button>
             )}
           </div>
@@ -171,6 +211,7 @@ export default function FarmerProfile() {
           </div>
           <button
             onClick={() => {
+              if (isInactive) return;
               if (!farmer || !farmer.rsbsaCode) {
                 console.error("[FarmerProfile] Error: Farmer or rsbsaCode is undefined", farmer);
                 return;
@@ -179,8 +220,13 @@ export default function FarmerProfile() {
               console.log(`[FarmerProfile] Button clicked - Navigating to: ${url}`);
               navigate(url);
             }}
-            className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg font-medium hover:bg-sky-200 transition-colors flex-shrink-0 whitespace-nowrap"
-            title="Record a new transaction for this farmer"
+            disabled={isInactive}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex-shrink-0 whitespace-nowrap ${
+              isInactive 
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                : "bg-sky-100 text-sky-700 hover:bg-sky-200"
+            }`}
+            title={isInactive ? "Cannot record transactions for inactive farmers" : "Record a new transaction for this farmer"}
           >
             Record Transaction
           </button>
@@ -195,11 +241,13 @@ export default function FarmerProfile() {
               </p>
               <button
                 onClick={() => {
+                  if (isInactive) return;
                   const url = `/record-transaction?farmer=${farmer.rsbsaCode}`;
                   console.log(`[FarmerProfile] Navigating to: ${url}`);
                   navigate(url);
                 }}
-                className="mt-4 btn-farm px-6 py-2 rounded-xl"
+                disabled={isInactive}
+                className={`mt-4 btn-farm px-6 py-2 rounded-xl ${isInactive ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Record Transaction
               </button>

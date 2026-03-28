@@ -11,6 +11,7 @@ interface LogoUrl {
 const navItems = [
   { path: "/", label: "Home", icon: Home },
   { path: "/farmers", label: "Farmers", icon: Users },
+  { path: "/inactive-farmers", label: "Inactive Farmers", icon: Users, requiresAdmin: true },
   { path: "/import-farmers", label: "Import Farmers", icon: Upload },
   { path: "/record-transaction", label: "Transaction", icon: Clipboard },
   { path: "/transaction-history", label: "History", icon: History },

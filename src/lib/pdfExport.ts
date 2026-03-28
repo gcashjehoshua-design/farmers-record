@@ -1,19 +1,31 @@
 import { jsPDF } from "jspdf";
-import type { Transaction } from "@/types";
+import type { Transaction, Farmer } from "@/types";
 import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
 import { supabaseUrl } from "@/lib/supabase";
 
 const MARGIN = 15;
-const PAGE_WIDTH = 210;
-const PAGE_HEIGHT = 297;
+const PAGE_WIDTH_P = 210;
+const PAGE_HEIGHT_P = 297;
+const PAGE_WIDTH_L = 297;
+const PAGE_HEIGHT_L = 210;
 const HEADER_HEIGHT = 45;
 const FOOTER_HEIGHT = 15;
 const CONTENT_TOP = MARGIN + HEADER_HEIGHT;
-const CONTENT_BOTTOM = PAGE_HEIGHT - FOOTER_HEIGHT;
+const CONTENT_BOTTOM = PAGE_HEIGHT_P - FOOTER_HEIGHT;
 const ROW_HEIGHT = 8;
 const HEADER_FONT = 10;
 const BODY_FONT = 9;
 const LOGOS_BUCKET = "logos";
+
+function getPageDimensions(doc: jsPDF) {
+  const isLandscape = doc.internal.pageSize.getWidth() > doc.internal.pageSize.getHeight();
+  return {
+    width: isLandscape ? PAGE_WIDTH_L : PAGE_WIDTH_P,
+    height: isLandscape ? PAGE_HEIGHT_L : PAGE_HEIGHT_P,
+    top: MARGIN + HEADER_HEIGHT,
+    bottom: (isLandscape ? PAGE_HEIGHT_L : PAGE_HEIGHT_P) - FOOTER_HEIGHT,
+  };
+}
 
 function buildLogoUrl(path: string): string {
   const base = supabaseUrl.replace(/\/$/, "");
@@ -47,6 +59,7 @@ async function fetchImageAsBase64(url: string): Promise<string | null> {
 
 /** Add logo header and system name to PDF */
 async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
+  const { width } = getPageDimensions(doc);
   let y = MARGIN;
 
   // Try to add logos (center row)
@@ -54,7 +67,7 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
   const logoSize = 12;
   const logoGap = 8;
   const totalLogosWidth = logoPaths.length * logoSize + (logoPaths.length - 1) * logoGap;
-  let startX = (PAGE_WIDTH - totalLogosWidth) / 2;
+  let startX = (width - totalLogosWidth) / 2;
 
   for (const path of logoPaths) {
     const url = buildLogoUrl(path);
@@ -74,38 +87,37 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
   // System name
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Farmers Record and Transactions System", PAGE_WIDTH / 2, y, { align: "center" });
+  doc.text("Farmers Record and Transactions System", width / 2, y, { align: "center" });
   y += 6;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("City of Passi Agriculture Office", PAGE_WIDTH / 2, y, { align: "center" });
+  doc.text("City of Passi Agriculture Office", width / 2, y, { align: "center" });
   y += 6;
 
   // Report title
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(reportTitle, PAGE_WIDTH / 2, y, { align: "center" });
+  doc.text(reportTitle, width / 2, y, { align: "center" });
   y += 6;
 
   // Horizontal line
   doc.setDrawColor(139, 115, 85);
   doc.setLineWidth(0.5);
-  doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y);
+  doc.line(MARGIN, y, width - MARGIN, y);
 }
 
 /** Add footer with page number and date */
 function addPdfFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
-  const y = PAGE_HEIGHT - 8;
+  const { width, height } = getPageDimensions(doc);
+  const y = height - 8;
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
-  doc.text(
-    `Page ${pageNum} of ${totalPages} | Generated: ${new Date().toLocaleDateString("en-PH", { dateStyle: "medium" })}`,
-    PAGE_WIDTH / 2,
-    y,
-    { align: "center" }
-  );
+
+  const dateStr = new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+  doc.text(`Generated on: ${dateStr}`, MARGIN, y);
+  doc.text(`Page ${pageNum} of ${totalPages}`, width - MARGIN, y, { align: "right" });
   doc.setTextColor(0, 0, 0);
 }
 
@@ -226,6 +238,83 @@ export async function exportVisitsToPdf(
     }
     doc.setFontSize(BODY_FONT);
     let x = MARGIN;
+    row.forEach((cell, i) => {
+      doc.text(String(cell), x + 2, y + 2);
+      x += colWidths[i];
+    });
+    y += ROW_HEIGHT;
+  }
+
+  addFootersToAllPages(doc);
+  doc.save(filename);
+}
+
+/** Export farmers list to PDF with current filters */
+export async function exportFarmersToPdf(
+  farmers: Farmer[],
+  filters: { barangay: string; gender: string; agency: string }
+): Promise<void> {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const { top, bottom } = getPageDimensions(doc);
+
+  await addPdfHeader(doc, "Farmers Directory");
+  let y = top;
+
+  doc.setFontSize(BODY_FONT);
+  doc.setFont("helvetica", "normal");
+  
+  const filterLines: string[] = [];
+  if (filters.barangay && filters.barangay !== "all") filterLines.push(`Barangay: ${filters.barangay}`);
+  if (filters.gender && filters.gender !== "all") filterLines.push(`Gender: ${filters.gender}`);
+  if (filters.agency && filters.agency !== "all") filterLines.push(`Agency: ${filters.agency}`);
+  
+  if (filterLines.length > 0) {
+    doc.text(`Filters: ${filterLines.join(" | ")}`, MARGIN, y);
+    y += 6;
+  }
+  doc.text(`Total farmers: ${farmers.length}`, MARGIN, y);
+  y += 12;
+
+  const filename = `farmers-directory-${new Date().toISOString().split('T')[0]}.pdf`;
+
+  if (farmers.length === 0) {
+    doc.text("No farmers found matching the criteria.", MARGIN, y);
+    addFootersToAllPages(doc);
+    doc.save(filename);
+    return;
+  }
+
+  // Landscape A4 width is 297mm. Margins 15mm each -> 267mm available.
+  const colWidths = [100, 80, 87]; 
+  const headers = ["Name", "Barangay", "Agency"];
+
+  doc.setFontSize(HEADER_FONT);
+  doc.setFont("helvetica", "bold");
+  doc.setFillColor(238, 245, 238); // farm-50
+  doc.rect(MARGIN, y - 5, colWidths.reduce((a, b) => a + b, 0), ROW_HEIGHT, "F");
+  let x = MARGIN;
+  headers.forEach((h, i) => {
+    doc.text(h, x + 2, y + 2);
+    x += colWidths[i];
+  });
+  y += ROW_HEIGHT;
+  doc.setFont("helvetica", "normal");
+
+  for (const f of farmers) {
+    if (y > bottom - ROW_HEIGHT) {
+      doc.addPage();
+      await addPdfHeader(doc, "Farmers Directory (continued)");
+      y = top;
+    }
+    doc.setFontSize(BODY_FONT);
+    let x = MARGIN;
+    
+    const row = [
+      truncateToFit(formatFarmerDisplayName(f), "name"),
+      truncateToFit(f.farmerAddress1 || "-", "barangay"),
+      truncateToFit(f.agency || "-", "org")
+    ];
+
     row.forEach((cell, i) => {
       doc.text(String(cell), x + 2, y + 2);
       x += colWidths[i];

@@ -3,16 +3,38 @@
 @import "tailwindcss";
 
 @theme {
-  /* Light brown and light green theme */
-  --gradient-farmer: linear-gradient(135deg, #5a8e57 0%, #467044 50%, #385936 100%);
-  --gradient-earth: linear-gradient(135deg, #b28e61 0%, #9b7650 50%, #7e5e41 100%);
-  --gradient-harvest: linear-gradient(135deg, #D4A84B 0%, #C4942C 50%, #9a7019 100%);
-  --gradient-sky: linear-gradient(135deg, #5B8A9E 0%, #4a7688 50%, #3d6272 100%);
+  /* Dark brown and dark green theme - extreme dark v2 */
+  --color-farm-50: #e0e8e0;
+  --color-farm-100: #b0c4b0;
+  --color-farm-200: #809c80;
+  --color-farm-300: #3a543a;
+  --color-farm-400: #1a301a;
+  --color-farm-500: #081408;
+  --color-farm-600: #040a04;
+  --color-farm-700: #020602;
+  --color-farm-800: #010401;
+  --color-farm-900: #000200;
 
-  --shadow-farm: 0 4px 6px -1px rgba(70, 112, 68, 0.12), 0 2px 4px -1px rgba(70, 112, 68, 0.08);
-  --shadow-farm-lg: 0 10px 15px -3px rgba(70, 112, 68, 0.12), 0 4px 6px -2px rgba(70, 112, 68, 0.06);
-  --shadow-earth: 0 4px 6px -1px rgba(155, 118, 80, 0.15), 0 2px 4px -1px rgba(155, 118, 80, 0.08);
-  --shadow-harvest: 0 4px 6px -1px rgba(196, 148, 44, 0.2), 0 2px 4px -1px rgba(196, 148, 44, 0.1);
+  --color-earth-50: #eee8e6;
+  --color-earth-100: #d0c0bb;
+  --color-earth-200: #a68e85;
+  --color-earth-300: #5a443a;
+  --color-earth-400: #38261e;
+  --color-earth-500: #140d0a;
+  --color-earth-600: #0e0907;
+  --color-earth-700: #080504;
+  --color-earth-800: #050302;
+  --color-earth-900: #020101;
+
+  --gradient-farmer: linear-gradient(135deg, #081408 0%, #040a04 50%, #000200 100%);
+  --gradient-earth: linear-gradient(135deg, #140d0a 0%, #080504 50%, #020101 100%);
+  --gradient-harvest: linear-gradient(135deg, #5a443a 0%, #38261e 50%, #140d0a 100%);
+  --gradient-sky: linear-gradient(135deg, #1a301a 0%, #081408 50%, #040a04 100%);
+
+  --shadow-farm: 0 4px 6px -1px rgba(4, 10, 4, 0.6), 0 2px 4px -1px rgba(4, 10, 4, 0.4);
+  --shadow-farm-lg: 0 10px 15px -3px rgba(4, 10, 4, 0.6), 0 4px 6px -2px rgba(4, 10, 4, 0.4);
+  --shadow-earth: 0 4px 6px -1px rgba(8, 5, 4, 0.7), 0 2px 4px -1px rgba(8, 5, 4, 0.5);
+  --shadow-harvest: 0 4px 6px -1px rgba(56, 38, 30, 0.7), 0 2px 4px -1px rgba(56, 38, 30, 0.5);
 }
 
 @layer base {
@@ -22,8 +44,8 @@
     font-weight: 400;
     
     color-scheme: light;
-    color: #4a3f35;
-    background: #fdfaf7;
+    color: #0e0907;
+    background: #f8f3ed;
     background-attachment: fixed;
     
     font-synthesis: none;
@@ -33,8 +55,8 @@
   }
 
   body {
-    background-color: #fdfaf7;
-    color: #4a3f35;
+    background-color: #f8f3ed;
+    color: #0e0907;
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
@@ -43,7 +65,7 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Source Serif 4', Georgia, serif;
     font-weight: 600;
-    color: #2d241d;
+    color: #050302;
   }
 
   h1 {

@@ -1,10 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFarmer, useTransactionsByFarmer, useCommoditiesByFarmer } from "@/hooks/useApi";
+import { useFarmer, useTransactionsByFarmer, useCommoditiesByFarmer, useUpdateFarmer } from "@/hooks/useApi";
 import { exportProfileTransactionsToPdf } from "@/lib/pdfExport";
-import { User, History, Calendar, ArrowLeft, Edit, Phone, MapPin, Calendar as CalendarIcon, FileText, Building2, FileDown, Sprout, Clipboard } from "lucide-react";
+import { User, History, Calendar, ArrowLeft, Edit, Phone, MapPin, Calendar as CalendarIcon, FileText, Building2, FileDown, Sprout, Clipboard, AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatFarmerDisplayName, formatCommoditySummary } from "@/lib/farmerDisplay";
+import { useAuth } from "@/hooks/useAuth";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
+import { useState } from "react";
 
 const transactionTypeColors: Record<string, string> = {
   "Loan": "bg-blue-100 text-blue-700",
@@ -21,9 +25,27 @@ function getTransactionTypeColor(type: string) {
 export default function ViewFarmer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: farmer, isLoading, error } = useFarmer(id || "");
   const { data: transactions = [] } = useTransactionsByFarmer(id || "");
   const { data: commodities = [] } = useCommoditiesByFarmer(id || "");
+  const updateFarmer = useUpdateFarmer();
+  const { toasts, success, error: showError } = useToast();
+  const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
+
+  const isInactive = farmer?.isActive === false;
+
+  const handleReactivate = async () => {
+    if (!farmer?.rsbsaCode) return;
+    try {
+      await updateFarmer.mutateAsync({ rsbsaCode: farmer.rsbsaCode, data: { isActive: true } });
+      success(`Farmer "${formatFarmerDisplayName(farmer)}" has been reactivated successfully`);
+      setShowReactivateConfirm(false);
+    } catch (err) {
+      console.error("Error reactivating farmer:", err);
+      showError("Failed to reactivate farmer. Please try again.");
+    }
+  };
 
   if (error || (!isLoading && !farmer)) {
     return (
@@ -48,6 +70,80 @@ export default function ViewFarmer() {
       <div className="animate-fade-in py-12 text-center">
         <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-farm-200 border-t-farm-600" />
         <p className="text-earth-600 mt-4 font-medium">Loading farmer profile...</p>
+      </div>
+    );
+  }
+
+  if (isInactive) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} type={toast.type} message={toast.message} />
+        ))}
+        
+        {showReactivateConfirm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <Card className="card-modern border-red-200 w-full max-w-md">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-farm-100 rounded-xl">
+                    <AlertTriangle className="w-6 h-6 text-farm-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-earth-800 mb-2">Reactivate Farmer?</h3>
+                    <p className="text-sm text-earth-600 mb-4">
+                      Are you sure you want to reactivate <strong>{formatFarmerDisplayName(farmer)}</strong>? This will make them visible to all users again.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowReactivateConfirm(false)}
+                        className="flex-1 px-4 py-2 bg-earth-100 text-earth-700 rounded-lg font-medium hover:bg-earth-200 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleReactivate}
+                        disabled={updateFarmer.isPending}
+                        className="flex-1 px-4 py-2 bg-farm-600 text-white rounded-lg font-medium hover:bg-farm-700 transition-colors disabled:opacity-50"
+                      >
+                        {updateFarmer.isPending ? "Reactivating..." : "Reactivate"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="p-12 text-center bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-red-200 shadow-lg">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-10 h-10 text-red-600" />
+          </div>
+          <h2 className="text-3xl font-display font-bold text-earth-800 mb-2">Profile Locked</h2>
+          <p className="text-earth-600 text-lg mb-8 max-w-md mx-auto">
+            This farmer profile is <strong>Inactive</strong>. Information is hidden and locked for security.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button
+              onClick={() => navigate("/farmers")}
+              variant="outline"
+              className="w-full sm:w-auto h-12 px-8 border-2 border-earth-300"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Directory
+            </Button>
+            {user?.role === "admin" && (
+              <Button
+                onClick={() => setShowReactivateConfirm(true)}
+                className="w-full sm:w-auto h-12 px-8 bg-farm-600 hover:bg-farm-700 text-white border-0 shadow-md"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reactivate Profile
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,16 +1,20 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFarmers, useDeleteFarmer, useAllCommodities } from "@/hooks/useApi";
+import { useAuth } from "@/hooks/useAuth";
 import { formatFarmerDisplayName, formatCommoditySummary } from "@/lib/farmerDisplay";
 import type { Farmer } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, ArrowLeft, Users, TrendingUp, Upload } from "lucide-react";
+import { Search, Plus, ArrowLeft, Users, TrendingUp, Upload, Printer } from "lucide-react";
 import FarmersTable from "@/components/FarmersTable";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import { PASSI_BARANGAYS } from "@/constants/barangays";
+import { exportFarmersToPdf } from "@/lib/pdfExport";
+import ConfirmationModal from "@/components/ConfirmationModal";
+import FarmerPrintModal from "@/components/FarmerPrintModal";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -24,19 +28,38 @@ function genderFilterLabel(g: string | undefined): string {
 
 export default function FarmersList() {
   const navigate = useNavigate();
-  const { data: farmers, isLoading, error } = useFarmers();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const { data: farmers, isLoading, error } = useFarmers(false);
   const { data: allCommodities = [] } = useAllCommodities();
   const deleteFarmer = useDeleteFarmer();
   const { toasts, success, error: showError } = useToast();
+  
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [farmerToDeactivate, setFarmerToDeactivate] = useState<Farmer | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
-  const handleDelete = async (farmer: Farmer) => {
-    const display = formatFarmerDisplayName(farmer);
-    if (!window.confirm(`Delete ${display || "this farmer"}?`)) return;
+  const handleDelete = (farmer: Farmer) => {
+    if (!isAdmin) {
+      showError("Only admins can make farmers inactive.");
+      return;
+    }
+    setFarmerToDeactivate(farmer);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDeactivate = async () => {
+    if (!farmerToDeactivate) return;
+    const display = formatFarmerDisplayName(farmerToDeactivate);
     try {
-      await deleteFarmer.mutateAsync(farmer.rsbsaCode);
-      success(`${display} has been deleted.`);
+      await deleteFarmer.mutateAsync(farmerToDeactivate.rsbsaCode);
+      success(`${display} is now inactive.`);
     } catch (e) {
-      showError("Failed to delete farmer.");
+      showError("Failed to make farmer inactive.");
+    } finally {
+      setShowConfirmModal(false);
+      setFarmerToDeactivate(null);
     }
   };
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,6 +151,27 @@ export default function FarmersList() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  const handlePrintPdf = async (printFilters: { barangay: string; gender: string; agency: string }) => {
+    setIsPrinting(true);
+    try {
+      // Filter the full farmers list based on modal selection
+      const dataToPrint = (farmers || []).filter(f => {
+        const matchesBarangay = printFilters.barangay === "all" || f.farmerAddress1 === printFilters.barangay;
+        const matchesGender = printFilters.gender === "all" || f.gender === printFilters.gender;
+        const matchesAgency = printFilters.agency === "all" || f.agency === printFilters.agency;
+        return matchesBarangay && matchesGender && matchesAgency;
+      });
+
+      await exportFarmersToPdf(dataToPrint, printFilters);
+      success("PDF report generated successfully.");
+      setShowPrintModal(false);
+    } catch (e) {
+      showError("Failed to generate PDF report.");
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
@@ -144,10 +188,29 @@ export default function FarmersList() {
     );
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in bg-earth-100/30 min-h-screen">
       {toasts.map((toast) => (
         <Toast key={toast.id} type={toast.type} message={toast.message} />
       ))}
+      
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={confirmDeactivate}
+        title="Make Profile Inactive?"
+        message={`Would you like to make the profile of ${farmerToDeactivate ? formatFarmerDisplayName(farmerToDeactivate) : "this farmer"} inactive? This will hide them from the regular directory.`}
+        confirmText="Yes, make inactive"
+        cancelText="No, keep active"
+        type="danger"
+        isLoading={deleteFarmer.isPending}
+      />
+
+      <FarmerPrintModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        onPrint={handlePrintPdf}
+        isPrinting={isPrinting}
+      />
       {/* Header Section */}
       <div className="border-b-2 border-earth-200 bg-earth-50/90">
         <div className="container mx-auto px-4 py-6">
@@ -239,20 +302,21 @@ export default function FarmersList() {
               </select>
             </div>
           </div>
-          <div className="flex items-end gap-3">
+          <div className="flex items-end gap-3 flex-wrap">
             <Button
-              onClick={() => navigate("/import-farmers")}
-              className="btn-secondary h-14 px-8 text-base"
+              onClick={() => setShowPrintModal(true)}
+              className="btn-secondary h-14 px-8 text-base bg-sky-600 hover:bg-sky-700 text-white border-0"
+              disabled={farmers?.length === 0}
             >
-              <Upload className="w-5 h-5 mr-2" />
-              Import from Excel
+              <Printer className="w-5 h-5 mr-2" />
+              Print to PDF
             </Button>
             <Button
               onClick={() => navigate("/add-farmer")}
-              className="btn-farm h-14 px-8 text-base w-full lg:w-auto"
+              className="btn-farm h-14 px-8 text-base"
             >
               <Plus className="w-5 h-5 mr-2" />
-              Add New Farmer
+              Add Farmer
             </Button>
           </div>
         </div>
@@ -296,7 +360,7 @@ export default function FarmersList() {
             ) : (
               <FarmersTable
                 farmers={paginatedFarmers}
-                onDelete={handleDelete}
+                onDelete={isAdmin ? handleDelete : undefined}
                 commoditySummaryByRsbsa={commoditySummaryByRsbsa}
               />
             )}

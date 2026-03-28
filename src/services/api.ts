@@ -38,6 +38,7 @@ const mapFarmerFromDb = (row: Database["public"]["Tables"]["farmers"]["Row"]): F
   ownerName: row.owner_name || undefined,
   dateEncoded: row.date_encoded ? new Date(row.date_encoded) : undefined,
   notes: row.notes || undefined,
+  isActive: row.is_active ?? true,
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),
 });
@@ -75,6 +76,7 @@ const mapFarmerToDb = (farmer: Omit<Farmer, "createdAt" | "updatedAt">) => ({
   owner_name: farmer.ownerName || null,
   date_encoded: farmer.dateEncoded ? farmer.dateEncoded.toISOString() : null,
   notes: farmer.notes || null,
+  is_active: farmer.isActive ?? true,
 });
 
 // Helper function to map database row to FarmerCommodity type
@@ -111,16 +113,21 @@ const mapTransactionToDb = (transaction: Omit<Transaction, "id" | "createdAt">) 
 
 // Farmers
 export const farmerService = {
-  list: async (): Promise<Farmer[]> => {
-    console.log("📡 Fetching farmers from Supabase...");
+  list: async (includeInactive = false): Promise<Farmer[]> => {
+    console.log(`📡 Fetching farmers from Supabase (includeInactive: ${includeInactive})...`);
     const allRows: Database["public"]["Tables"]["farmers"]["Row"][] = [];
     let from = 0;
     for (;;) {
-      const { data, error } = await supabase
+      let query = supabase
         .from("farmers")
         .select("*")
-        .order("created_at", { ascending: false })
-        .range(from, from + REST_PAGE_SIZE - 1);
+        .order("created_at", { ascending: false });
+
+      if (!includeInactive) {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query.range(from, from + REST_PAGE_SIZE - 1);
 
       if (error) {
         console.error("❌ Error fetching farmers:", error);
@@ -189,6 +196,7 @@ export const farmerService = {
     if (farmerData.ownershipType !== undefined) updateData.ownership_type = farmerData.ownershipType || null;
     if (farmerData.ownerName !== undefined) updateData.owner_name = farmerData.ownerName || null;
     if (farmerData.notes !== undefined) updateData.notes = farmerData.notes || null;
+    if (farmerData.isActive !== undefined) updateData.is_active = farmerData.isActive;
 
     const { data, error } = await supabase
       .from("farmers")
@@ -204,7 +212,7 @@ export const farmerService = {
   delete: async (rsbsaCode: string): Promise<void> => {
     const { error } = await supabase
       .from("farmers")
-      .delete()
+      .update({ is_active: false } as never)
       .eq("rsbsa_code", rsbsaCode);
 
     if (error) throw error;

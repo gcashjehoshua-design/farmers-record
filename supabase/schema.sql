@@ -60,6 +60,7 @@ CREATE TABLE farmers (
   
   -- Metadata
   notes TEXT,
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
@@ -270,15 +271,19 @@ CREATE POLICY "admin_can_delete_users" ON app_users
 CREATE OR REPLACE VIEW dashboard_stats
 WITH (security_invoker = true) AS
 SELECT
-  (SELECT COUNT(*) FROM farmers) AS total_farmers,
-  (SELECT COUNT(*) FROM transactions) AS total_transactions,
-  (SELECT COUNT(*) FROM transactions
-    WHERE office_visit_at >= date_trunc('month', now())
-      AND office_visit_at < (date_trunc('month', now()) + interval '1 month')
+  (SELECT COUNT(*) FROM farmers WHERE is_active = true) AS total_farmers,
+  (SELECT COUNT(*) FROM transactions t JOIN farmers f ON t.rsbsa_code = f.rsbsa_code WHERE f.is_active = true) AS total_transactions,
+  (SELECT COUNT(*) FROM transactions t
+    JOIN farmers f ON t.rsbsa_code = f.rsbsa_code
+    WHERE t.office_visit_at >= date_trunc('month', now())
+      AND t.office_visit_at < (date_trunc('month', now()) + interval '1 month')
+      AND f.is_active = true
   ) AS visits_this_month,
-  (SELECT COUNT(DISTINCT rsbsa_code) FROM transactions
-    WHERE office_visit_at >= date_trunc('month', now())
-      AND office_visit_at < (date_trunc('month', now()) + interval '1 month')
+  (SELECT COUNT(DISTINCT t.rsbsa_code) FROM transactions t
+    JOIN farmers f ON t.rsbsa_code = f.rsbsa_code
+    WHERE t.office_visit_at >= date_trunc('month', now())
+      AND t.office_visit_at < (date_trunc('month', now()) + interval '1 month')
+      AND f.is_active = true
   ) AS farmers_visited_this_month;
 
 -- Grant permissions on app_users table to authenticated role (required for login/profile creation)

@@ -40,6 +40,7 @@ export type Farmer = {
   
   // Metadata
   notes?: string;
+  isActive?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

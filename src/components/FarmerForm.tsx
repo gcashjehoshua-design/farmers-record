@@ -195,6 +195,7 @@ const DisplayNamePreview = memo(function DisplayNamePreview({ control }: { contr
 });
 
 export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) {
+  const isInactive = (initialData as any)?.isActive === false;
   const { toasts, error: showError } = useToast();
   const queryClient = useQueryClient();
   const isEditMode = !!initialData?.rsbsaCode;
@@ -277,60 +278,63 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
     disabled?: boolean;
     /** For name fields: keep the first character uppercase as the user types */
     capitalizeFirstLetter?: boolean;
-  }) => (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field }) => (
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">
-            {label} {required && <span className="text-red-500">*</span>}
-          </label>
-          {multiline ? (
-            <textarea
-              {...field}
-              value={(field.value as string) ?? ""}
-              disabled={disabled}
-              placeholder={placeholder}
-              rows={rows}
-              className="input-modern resize-none"
-            />
-          ) : capitalizeFirstLetter && type === "text" ? (
-            <input
-              ref={field.ref}
-              name={field.name}
-              onBlur={field.onBlur}
-              value={String((field.value as string) ?? "")}
-              disabled={disabled}
-              type="text"
-              placeholder={placeholder}
-              autoComplete="off"
-              className={`input-modern ${
-                (errors as Record<string, unknown>)[String(name)] ? "border-red-400" : ""
-              }`}
-              onChange={(e) => field.onChange(uppercaseFirstChar(e.target.value))}
-            />
-          ) : (
-            <input
-              {...field}
-              value={(field.value as string | number) ?? ""}
-              disabled={disabled}
-              type={type}
-              placeholder={placeholder}
-              className={`input-modern ${
-                (errors as Record<string, unknown>)[String(name)] ? "border-red-400" : ""
-              }`}
-            />
-          )}
-          {(() => {
-            const err = errors as Record<string, { message?: string } | undefined>;
-            const e = err[String(name)];
-            return e?.message ? <p className="text-red-500 text-xs mt-1">{e.message}</p> : null;
-          })()}
-        </div>
-      )}
-    />
-  );
+  }) => {
+    const isFieldDisabled = disabled || isInactive;
+    return (
+      <Controller
+        name={name}
+        control={control}
+        render={({ field }) => (
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">
+              {label} {required && <span className="text-red-500">*</span>}
+            </label>
+            {multiline ? (
+              <textarea
+                {...field}
+                value={(field.value as string) ?? ""}
+                disabled={isFieldDisabled}
+                placeholder={placeholder}
+                rows={rows}
+                className="input-modern resize-none"
+              />
+            ) : capitalizeFirstLetter && type === "text" ? (
+              <input
+                ref={field.ref}
+                name={field.name}
+                onBlur={field.onBlur}
+                value={String((field.value as string) ?? "")}
+                disabled={isFieldDisabled}
+                type="text"
+                placeholder={placeholder}
+                autoComplete="off"
+                className={`input-modern ${
+                  (errors as Record<string, unknown>)[String(name)] ? "border-red-400" : ""
+                }`}
+                onChange={(e) => field.onChange(uppercaseFirstChar(e.target.value))}
+              />
+            ) : (
+              <input
+                {...field}
+                value={(field.value as string | number) ?? ""}
+                disabled={isFieldDisabled}
+                type={type}
+                placeholder={placeholder}
+                className={`input-modern ${
+                  (errors as Record<string, unknown>)[String(name)] ? "border-red-400" : ""
+                }`}
+              />
+            )}
+            {(() => {
+              const err = errors as Record<string, { message?: string } | undefined>;
+              const e = err[String(name)];
+              return e?.message ? <p className="text-red-500 text-xs mt-1">{e.message}</p> : null;
+            })()}
+          </div>
+        )}
+      />
+    );
+  };
 
   const BoolRow = ({
     label,
@@ -352,11 +356,12 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
       name={name}
       control={control}
       render={({ field }) => (
-        <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-gray-200 bg-white p-3 hover:bg-gray-50">
+        <label className={`flex items-start gap-3 cursor-pointer rounded-lg border border-gray-200 bg-white p-3 hover:bg-gray-50 ${isInactive ? "opacity-60 cursor-not-allowed" : ""}`}>
           <input
             type="checkbox"
             className="mt-1 h-4 w-4 rounded border-gray-300 accent-farm-600"
             checked={field.value}
+            disabled={isInactive}
             onChange={(e) => field.onChange(e.target.checked)}
           />
           <span>
@@ -405,7 +410,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
               render={({ field }) => (
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700">Gender</label>
-                  <select {...field} className="input-modern" value={field.value ?? ""}>
+                  <select {...field} className="input-modern" value={field.value ?? ""} disabled={isInactive}>
                     <option value="">Select</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -461,6 +466,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
                   {...field}
                   list="passi-barangays"
                   className="input-modern"
+                  disabled={isInactive}
                   placeholder="Barangay (matches Excel FARMER ADDRESS 1)"
                 />
               )}
@@ -493,7 +499,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
               render={({ field }) => (
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700">Farm type</label>
-                  <select {...field} className="input-modern" value={field.value ?? ""}>
+                  <select {...field} className="input-modern" value={field.value ?? ""} disabled={isInactive}>
                     <option value="">Select Farm Type</option>
                     <option value="Rainfed Lowland">Rainfed Lowland</option>
                     <option value="Rainfed Upland">Rainfed Upland</option>
@@ -519,7 +525,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
               render={({ field }) => (
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700">Ownership type</label>
-                  <select {...field} className="input-modern" value={field.value ?? ""}>
+                  <select {...field} className="input-modern" value={field.value ?? ""} disabled={isInactive}>
                     <option value="">Select</option>
                     <option value="Registered Owner">Registered Owner</option>
                     <option value="Tenant">Tenant</option>
@@ -598,11 +604,16 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
             onClick={() => reset(farmerToFormDefaults(initialData))}
             variant="outline"
             className="flex-1 h-12 border-2 border-gray-300"
+            disabled={isInactive}
           >
             <RotateCcw className="w-5 h-5 mr-2" />
             Reset
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="btn-farm flex-1 h-12 text-base font-semibold">
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || isInactive} 
+            className="btn-farm flex-1 h-12 text-base font-semibold"
+          >
             <Save className="w-5 h-5 mr-2" />
             {isSubmitting ? "Saving…" : isEditMode ? "Update farmer" : "Save farmer"}
           </Button>

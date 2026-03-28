@@ -18,6 +18,7 @@ import ViewFarmer from "@/pages/ViewFarmer";
 import EditFarmer from "@/pages/EditFarmer";
 import Settings from "@/pages/Settings";
 import UserManagement from "@/pages/UserManagement";
+import InactiveFarmers from "@/pages/InactiveFarmers";
 import Login from "@/pages/Login";
 
 // Tailwind will provide global theming and styles.
@@ -69,6 +70,7 @@ function AppLayout() {
             <Route path="/farmers/:id/edit" element={<EditFarmer />} />
             <Route path="/farmers/:id" element={<ViewFarmer />} />
             <Route path="/farmers" element={<FarmersList />} />
+            <Route path="/inactive-farmers" element={<InactiveFarmers />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/users" element={<UserManagement />} />
           </Routes>

@@ -44,6 +44,7 @@ export interface Database {
           owner_name: string | null;
           date_encoded: string | null;
           notes: string | null;
+          is_active: boolean | null;
           created_at: string;
           updated_at: string;
         };
@@ -79,6 +80,7 @@ export interface Database {
           owner_name?: string | null;
           date_encoded?: string | null;
           notes?: string | null;
+          is_active?: boolean | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -114,6 +116,7 @@ export interface Database {
           owner_name?: string | null;
           date_encoded?: string | null;
           notes?: string | null;
+          is_active?: boolean | null;
           created_at?: string;
           updated_at?: string;
         };
