@@ -219,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Call PostgreSQL RPC function to create user
         try {
-          const { data, error: rpcError } = await supabase.rpc("admin_create_user", {
+          const { error: rpcError } = await (supabase as any).rpc("admin_create_user", {
             p_full_name: fullName.trim(),
             p_email: normalizedEmail,
             p_role: role,
@@ -288,7 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         try {
-          const { error: rpcError } = await supabase.rpc("admin_delete_user", {
+          const { error: rpcError } = await (supabase as any).rpc("admin_delete_user", {
             p_user_id: id,
           });
 
