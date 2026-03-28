@@ -60,8 +60,6 @@ export default function Login() {
     
     if (!email.trim()) {
       errors.email = "Username is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "Please enter a valid username";
     }
     
     if (!password) {
@@ -163,7 +161,7 @@ export default function Login() {
                 <div className="relative">
                   <Mail className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
-                    type="email"
+                    type="text"
                     autoComplete="username"
                     placeholder="Enter your username"
                     className={`input-modern h-11 pl-9 transition-colors ${
@@ -228,7 +226,7 @@ export default function Login() {
                   className="w-4 h-4 rounded border-earth-300 cursor-pointer"
                 />
                 <label htmlFor="rememberMe" className="text-sm text-earth-700 cursor-pointer">
-                  Remember this email
+                  Remember this account
                 </label>
               </div>
 

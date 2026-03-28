@@ -144,7 +144,7 @@ export default function UserManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-earth-800 mb-1.5">
-                    Email
+                    Username
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -256,7 +256,7 @@ export default function UserManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[30%]">Name</TableHead>
-                    <TableHead className="w-[25%]">Email</TableHead>
+                    <TableHead className="w-[25%]">Username</TableHead>
                     <TableHead className="w-[15%]">Role</TableHead>
                     <TableHead className="w-[12%] text-center">Status</TableHead>
                     <TableHead className="w-[18%] text-right">Actions</TableHead>
@@ -365,4 +365,3 @@ export default function UserManagement() {
     </div>
   );
 }
-
