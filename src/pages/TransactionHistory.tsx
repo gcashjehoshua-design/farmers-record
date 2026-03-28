@@ -375,113 +375,131 @@ export default function TransactionHistory() {
 
         {/* Print Filter Dialog */}
         {isPrintDialogOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl shadow-2xl animate-scale-in max-h-[90vh] overflow-hidden flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-sky-50 to-sky-100 border-b-2 border-sky-200 flex-shrink-0">
-                <div>
-                  <CardTitle className="text-2xl font-display font-bold text-gray-800">PDF Report Options</CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">Select categories to include in the generated PDF</p>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+            <Card className="w-full max-w-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] scale-in max-h-[90vh] overflow-hidden flex flex-col border-[#5a443a] rounded-2xl bg-[#38261e]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 bg-gradient-to-r from-[#1a301a] to-[#2d5a3d] border-b border-[#3a543a]/30 flex-shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10 shadow-inner">
+                    <FileDown className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl font-display font-bold text-white tracking-tight">PDF Report Options</CardTitle>
+                    <p className="text-sm text-green-100/90 mt-1 font-medium">Select categories to include in the generated PDF</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setIsPrintDialogOpen(false)}
-                  className="text-gray-600 hover:text-gray-800 hover:bg-gray-200 transition-colors p-2 rounded-lg flex-shrink-0"
+                  className="text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-full flex-shrink-0 hover:rotate-90"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </CardHeader>
-              <CardContent className="space-y-6 p-8 overflow-y-auto flex-1">
-                <div className="grid gap-8 md:grid-cols-1">
+              <CardContent className="space-y-8 p-8 overflow-y-auto flex-1 bg-[#38261e] custom-scrollbar">
+                <div className="grid gap-8">
                   {/* Transaction Type Checkboxes */}
                   {transactionTypes.length > 0 && (
-                    <div className="space-y-3 p-4 bg-sky-50/50 rounded-lg border border-sky-200">
-                      <h3 className="font-semibold text-sky-700 text-base mb-3">Transaction Type</h3>
-                      <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-4 p-6 bg-[#140d0a]/40 border-2 border-[#5a443a]/30 rounded-2xl shadow-inner">
+                      <h3 className="font-bold text-[#eee8e6] text-base flex items-center gap-2 px-1">
+                        <Filter className="w-4 h-4 text-[#809c80]" />
+                        Transaction Type
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {transactionTypes.map((type) => (
-                          <label key={type} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={printFilters.transactionTypes[type]}
-                              onChange={(e) =>
-                                setPrintFilters((prev) => ({
-                                  ...prev,
-                                  transactionTypes: { ...prev.transactionTypes, [type]: e.target.checked },
-                                }))
-                              }
-                              className="w-4 h-4 rounded cursor-pointer accent-sky-600"
-                            />
-                            <span className="text-sm text-gray-700 font-medium">{type}</span>
+                          <label key={type} className="flex items-center gap-3 cursor-pointer hover:bg-[#5a443a]/40 p-3 rounded-xl transition-all border border-[#5a443a]/20 hover:border-[#809c80]/40 group shadow-sm">
+                            <div className="relative flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={printFilters.transactionTypes[type]}
+                                onChange={(e) =>
+                                  setPrintFilters((prev) => ({
+                                    ...prev,
+                                    transactionTypes: { ...prev.transactionTypes, [type]: e.target.checked },
+                                  }))
+                                }
+                                className="w-5 h-5 rounded-md cursor-pointer accent-[#4A7C59] border-[#5a443a] bg-[#140d0a] transition-all"
+                              />
+                            </div>
+                            <span className="text-sm text-[#eee8e6] font-semibold group-hover:text-white transition-colors">{type}</span>
                           </label>
                         ))}
                       </div>
                     </div>
                   )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Agency Checkboxes */}
+                    {Object.keys(printFilters.agencies).length > 0 && (
+                      <div className="space-y-4 p-6 bg-[#140d0a]/40 border-2 border-[#5a443a]/30 rounded-2xl shadow-inner">
+                        <h3 className="font-bold text-[#eee8e6] text-base flex items-center gap-2 px-1">
+                          <Filter className="w-4 h-4 text-[#809c80]" />
+                          Agencies
+                        </h3>
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                          {Object.entries(printFilters.agencies).map(([org, checked]) => (
+                            <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-[#5a443a]/40 p-3 rounded-xl transition-all border border-[#5a443a]/20 hover:border-[#809c80]/40 group shadow-sm">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) =>
+                                  setPrintFilters((prev) => ({
+                                    ...prev,
+                                    agencies: { ...prev.agencies, [org]: e.target.checked },
+                                  }))
+                                }
+                                className="w-5 h-5 rounded-md cursor-pointer accent-[#4A7C59] border-[#5a443a] bg-[#140d0a]"
+                              />
+                              <span className="text-sm text-[#eee8e6] font-semibold truncate group-hover:text-white transition-colors" title={org}>{org}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Barangay Checkboxes */}
+                    {Object.keys(printFilters.barangays).length > 0 && (
+                      <div className="space-y-4 p-6 bg-[#140d0a]/40 border-2 border-[#5a443a]/30 rounded-2xl shadow-inner">
+                        <h3 className="font-bold text-[#eee8e6] text-base flex items-center gap-2 px-1">
+                          <Filter className="w-4 h-4 text-[#809c80]" />
+                          Barangays
+                        </h3>
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                          {Object.entries(printFilters.barangays).map(([barangay, checked]) => (
+                            <label key={barangay} className="flex items-center gap-3 cursor-pointer hover:bg-[#5a443a]/40 p-3 rounded-xl transition-all border border-[#5a443a]/20 hover:border-[#809c80]/40 group shadow-sm">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) =>
+                                  setPrintFilters((prev) => ({
+                                    ...prev,
+                                    barangays: { ...prev.barangays, [barangay]: e.target.checked },
+                                  }))
+                                }
+                                className="w-5 h-5 rounded-md cursor-pointer accent-[#4A7C59] border-[#5a443a] bg-[#140d0a]"
+                              />
+                              <span className="text-sm text-[#eee8e6] font-semibold truncate group-hover:text-white transition-colors" title={barangay}>{barangay}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                {/* Agency Checkboxes */}
-                {Object.keys(printFilters.agencies).length > 0 && (
-                  <div className="space-y-3 p-4 bg-sky-50/50 rounded-lg border border-sky-200">
-                    <h3 className="font-semibold text-sky-700 text-base mb-3">Agency</h3>
-                    <div className="max-h-40 overflow-y-auto space-y-2">
-                      {Object.entries(printFilters.agencies).map(([org, checked]) => (
-                        <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) =>
-                              setPrintFilters((prev) => ({
-                                ...prev,
-                                agencies: { ...prev.agencies, [org]: e.target.checked },
-                              }))
-                            }
-                            className="w-4 h-4 rounded cursor-pointer accent-sky-600"
-                          />
-                          <span className="text-sm text-gray-700 font-medium truncate" title={org}>{org.substring(0, 40)}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Barangay Checkboxes */}
-                {Object.keys(printFilters.barangays).length > 0 && (
-                  <div className="space-y-3 p-4 bg-gray-50/50 rounded-lg border border-gray-200">
-                    <h3 className="font-semibold text-gray-700 text-base mb-3">Barangay</h3>
-                    <div className="max-h-40 overflow-y-auto space-y-2">
-                      {Object.entries(printFilters.barangays).map(([barangay, checked]) => (
-                        <label key={barangay} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) =>
-                              setPrintFilters((prev) => ({
-                                ...prev,
-                                barangays: { ...prev.barangays, [barangay]: e.target.checked },
-                              }))
-                            }
-                            className="w-4 h-4 rounded cursor-pointer accent-gray-600"
-                          />
-                          <span className="text-sm text-gray-700 font-medium truncate" title={barangay}>{barangay.substring(0, 40)}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
 
               {/* Action Buttons - Fixed at bottom */}
-              <div className="flex gap-4 p-8 pt-6 border-t-2 border-gray-300 bg-white flex-shrink-0">
+              <div className="flex gap-4 p-8 pt-6 border-t border-[#5a443a]/20 bg-[#38261e] flex-shrink-0 shadow-2xl">
                 <button
                   onClick={() => setIsPrintDialogOpen(false)}
-                  className="flex-1 px-6 py-3 border-2 border-gray-400 text-gray-700 font-semibold text-base rounded-lg hover:bg-gray-100 transition-all duration-200 active:scale-95"
+                  className="flex-1 px-6 py-4 border-2 border-[#5a443a] text-[#eee8e6] font-bold text-base rounded-xl hover:bg-[#5a443a] hover:text-white transition-all duration-200 active:scale-95 shadow-md"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handlePrintWithFilters}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 text-white font-semibold text-base rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-[#1a301a] to-[#2d5a3d] hover:from-[#2d5a3d] hover:to-[#4A7C59] text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-[0_8px_25px_rgba(0,0,0,0.4)] active:scale-95 group"
                 >
-                  <FileDown className="w-5 h-5" />
-                  Generate PDF
+                  <FileDown className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <span className="uppercase text-xs font-black tracking-widest">Generate PDF</span>
                 </button>
               </div>
             </Card>
