@@ -10,7 +10,7 @@ export default function AddFarmer() {
   const { toasts, success } = useToast();
 
   return (
-    <div className="min-h-screen animate-fade-in">
+    <div className="animate-fade-in">
       {/* Header Section */}
       <div className="border-b border-gray-200 bg-farm-50/80">
         <div className="container mx-auto px-4 max-w-4xl py-6">

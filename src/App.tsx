@@ -46,11 +46,11 @@ function AppLayout() {
   const isFarmerProfilePage = location.pathname.match(/^\/farmers\/[^/]+(\/edit)?$/);
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0]">
+    <div className="min-h-screen flex flex-col bg-[#FAF6F0]">
       <MenuToggle isOpen={isMenuOpen} onToggle={() => setIsMenuOpen(!isMenuOpen)} />
       <HamburgerMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       <div
-        className="transition-[margin] duration-300 ease-in-out"
+        className="flex-grow flex flex-col transition-[margin] duration-300 ease-in-out"
         style={{ marginLeft: isMenuOpen ? "20rem" : 0 }}
       >
         <div className="container mx-auto px-4 py-6">
@@ -59,7 +59,7 @@ function AppLayout() {
             <BackButton label="Back to Dashboard" directPath={directPath} fallbackPath="/" />
           )}
         </div>
-        <main className="container mx-auto px-4 pb-8">
+        <main className="container mx-auto px-4 pb-8 flex-grow">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/add-farmer" element={<AddFarmer />} />

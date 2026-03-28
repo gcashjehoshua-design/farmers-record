@@ -403,7 +403,7 @@ export default function ImportFarmers() {
   };
 
   return (
-    <div className="min-h-screen animate-fade-in bg-gray-50">
+    <div className="animate-fade-in">
       {toasts.map((toast) => (
         <Toast key={toast.id} type={toast.type} message={toast.message} />
       ))}

@@ -177,7 +177,7 @@ export default function TransactionHistory() {
   };
 
   return (
-    <div className="min-h-screen animate-fade-in">
+    <div className="animate-fade-in">
       {toasts.map((toast) => (
         <Toast key={toast.id} type={toast.type} message={toast.message} />
       ))}

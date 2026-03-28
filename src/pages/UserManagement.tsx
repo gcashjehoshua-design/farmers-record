@@ -21,7 +21,7 @@ export default function UserManagement() {
 
   if (!user || user.role !== "admin") {
     return (
-      <div className="min-h-screen animate-fade-in flex items-center justify-center">
+      <div className="animate-fade-in flex items-center justify-center py-20">
         <div className="max-w-md w-full rounded-2xl border-2 border-red-200 bg-red-50 px-6 py-5 text-red-800 shadow-farm">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-6 h-6" />
@@ -80,7 +80,7 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="min-h-screen animate-fade-in">
+    <div className="animate-fade-in">
       {/* Header Section */}
       <div className="border-b border-gray-200 bg-farm-50/80">
         <div className="container mx-auto px-4 max-w-5xl py-6">

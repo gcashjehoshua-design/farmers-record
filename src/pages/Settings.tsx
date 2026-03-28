@@ -6,7 +6,7 @@ import { Save, Download, Settings as SettingsIcon, AlertCircle } from "lucide-re
 export default function Settings() {
 
   return (
-    <div className="min-h-screen animate-fade-in">
+    <div className="animate-fade-in">
       {/* Header Section */}
       <div className="border-b border-gray-200 bg-earth-50/80">
         <div className="container mx-auto px-4 max-w-4xl py-6">
