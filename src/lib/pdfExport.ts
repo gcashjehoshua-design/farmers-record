@@ -117,13 +117,18 @@ function formatAmount(amount: number | null | undefined): string {
 
 /** Max chars per column at 9pt (approx 2mm per char) - prevents overlap */
 const MAX_CHARS: Record<string, number> = {
-  date: 10,
-  time: 8,
-  farmer: 35,
-  type: 20,
-  desc: 35,
-  notes: 30,
-  dateVisit: 10,
+  date: 12,
+  time: 12,
+  farmer: 40,
+  type: 25,
+  desc: 50,
+  notes: 40,
+  dateVisit: 15,
+  name: 30,
+  gender: 10,
+  barangay: 25,
+  org: 30,
+  phone: 15,
 };
 
 function truncateToFit(text: string, key: keyof typeof MAX_CHARS): string {
@@ -262,8 +267,8 @@ export async function exportProfileTransactionsToPdf(
     return;
   }
 
-  const colWidths = [35, 14, 25, 24, 48, 44];
-  const headers = ["Date of Visit", "Time", "Type", "Amount", "Description", "Notes"];
+  const colWidths = [35, 20, 30, 50, 45];
+  const headers = ["Date of Visit", "Time", "Type", "Description", "Notes"];
 
   doc.setFontSize(HEADER_FONT);
   doc.setFont("helvetica", "bold");
@@ -294,7 +299,6 @@ export async function exportProfileTransactionsToPdf(
       truncateToFit(dateStr, "dateVisit"),
       truncateToFit(timeStr, "time"),
       truncateToFit(tx.transactionType, "type"),
-      truncateToFit(formatAmount(tx.amount), "amount"),
       truncateToFit(tx.description || "-", "desc"),
       truncateToFit(tx.notes || "-", "notes"),
     ];
