@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, UserPlus, Users, Trash2, ToggleLeft, ToggleRight, Mail, Lock, AlertTriangle } from "lucide-react";
+import { Shield, UserPlus, Users, Trash2, ToggleLeft, ToggleRight, Mail, Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
 
 export default function UserManagement() {
   const { user, users, createUser, updateUserRole, toggleUserActive, deleteUser } = useAuth();
@@ -13,6 +13,8 @@ export default function UserManagement() {
   const [role, setRole] = useState<"admin" | "staff">("staff");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -176,27 +178,46 @@ export default function UserManagement() {
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <Input
-                      type="password"
-                      className="input-modern h-11 pl-9"
+                      type={showPassword ? "text" : "password"}
+                      className="input-modern h-11 pl-9 pr-11"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-400 hover:text-earth-600 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-earth-800 mb-1.5">
                     Confirm password
                   </label>
-                  <Input
-                    type="password"
-                    className="input-modern h-11"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      className="input-modern h-11 pl-9 pr-11"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-400 hover:text-earth-600 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 

@@ -119,11 +119,10 @@ function formatAmount(amount: number | null | undefined): string {
 const MAX_CHARS: Record<string, number> = {
   date: 10,
   time: 8,
-  farmer: 22,
-  type: 12,
-  amount: 14,
-  desc: 22,
-  notes: 18,
+  farmer: 35,
+  type: 20,
+  desc: 35,
+  notes: 30,
   dateVisit: 10,
 };
 
@@ -145,12 +144,13 @@ function addFootersToAllPages(doc: jsPDF): void {
 /** Export visits list (by day or month) to PDF */
 export async function exportVisitsToPdf(
   visits: Array<Transaction & { farmerName: string }>,
-  options: { month: number; year: number; day?: number }
+  options: { month: number | null; year: number; day?: number }
 ): Promise<void> {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  const periodLabel =
-    options.day !== undefined
+  let periodLabel = `${options.year}`;
+  if (options.month !== null) {
+    periodLabel = options.day !== undefined
       ? new Date(options.year, options.month - 1, options.day).toLocaleDateString("en-PH", {
           year: "numeric",
           month: "long",
@@ -160,6 +160,7 @@ export async function exportVisitsToPdf(
           year: "numeric",
           month: "long",
         });
+  }
 
   await addPdfHeader(doc, "Visits Report");
   let y = CONTENT_TOP;
@@ -170,15 +171,19 @@ export async function exportVisitsToPdf(
   doc.text(`Total visits: ${visits.length}`, MARGIN, y + 6);
   y += 18;
 
+  const monthStr = options.month !== null ? `-${options.month}` : "";
+  const dayStr = options.day !== undefined ? `-${options.day}` : "";
+  const filename = `visits-${options.year}${monthStr}${dayStr}.pdf`;
+
   if (visits.length === 0) {
     doc.text("No visits recorded for this period.", MARGIN, y);
     addFootersToAllPages(doc);
-    doc.save(`visits-${options.year}-${options.month}${options.day !== undefined ? `-${options.day}` : ""}.pdf`);
+    doc.save(filename);
     return;
   }
 
-  const colWidths = [18, 14, 37, 20, 25, 34, 32];
-  const headers = ["Date", "Time", "Farmer", "Type", "Amount", "Description", "Notes"];
+  const colWidths = [20, 18, 50, 30, 35, 30]; // Adjusted widths to sum up to approx 180 (page width minus margins)
+  const headers = ["Date", "Time", "Farmer", "Type", "Description", "Notes"];
 
   doc.setFontSize(HEADER_FONT);
   doc.setFont("helvetica", "bold");
@@ -209,7 +214,6 @@ export async function exportVisitsToPdf(
       truncateToFit(timeStr, "time"),
       truncateToFit(v.farmerName, "farmer"),
       truncateToFit(v.transactionType, "type"),
-      truncateToFit(formatAmount(v.amount), "amount"),
       truncateToFit(v.description || "-", "desc"),
       truncateToFit(v.notes || "-", "notes"),
     ];
@@ -231,7 +235,7 @@ export async function exportVisitsToPdf(
   }
 
   addFootersToAllPages(doc);
-  doc.save(`visits-${options.year}-${options.month}${options.day !== undefined ? `-${options.day}` : ""}.pdf`);
+  doc.save(filename);
 }
 
 /** Export a single farmer's transaction history to PDF */
@@ -313,6 +317,100 @@ export async function exportProfileTransactionsToPdf(
 
   addFootersToAllPages(doc);
   doc.save(`transaction-history-${farmerName.replace(/\s+/g, "-")}.pdf`);
+}
+
+/** Export all transactions list (from history page) to PDF */
+export async function exportAllTransactionsToPdf(
+  transactions: Array<Transaction & { farmerName: string; barangay?: string; agency?: string }>,
+  appliedFilters: string[]
+): Promise<void> {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  await addPdfHeader(doc, "Transaction History Report");
+  let y = CONTENT_TOP;
+
+  // Add filters info
+  if (appliedFilters.length > 0) {
+    doc.setFontSize(BODY_FONT);
+    doc.setFont("helvetica", "bold");
+    doc.text("Applied Filters:", MARGIN, y);
+    y += 6;
+    
+    doc.setFont("helvetica", "normal");
+    for (const filter of appliedFilters) {
+      if (y > CONTENT_BOTTOM - 10) {
+        doc.addPage();
+        await addPdfHeader(doc, "Transaction History Report (continued)");
+        y = CONTENT_TOP;
+      }
+      doc.text(`• ${filter}`, MARGIN + 4, y);
+      y += 5;
+    }
+    y += 5;
+  }
+
+  doc.setFontSize(BODY_FONT);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total Records: ${transactions.length}`, MARGIN, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Generated: ${new Date().toLocaleDateString("en-PH", { dateStyle: "long" })}`, MARGIN, y + 6);
+  y += 18;
+
+  if (transactions.length === 0) {
+    doc.text("No records match the selected filters.", MARGIN, y);
+    addFootersToAllPages(doc);
+    doc.save(`transaction-history-report.pdf`);
+    return;
+  }
+
+  const colWidths = [45, 30, 30, 30, 45]; // Total 180
+  const headers = ["Farmer Name", "Barangay", "Agency", "Type", "Date of Visit"];
+
+  doc.setFontSize(HEADER_FONT);
+  doc.setFont("helvetica", "bold");
+  doc.setFillColor(238, 245, 238);
+  doc.rect(MARGIN, y - 5, colWidths.reduce((a, b) => a + b, 0), ROW_HEIGHT, "F");
+  let x = MARGIN;
+  headers.forEach((h, i) => {
+    doc.text(h, x + 2, y + 2);
+    x += colWidths[i];
+  });
+  y += ROW_HEIGHT;
+  doc.setFont("helvetica", "normal");
+
+  for (const tx of transactions) {
+    if (y > CONTENT_BOTTOM - ROW_HEIGHT) {
+      doc.addPage();
+      await addPdfHeader(doc, "Transaction History Report (continued)");
+      y = CONTENT_TOP;
+    }
+    
+    const date = new Date(tx.officeVisitAt || tx.createdAt);
+    const dateStr = date.toLocaleDateString("en-PH", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const rowData = [
+      truncateToFit(tx.farmerName, "farmer"),
+      truncateToFit(tx.barangay || "-", "date"), // reuse max chars for barangay
+      truncateToFit(tx.agency || "-", "type"), // reuse max chars for agency
+      truncateToFit(tx.transactionType, "type"),
+      dateStr
+    ];
+
+    doc.setFontSize(BODY_FONT);
+    let xRow = MARGIN;
+    rowData.forEach((cell, i) => {
+      doc.text(String(cell), xRow + 2, y + 2);
+      xRow += colWidths[i];
+    });
+    y += ROW_HEIGHT;
+  }
+
+  addFootersToAllPages(doc);
+  doc.save(`transaction-history-report.pdf`);
 }
 
 /** Export filtered farmers list to PDF */

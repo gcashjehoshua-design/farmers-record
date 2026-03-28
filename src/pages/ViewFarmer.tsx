@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFarmer, useTransactionsByFarmer, useCommoditiesByFarmer } from "@/hooks/useApi";
 import { exportProfileTransactionsToPdf } from "@/lib/pdfExport";
-import { User, History, Calendar, ArrowLeft, Edit, Phone, MapPin, Calendar as CalendarIcon, FileText, Building2, FileDown, Sprout } from "lucide-react";
+import { User, History, Calendar, ArrowLeft, Edit, Phone, MapPin, Calendar as CalendarIcon, FileText, Building2, FileDown, Sprout, Clipboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatFarmerDisplayName, formatCommoditySummary } from "@/lib/farmerDisplay";
 
@@ -235,6 +235,12 @@ export default function ViewFarmer() {
                     </p>
                   </div>
                 </div>
+                {farmer.farmType && (
+                  <div>
+                    <p className="text-sm font-medium text-earth-700 mb-1">Farm type</p>
+                    <p className="text-base font-bold text-earth-800">{farmer.farmType}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium text-earth-700 mb-1">Parcel address 1</p>
                   <p className="text-base font-bold text-earth-800">{farmer.parcelAddress1 || "—"}</p>
@@ -347,20 +353,32 @@ export default function ViewFarmer() {
                 </p>
               </div>
             </div>
-            {transactions.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="border-sky-300 text-sky-700 hover:bg-sky-50"
-                onClick={async () =>
-                  await exportProfileTransactionsToPdf(formatFarmerDisplayName(farmer), transactions)
-                }
-              >
-                <FileDown className="w-4 h-4 mr-2" />
-                Print to PDF
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {transactions.length > 0 && (
+                <>
+                  <Button
+                    type="button"
+                    className="btn-farm px-4 py-2 rounded-lg text-sm"
+                    onClick={() => navigate(`/record-transaction?farmer=${farmer.rsbsaCode}`)}
+                  >
+                    <Clipboard className="w-4 h-4 mr-2" />
+                    Record Transaction
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-sky-300 text-sky-700 hover:bg-sky-50"
+                    onClick={async () =>
+                      await exportProfileTransactionsToPdf(formatFarmerDisplayName(farmer), transactions)
+                    }
+                  >
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Print to PDF
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
@@ -371,12 +389,13 @@ export default function ViewFarmer() {
               <p className="text-sm text-earth-500 mt-1">
                 Record a transaction for this farmer to see visit history
               </p>
-              <button
-                onClick={() => navigate("/record-transaction")}
+              <Button
+                onClick={() => navigate(`/record-transaction?farmer=${farmer.rsbsaCode}`)}
                 className="mt-4 btn-farm px-6 py-2 rounded-xl"
               >
+                <Clipboard className="w-4 h-4 mr-2" />
                 Record Transaction
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -385,7 +404,6 @@ export default function ViewFarmer() {
                   <tr className="border-b-2 border-earth-200 bg-earth-50">
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Date of Visit</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Transaction Type</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Amount</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Description</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Notes</th>
                   </tr>
@@ -417,9 +435,6 @@ export default function ViewFarmer() {
                           >
                             {tx.transactionType}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-earth-800">
-                          {tx.amount ? `₱${tx.amount.toLocaleString("en-PH")}` : "-"}
                         </td>
                         <td className="px-4 py-3 text-sm text-earth-600 max-w-xs truncate" title={tx.description || ""}>
                           {tx.description || "-"}

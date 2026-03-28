@@ -100,7 +100,7 @@ export default function LogoHeader() {
               City of Passi Agriculture Office
             </p>
             <p className="text-xs sm:text-sm text-earth-600 mt-1">
-              Department of Agriculture of Passi City, Iloilo
+              Department of Agriculture - Passi City, Iloilo
             </p>
           </div>
         </div>

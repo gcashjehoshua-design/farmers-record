@@ -29,6 +29,7 @@ export type Farmer = {
   parcelAddress3?: string;
   parcelArea?: number;
   cropArea?: number;
+  farmType?: string;
   
   // Additional information
   tribe?: string;

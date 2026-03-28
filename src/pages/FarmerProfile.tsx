@@ -121,6 +121,7 @@ export default function FarmerProfile() {
               {formatFarmerDisplayName(farmer)}
             </h1>
             <p className="text-earth-600 mt-1">Farmer Profile & Transaction History</p>
+            <p className="text-xs text-earth-500 mt-2">Code: {farmer.rsbsaCode}</p>
           </div>
         </div>
       </div>
@@ -158,16 +159,31 @@ export default function FarmerProfile() {
 
       {/* Transaction & Visit History */}
       <Card className="card-modern border-sky-200">
-        <CardHeader className="bg-gradient-to-r from-sky-900/5 to-sky-900/10 border-b-2 border-sky-200 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <History className="w-6 h-6 text-sky-600" />
-            <div>
+        <CardHeader className="bg-gradient-to-r from-sky-900/5 to-sky-900/10 border-b-2 border-sky-200 rounded-t-2xl" style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1.5rem" }}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <History className="w-6 h-6 text-sky-600 flex-shrink-0" />
+            <div className="min-w-0">
               <CardTitle className="text-xl">Visit & Transaction History</CardTitle>
               <p className="text-sm text-earth-600 mt-0.5">
                 {transactions.length} visit{transactions.length !== 1 ? "s" : ""} recorded
               </p>
             </div>
           </div>
+          <button
+            onClick={() => {
+              if (!farmer || !farmer.rsbsaCode) {
+                console.error("[FarmerProfile] Error: Farmer or rsbsaCode is undefined", farmer);
+                return;
+              }
+              const url = `/record-transaction?farmer=${farmer.rsbsaCode}`;
+              console.log(`[FarmerProfile] Button clicked - Navigating to: ${url}`);
+              navigate(url);
+            }}
+            className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg font-medium hover:bg-sky-200 transition-colors flex-shrink-0 whitespace-nowrap"
+            title="Record a new transaction for this farmer"
+          >
+            Record Transaction
+          </button>
         </CardHeader>
         <CardContent className="p-6">
           {transactions.length === 0 ? (
@@ -178,7 +194,11 @@ export default function FarmerProfile() {
                 Record a transaction for this farmer to see visit history
               </p>
               <button
-                onClick={() => navigate("/record-transaction")}
+                onClick={() => {
+                  const url = `/record-transaction?farmer=${farmer.rsbsaCode}`;
+                  console.log(`[FarmerProfile] Navigating to: ${url}`);
+                  navigate(url);
+                }}
                 className="mt-4 btn-farm px-6 py-2 rounded-xl"
               >
                 Record Transaction

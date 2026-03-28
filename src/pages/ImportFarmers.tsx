@@ -34,6 +34,7 @@ interface FarmerImportData {
   parcelAddress3?: string;
   parcelArea?: number;
   cropArea?: number;
+  farmType?: string;
   tribe?: string;
   agency?: string;
   ownershipType?: string;
@@ -186,6 +187,7 @@ function parseExcelToFarmers(buffer: ArrayBuffer): FarmerImportData[] {
         parcelAddress3: cellStr(row["PARCEL ADDRESS 3"]) || undefined,
         parcelArea: cellNum(row["PARCEL AREA"]),
         cropArea: cellNum(row["CROP AREA"]),
+        farmType: cellStr(row["FARM TYPE"]) || undefined,
         tribe:
           cellStr(row["TRIBE"]).toLowerCase() !== "null" && cellStr(row["TRIBE"])
             ? cellStr(row["TRIBE"])
@@ -311,6 +313,7 @@ export default function ImportFarmers() {
               parcel_address_3: f.parcelAddress3 || null,
               parcel_area: f.parcelArea || null,
               crop_area: f.cropArea || null,
+              farm_type: f.farmType || null,
               tribe: f.tribe || null,
               agency: f.agency || null,
               ownership_type: f.ownershipType || null,

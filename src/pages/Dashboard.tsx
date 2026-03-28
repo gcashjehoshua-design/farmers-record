@@ -6,7 +6,7 @@ import { dashboardService } from "@/services/api";
 import { exportVisitsToPdf, exportFilteredFarmersToPdf } from "@/lib/pdfExport";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, UserPlus, TrendingUp, ArrowRight, CalendarDays, X, Save, FileDown, BarChart3, Clipboard } from "lucide-react";
+import { Users, UserPlus, TrendingUp, ArrowRight, CalendarDays, X, Save, FileDown, BarChart3, Clipboard, Sprout, Bird, UsersRound, Building2, MapPin } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
@@ -28,11 +28,11 @@ function bucketGender(g: string | undefined): "Male" | "Female" | null {
 
 export default function Dashboard() {
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [tempMonth, setTempMonth] = useState(selectedMonth);
+  const [tempMonth, setTempMonth] = useState<number | null>(selectedMonth);
   const [tempYear, setTempYear] = useState(selectedYear);
   const [tempDay, setTempDay] = useState<number | null>(selectedDay);
   const [isPrintingVisits, setIsPrintingVisits] = useState(false);
@@ -41,12 +41,12 @@ export default function Dashboard() {
   const [printFilters, setPrintFilters] = useState<{
     genders: { [key: string]: boolean };
     farmTypes: { [key: string]: boolean };
-    organizations: { [key: string]: boolean };
+    agencies: { [key: string]: boolean };
     barangays: { [key: string]: boolean };
   }>({
     genders: { Male: true, Female: true },
     farmTypes: {},
-    organizations: {},
+    agencies: {},
     barangays: {},
   });
 
@@ -66,8 +66,8 @@ export default function Dashboard() {
   const { data: transactions } = useTransactions();
   const { data: commodities } = useAllCommodities();
 
-  // Calculate organizations and gender distribution
-  const organizationStats = useMemo(() => {
+  // Calculate agencies and gender distribution
+  const agencyStats = useMemo(() => {
     const stats: Record<string, number> = {};
     (farmers || []).forEach((farmer) => {
       if (farmer.agency) {
@@ -97,7 +97,7 @@ export default function Dashboard() {
     return stats;
   }, [farmers]);
 
-  // Sync print filter options when organization list (from farmers) changes
+  // Sync print filter options when agency list (from farmers) changes
   useEffect(() => {
     const barangaysFromFarmers = new Set<string>();
     (farmers || []).forEach((farmer) => {
@@ -111,24 +111,29 @@ export default function Dashboard() {
     setPrintFilters((prev) => ({
       genders: prev.genders,
       farmTypes: Object.fromEntries(PRINT_FARM_TYPE_KEYS.map((type) => [type, true])),
-      organizations: Object.fromEntries(Object.keys(organizationStats).map((org) => [org, true])),
+      agencies: Object.fromEntries(Object.keys(agencyStats).map((org) => [org, true])),
       barangays: Object.fromEntries(Array.from(barangaysFromFarmers).map((barangay) => [barangay, true])),
     }));
-  }, [organizationStats, farmers]);
+  }, [agencyStats, farmers]);
 
-  // Calculate visits per organization for the selected date period
-  const visitsPerOrganization = useMemo(() => {
+  // Calculate visits per agency for the selected date period
+  const visitsPerAgency = useMemo(() => {
     const orgVisits: Record<string, number> = {};
     
     // Calculate date range
     let startDate: Date;
     let endDate: Date;
-    if (selectedDay !== null) {
-      startDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 0, 0, 0, 0);
-      endDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59, 999);
+    if (selectedMonth !== null) {
+      if (selectedDay !== null) {
+        startDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 0, 0, 0, 0);
+        endDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59, 999);
+      } else {
+        startDate = new Date(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0);
+        endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
+      }
     } else {
-      startDate = new Date(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0);
-      endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
+      startDate = new Date(selectedYear, 0, 1, 0, 0, 0, 0);
+      endDate = new Date(selectedYear, 11, 31, 23, 59, 59, 999);
     }
 
     // Filter transactions by date
@@ -158,11 +163,11 @@ export default function Dashboard() {
     return Object.entries(genderStats).map(([name, value]) => ({ name, value: Math.round(value as number) }));
   }, [genderStats]);
 
-  const organizationChartData = useMemo(() => {
-    return Object.entries(organizationStats)
+  const agencyChartData = useMemo(() => {
+    return Object.entries(agencyStats)
       .map(([name, value]) => ({ name: name.substring(0, 30), value: Math.round(value as number) }))
       .sort((a, b) => (b.value as number) - (a.value as number));
-  }, [organizationStats]);
+  }, [agencyStats]);
 
   const barangayChartData = useMemo(() => {
     // Start with all Passi City barangays
@@ -181,8 +186,9 @@ export default function Dashboard() {
     setIsPrintingVisits(true);
     try {
       const visits = await dashboardService.visitsList(selectedMonth, selectedYear, selectedDay ?? undefined);
+      const month = selectedMonth ?? 0; // Use 0 to indicate all months in the export
       await exportVisitsToPdf(visits, {
-        month: selectedMonth,
+        month,
         year: selectedYear,
         day: selectedDay ?? undefined,
       });
@@ -211,6 +217,9 @@ export default function Dashboard() {
   };
 
   const handleCloseDatePicker = () => {
+    setTempMonth(selectedMonth);
+    setTempYear(selectedYear);
+    setTempDay(selectedDay);
     setIsDatePickerOpen(false);
   };
 
@@ -224,10 +233,10 @@ export default function Dashboard() {
             ? !!printFilters.genders[genderKey]
             : printFilters.genders.Male && printFilters.genders.Female;
         const farmTypeSelected = true; // Print dialog farm-type filters are legacy; commodity-based chart is separate
-        const organizationSelected = printFilters.organizations[farmer.agency || ""];
+        const agencySelected = printFilters.agencies[farmer.agency || ""];
         const barangaySelected = printFilters.barangays[farmer.farmerAddress1 || ""];
         
-        return genderSelected && farmTypeSelected && organizationSelected && barangaySelected;
+        return genderSelected && farmTypeSelected && agencySelected && barangaySelected;
       });
 
       const appliedFiltersList = [];
@@ -241,10 +250,10 @@ export default function Dashboard() {
         .map(([type]) => type);
       if (selectedFarmTypes.length > 0) appliedFiltersList.push(`Farm Type: ${selectedFarmTypes.join(", ")}`);
 
-      const selectedOrgs = Object.entries(printFilters.organizations)
+      const selectedAgencies = Object.entries(printFilters.agencies)
         .filter(([_, selected]) => selected)
         .map(([org]) => org);
-      if (selectedOrgs.length > 0) appliedFiltersList.push(`Organization: ${selectedOrgs.join(", ")}`);
+      if (selectedAgencies.length > 0) appliedFiltersList.push(`Agency: ${selectedAgencies.join(", ")}`);
 
       const selectedBarangays = Object.entries(printFilters.barangays)
         .filter(([_, selected]) => selected)
@@ -368,9 +377,11 @@ export default function Dashboard() {
               >
                 <CalendarDays className="w-4 h-4 text-sky-600" />
                 <span className="text-xs font-semibold text-sky-700 group-hover:text-sky-800">
-                  {selectedDay !== null
-                    ? new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                    : new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  {selectedMonth === null 
+                    ? `${selectedYear}`
+                    : selectedDay !== null
+                      ? new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </span>
               </button>
             </div>
@@ -413,15 +424,15 @@ export default function Dashboard() {
                 <BarChart3 className="w-6 h-6 text-harvest-600" />
               </div>
               <div className="px-3 py-1 bg-harvest-100 rounded-full">
-                <span className="text-xs font-semibold text-harvest-700">By Organization</span>
+                <span className="text-xs font-semibold text-harvest-700">By Agency</span>
               </div>
             </div>
-            <p className="text-sm text-earth-700 mb-3 font-medium">Visits per Organization</p>
+            <p className="text-sm text-earth-700 mb-3 font-medium">Visits per Agency</p>
             <div className="space-y-2 max-h-56 overflow-y-auto">
-              {Object.entries(visitsPerOrganization).length === 0 ? (
+              {Object.entries(visitsPerAgency).length === 0 ? (
                 <p className="text-xs text-earth-600 py-4 text-center">No visits recorded</p>
               ) : (
-                Object.entries(visitsPerOrganization)
+                Object.entries(visitsPerAgency)
                   .sort((a, b) => b[1] - a[1])
                   .map(([org, count]) => (
                     <div key={org} className="flex justify-between items-center p-2 bg-harvest-50 rounded-lg border border-harvest-100">
@@ -490,8 +501,12 @@ export default function Dashboard() {
       {/* Charts Section */}
       <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-display font-bold text-earth-800">Analytics & Visualizations</h2>
-          <BarChart3 className="w-6 h-6 text-farm-600" />
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-earth-100 rounded-xl">
+              <BarChart3 className="w-6 h-6 text-earth-700" />
+            </div>
+            <h2 className="text-3xl font-display font-bold text-earth-800">Analytics & Visualizations</h2>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -499,39 +514,65 @@ export default function Dashboard() {
           <div className="md:col-span-2 grid gap-6 lg:grid-cols-2">
             {farmChartsHaveData ? (
               <>
-                <Card className="card-modern border-harvest-200 animate-slide-up" style={{ animationDelay: "0.5s" }}>
-                  <CardHeader className="bg-gradient-to-r from-harvest-50 to-harvest-100 border-b-2 border-harvest-200">
-                    <CardTitle className="text-xl font-display">Crops</CardTitle>
-                    <CardDescription>Commodity records under crop categories (rice, corn, vegetables, fruit trees, etc.)</CardDescription>
+                <Card className="card-modern border-harvest-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: "0.5s" }}>
+                  <CardHeader className="bg-gradient-to-br from-harvest-50 to-harvest-100/50 border-b-2 border-harvest-200 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="p-2.5 bg-harvest-100 rounded-xl text-harvest-600 shadow-sm">
+                        <Sprout className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-display text-harvest-900">Crops</CardTitle>
+                        <CardDescription className="text-harvest-700/80 mt-1">Commodity records under crop categories</CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <div className="max-h-96 overflow-y-auto">
-                      <ResponsiveContainer width="100%" height={Math.max(280, cropChartData.length * 48)}>
-                        <BarChart data={cropChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={72} tick={{ fontSize: 10 }} />
-                          <YAxis allowDecimals={false} domain={[0, 'auto']} />
-                          <Tooltip />
-                          <Bar dataKey="value" fill="#16a34a" radius={[8, 8, 0, 0]} />
+                    <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                      <ResponsiveContainer width="100%" height={320}>
+                        <BarChart data={cropChartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                          <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={60} tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={5} />
+                          <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} dx={-10} />
+                          <Tooltip 
+                            cursor={{ fill: '#f3f4f6' }}
+                            contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', padding: '12px' }}
+                            itemStyle={{ color: '#16a34a', fontWeight: 600 }}
+                            labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
+                          />
+                          <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} barSize={32} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="card-modern border-amber-200 animate-slide-up" style={{ animationDelay: "0.52s" }}>
-                  <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 border-b-2 border-amber-200">
-                    <CardTitle className="text-xl font-display">Livestock</CardTitle>
-                    <CardDescription>Commodity records under livestock (pig, chicken, other)</CardDescription>
+                <Card className="card-modern border-amber-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: "0.52s" }}>
+                  <CardHeader className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-b-2 border-amber-200 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="p-2.5 bg-amber-100 rounded-xl text-amber-600 shadow-sm">
+                        <Bird className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-display text-amber-900">Livestock</CardTitle>
+                        <CardDescription className="text-amber-700/80 mt-1">Commodity records under livestock categories</CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <div className="max-h-96 overflow-y-auto">
-                      <ResponsiveContainer width="100%" height={Math.max(220, livestockChartData.length * 52)}>
-                        <BarChart data={livestockChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis allowDecimals={false} domain={[0, 'auto']} />
-                          <Tooltip />
-                          <Bar dataKey="value" fill="#d97706" radius={[8, 8, 0, 0]} />
+                    <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                      <ResponsiveContainer width="100%" height={320}>
+                        <BarChart data={livestockChartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={5} />
+                          <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} dx={-10} />
+                          <Tooltip 
+                            cursor={{ fill: '#fef3c7' }}
+                            contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', padding: '12px' }}
+                            itemStyle={{ color: '#d97706', fontWeight: 600 }}
+                            labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
+                          />
+                          <Bar dataKey="value" fill="#d97706" radius={[6, 6, 0, 0]} barSize={40} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -539,13 +580,22 @@ export default function Dashboard() {
                 </Card>
               </>
             ) : (
-              <Card className="card-modern border-harvest-200 animate-slide-up lg:col-span-2" style={{ animationDelay: "0.5s" }}>
-                <CardHeader className="bg-gradient-to-r from-harvest-50 to-harvest-100 border-b-2 border-harvest-200">
-                  <CardTitle className="text-xl font-display">Farmers by farm type</CardTitle>
-                  <CardDescription>Crops and livestock from commodity records</CardDescription>
+              <Card className="card-modern border-harvest-200 animate-slide-up hover:shadow-lg transition-shadow duration-300 lg:col-span-2" style={{ animationDelay: "0.5s" }}>
+                <CardHeader className="bg-gradient-to-br from-harvest-50 to-harvest-100/50 border-b-2 border-harvest-200 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="p-2.5 bg-harvest-100 rounded-xl text-harvest-600 shadow-sm">
+                      <Sprout className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-display text-harvest-900">Farmers by farm type</CardTitle>
+                      <CardDescription className="text-harvest-700/80 mt-1">Crops and livestock from commodity records</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <p className="text-center text-earth-600 py-12">
+                <CardContent className="p-6 flex flex-col items-center justify-center min-h-[200px]">
+                  <Sprout className="w-12 h-12 text-harvest-200 mb-3" />
+                  <p className="text-center text-earth-600">
                     No commodity records yet. Add commodities on farmer profiles or import from Excel to see these charts.
                   </p>
                 </CardContent>
@@ -556,13 +606,21 @@ export default function Dashboard() {
           {/* Gender Pie Chart */}
           <div>
             {genderChartData.length > 0 ? (
-              <Card className="card-modern border-rose-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
-                <CardHeader className="bg-gradient-to-r from-rose-50 to-blue-50 border-b-2 border-rose-200">
-                  <CardTitle className="text-xl font-display">Farmers by Gender</CardTitle>
-                  <CardDescription>Gender distribution</CardDescription>
+              <Card className="card-modern border-rose-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.55s' }}>
+                <CardHeader className="bg-gradient-to-br from-rose-50 to-blue-50/50 border-b-2 border-rose-200 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600 shadow-sm">
+                      <UsersRound className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-display text-rose-900">Farmers by Gender</CardTitle>
+                      <CardDescription className="text-rose-700/80 mt-1">Gender distribution</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
@@ -571,73 +629,107 @@ export default function Dashboard() {
                           cy="50%"
                           labelLine={false}
                           label={({ name, value }) => `${name}: ${Math.round(value as number)}`}
-                          outerRadius={80}
-                          fill="#8884d8"
+                          outerRadius={100}
+                          innerRadius={60}
+                          paddingAngle={2}
                           dataKey="value"
                         >
                           {genderChartData.map((_entry, index) => (
-                            <Cell key={`cell-${index}`} fill={GENDER_COLORS[index % GENDER_COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={GENDER_COLORS[index % GENDER_COLORS.length]} stroke="rgba(255,255,255,0.8)" strokeWidth={2} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                          itemStyle={{ fontWeight: 600 }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="card-modern border-rose-200 animate-slide-up" style={{ animationDelay: '0.55s' }}>
-                <CardHeader className="bg-gradient-to-r from-rose-50 to-blue-50 border-b-2 border-rose-200">
-                  <CardTitle className="text-xl font-display">Farmers by Gender</CardTitle>
-                  <CardDescription>Gender distribution</CardDescription>
+              <Card className="card-modern border-rose-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.55s' }}>
+                <CardHeader className="bg-gradient-to-br from-rose-50 to-blue-50/50 border-b-2 border-rose-200 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600 shadow-sm">
+                      <UsersRound className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-display text-rose-900">Farmers by Gender</CardTitle>
+                      <CardDescription className="text-rose-700/80 mt-1">Gender distribution</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <p className="text-center text-earth-600 py-12">No data available</p>
+                <CardContent className="p-6 flex flex-col items-center justify-center min-h-[200px]">
+                  <UsersRound className="w-12 h-12 text-rose-200 mb-3" />
+                  <p className="text-center text-earth-600">No data available</p>
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Organization Pie Chart */}
+          {/* Agency Pie Chart */}
           <div>
-            {organizationChartData.length > 0 ? (
-              <Card className="card-modern border-purple-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
-                <CardHeader className="bg-gradient-to-r from-purple-50 to-orange-50 border-b-2 border-purple-200">
-                  <CardTitle className="text-xl font-display">Farmers by Organization</CardTitle>
-                  <CardDescription>Organization distribution</CardDescription>
+            {agencyChartData.length > 0 ? (
+              <Card className="card-modern border-purple-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.60s' }}>
+                <CardHeader className="bg-gradient-to-br from-purple-50 to-orange-50/50 border-b-2 border-purple-200 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="p-2.5 bg-purple-100 rounded-xl text-purple-600 shadow-sm">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-display text-purple-900">Farmers by Agency</CardTitle>
+                      <CardDescription className="text-purple-700/80 mt-1">Agency distribution</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
-                          data={organizationChartData}
+                          data={agencyChartData}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
                           label={({ name: _name, value }) => `${Math.round(value as number)}`}
-                          outerRadius={80}
-                          fill="#8884d8"
+                          outerRadius={100}
+                          innerRadius={60}
+                          paddingAngle={2}
                           dataKey="value"
                         >
-                          {organizationChartData.map((_entry, index) => (
-                            <Cell key={`cell-${index}`} fill={ORG_COLORS[index % ORG_COLORS.length]} />
+                          {agencyChartData.map((_entry, index) => (
+                            <Cell key={`cell-${index}`} fill={ORG_COLORS[index % ORG_COLORS.length]} stroke="rgba(255,255,255,0.8)" strokeWidth={2} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                          itemStyle={{ fontWeight: 600 }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="card-modern border-purple-200 animate-slide-up" style={{ animationDelay: '0.60s' }}>
-                <CardHeader className="bg-gradient-to-r from-purple-50 to-orange-50 border-b-2 border-purple-200">
-                  <CardTitle className="text-xl font-display">Farmers by Organization</CardTitle>
-                  <CardDescription>Organization distribution</CardDescription>
+              <Card className="card-modern border-purple-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.60s' }}>
+                <CardHeader className="bg-gradient-to-br from-purple-50 to-orange-50/50 border-b-2 border-purple-200 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="p-2.5 bg-purple-100 rounded-xl text-purple-600 shadow-sm">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-display text-purple-900">Farmers by Agency</CardTitle>
+                      <CardDescription className="text-purple-700/80 mt-1">Agency distribution</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <p className="text-center text-earth-600 py-12">No data available</p>
+                <CardContent className="p-6 flex flex-col items-center justify-center min-h-[200px]">
+                  <Building2 className="w-12 h-12 text-purple-200 mb-3" />
+                  <p className="text-center text-earth-600">No data available</p>
                 </CardContent>
               </Card>
             )}
@@ -645,20 +737,32 @@ export default function Dashboard() {
 
           {/* Barangay Bar Chart */}
           <div className="md:col-span-2">
-            <Card className="card-modern border-green-200 animate-slide-up" style={{ animationDelay: '0.65s' }}>
-              <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 border-b-2 border-green-200">
-                <CardTitle className="text-xl font-display">Farmers by Barangay</CardTitle>
-                <CardDescription>All Passi City barangays with farmer count</CardDescription>
+            <Card className="card-modern border-green-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.65s' }}>
+              <CardHeader className="bg-gradient-to-br from-green-50 to-green-100/50 border-b-2 border-green-200 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="flex items-center gap-3 relative z-10">
+                  <div className="p-2.5 bg-green-100 rounded-xl text-green-600 shadow-sm">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-display text-green-900">Farmers by Barangay</CardTitle>
+                    <CardDescription className="text-green-700/80 mt-1">All Passi City barangays with farmer count</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                   <ResponsiveContainer width="100%" height={Math.max(600, barangayChartData.length * 40)}>
                     <BarChart data={barangayChartData} layout="vertical" margin={{ left: 0, right: 20, top: 5, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                      <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 13, fontWeight: 600 }} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#16a34a" radius={[0, 8, 8, 0]} />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
+                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#4b5563' }} axisLine={false} tickLine={false} />
+                      <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12, fontWeight: 500, fill: '#4b5563' }} axisLine={false} tickLine={false} />
+                      <Tooltip 
+                        cursor={{ fill: '#f3f4f6' }}
+                        contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                        itemStyle={{ color: '#16a34a', fontWeight: 600 }}
+                      />
+                      <Bar dataKey="value" fill="#16a34a" radius={[0, 6, 6, 0]} barSize={24} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -687,61 +791,63 @@ export default function Dashboard() {
               <p className="text-sm text-earth-600 -mt-2">
                 Choose a date to view farmers visited. Click <strong>Save</strong> to apply and refresh the data.
               </p>
+
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="flex flex-col">
-                    <label htmlFor="modal-month" className="text-sm font-semibold text-earth-700 mb-2">Month</label>
-                    <select
-                      id="modal-month"
-                      value={tempMonth}
-                      onChange={(e) => setTempMonth(parseInt(e.target.value))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm"
-                    >
-                      <option value={1}>January</option>
-                      <option value={2}>February</option>
-                      <option value={3}>March</option>
-                      <option value={4}>April</option>
-                      <option value={5}>May</option>
-                      <option value={6}>June</option>
-                      <option value={7}>July</option>
-                      <option value={8}>August</option>
-                      <option value={9}>September</option>
-                      <option value={10}>October</option>
-                      <option value={11}>November</option>
-                      <option value={12}>December</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col">
-                    <label htmlFor="modal-day" className="text-sm font-semibold text-earth-700 mb-2">Day (Optional)</label>
-                    <select
-                      id="modal-day"
-                      value={tempDay !== null ? tempDay : ""}
-                      onChange={(e) => setTempDay(e.target.value === "" ? null : parseInt(e.target.value))}
-                      className="px-3 py-2 border-2 border-earth-200 rounded-lg bg-[#fffefb] text-earth-800 font-medium hover:border-earth-300 focus:outline-none focus:ring-2 focus:ring-farm-500 focus:border-transparent transition-all text-sm"
-                    >
-                      <option value="">All Days</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col">
-                    <label htmlFor="modal-year" className="text-sm font-semibold text-earth-700 mb-2">Year</label>
-                    <select
-                      id="modal-year"
-                      value={tempYear}
-                      onChange={(e) => setTempYear(parseInt(e.target.value))}
-                      className="px-3 py-2 border-2 border-earth-200 rounded-lg bg-[#fffefb] text-earth-800 font-medium hover:border-earth-300 focus:outline-none focus:ring-2 focus:ring-farm-500 focus:border-transparent transition-all text-sm"
-                    >
-                      {Array.from({ length: 11 }, (_, i) => tempYear - 5 + i).map((year) => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-col">
+                      <label htmlFor="modal-month" className="text-sm font-semibold text-earth-700 mb-2">Month (Optional)</label>
+                      <select
+                        id="modal-month"
+                        value={tempMonth !== null ? tempMonth : ""}
+                        onChange={(e) => setTempMonth(e.target.value === "" ? null : parseInt(e.target.value))}
+                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm"
+                      >
+                        <option value="">All Months</option>
+                        <option value={1}>January</option>
+                        <option value={2}>February</option>
+                        <option value={3}>March</option>
+                        <option value={4}>April</option>
+                        <option value={5}>May</option>
+                        <option value={6}>June</option>
+                        <option value={7}>July</option>
+                        <option value={8}>August</option>
+                        <option value={9}>September</option>
+                        <option value={10}>October</option>
+                        <option value={11}>November</option>
+                        <option value={12}>December</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col">
+                      <label htmlFor="modal-day" className="text-sm font-semibold text-earth-700 mb-2">Day (Optional)</label>
+                      <select
+                        id="modal-day"
+                        value={tempDay !== null ? tempDay : ""}
+                        onChange={(e) => setTempDay(e.target.value === "" ? null : parseInt(e.target.value))}
+                        className="px-3 py-2 border-2 border-earth-200 rounded-lg bg-[#fffefb] text-earth-800 font-medium hover:border-earth-300 focus:outline-none focus:ring-2 focus:ring-farm-500 focus:border-transparent transition-all text-sm"
+                      >
+                        <option value="">All Days</option>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <option key={day} value={day}>{day}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col">
+                      <label htmlFor="modal-year" className="text-sm font-semibold text-earth-700 mb-2">Year</label>
+                      <select
+                        id="modal-year"
+                        value={tempYear}
+                        onChange={(e) => setTempYear(parseInt(e.target.value))}
+                        className="px-3 py-2 border-2 border-earth-200 rounded-lg bg-[#fffefb] text-earth-800 font-medium hover:border-earth-300 focus:outline-none focus:ring-2 focus:ring-farm-500 focus:border-transparent transition-all text-sm"
+                      >
+                        {Array.from({ length: 11 }, (_, i) => tempYear - 5 + i).map((year) => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 pt-2">
                 <Button
                   onClick={handleCloseDatePicker}
                   variant="outline"
@@ -829,12 +935,12 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Organization & Barangay in separate sections */}
-              {Object.keys(printFilters.organizations).length > 0 && (
+              {/* Agency & Barangay in separate sections */}
+              {Object.keys(printFilters.agencies).length > 0 && (
                 <div className="space-y-3 p-4 bg-sky-50/50 rounded-lg border border-sky-200">
-                  <h3 className="font-semibold text-sky-700 text-base mb-3">Organization</h3>
+                  <h3 className="font-semibold text-sky-700 text-base mb-3">Agency</h3>
                   <div className="max-h-40 overflow-y-auto space-y-2">
-                    {Object.entries(printFilters.organizations).map(([org, checked]) => (
+                    {Object.entries(printFilters.agencies).map(([org, checked]) => (
                       <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
                         <input
                           type="checkbox"
@@ -842,7 +948,7 @@ export default function Dashboard() {
                           onChange={(e) =>
                             setPrintFilters((prev) => ({
                               ...prev,
-                              organizations: { ...prev.organizations, [org]: e.target.checked },
+                              agencies: { ...prev.agencies, [org]: e.target.checked },
                             }))
                           }
                           className="w-4 h-4 rounded cursor-pointer accent-sky-600"

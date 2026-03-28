@@ -150,17 +150,17 @@ export const useTransactionsByFarmer = (rsbsaCode: string) => {
 };
 
 // Dashboard hooks
-export const useDashboardStats = (month?: number, year?: number, day?: number) => {
+export const useDashboardStats = (month?: number | null, year?: number, day?: number) => {
   return useQuery({
     queryKey: ["dashboard", month, year, day],
     queryFn: () => dashboardService.stats(month, year, day),
   });
 };
 
-export const useVisitsList = (month: number, year: number, day?: number) => {
+export const useVisitsList = (month: number | null, year: number, day?: number) => {
   return useQuery({
     queryKey: ["visitsList", month, year, day],
     queryFn: () => dashboardService.visitsList(month, year, day),
-    enabled: month >= 1 && month <= 12 && year > 0,
+    enabled: (month === null || (month >= 1 && month <= 12)) && year > 0,
   });
 };

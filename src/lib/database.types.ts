@@ -37,6 +37,7 @@ export interface Database {
           parcel_address_3: string | null;
           parcel_area: number | null;
           crop_area: number | null;
+          farm_type: string | null;
           tribe: string | null;
           agency: string | null;
           ownership_type: string | null;
@@ -71,6 +72,7 @@ export interface Database {
           parcel_address_3?: string | null;
           parcel_area?: number | null;
           crop_area?: number | null;
+          farm_type?: string | null;
           tribe?: string | null;
           agency?: string | null;
           ownership_type?: string | null;
@@ -105,6 +107,7 @@ export interface Database {
           parcel_address_3?: string | null;
           parcel_area?: number | null;
           crop_area?: number | null;
+          farm_type?: string | null;
           tribe?: string | null;
           agency?: string | null;
           ownership_type?: string | null;

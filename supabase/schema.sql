@@ -209,6 +209,10 @@ CREATE POLICY "authenticated_can_delete_farmer_commodities" ON farmer_commoditie
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON farmer_commodities TO authenticated;
 
+-- Grant table-level permissions for farmers and transactions (RLS policies handle row-level security)
+GRANT SELECT, INSERT, UPDATE, DELETE ON farmers TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON transactions TO authenticated;
+
 -- Create policies for app_users table
 -- Allow all authenticated users to read all profiles (needed for auth/UI)
 CREATE POLICY "authenticated_can_read_users" ON app_users
@@ -276,6 +280,9 @@ SELECT
     WHERE office_visit_at >= date_trunc('month', now())
       AND office_visit_at < (date_trunc('month', now()) + interval '1 month')
   ) AS farmers_visited_this_month;
+
+-- Grant permissions on app_users table to authenticated role (required for login/profile creation)
+GRANT SELECT, INSERT, UPDATE ON app_users TO authenticated;
 
 -- Allow API roles to read analytics view (needed for dashboard total counts)
 GRANT SELECT ON dashboard_stats TO anon, authenticated;

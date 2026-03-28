@@ -41,7 +41,7 @@ export default function FarmersList() {
   };
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBarangay, setSelectedBarangay] = useState<string>("all");
-  const [selectedOrganization, setSelectedOrganization] = useState<string>("all");
+  const [selectedAgency, setSelectedAgency] = useState<string>("all");
   const [selectedGender, setSelectedGender] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -57,7 +57,7 @@ export default function FarmersList() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [farmers]);
 
-  const allOrganizations = useMemo(() => {
+  const allAgencies = useMemo(() => {
     const set = new Set<string>();
     (farmers || []).forEach((farmer) => {
       if (farmer.agency) {
@@ -103,15 +103,15 @@ export default function FarmersList() {
         selectedBarangay === "all" ||
         !selectedBarangay ||
         farmer.farmerAddress1 === selectedBarangay;
-      const matchesOrganization =
-        selectedOrganization === "all" ||
-        !selectedOrganization ||
-        farmer.agency === selectedOrganization;
+      const matchesAgency =
+        selectedAgency === "all" ||
+        !selectedAgency ||
+        farmer.agency === selectedAgency;
       const matchesGender =
         selectedGender === "all" ||
         !selectedGender ||
         genderFilterLabel(farmer.gender) === selectedGender;
-      return matchesSearch && matchesBarangay && matchesOrganization && matchesGender;
+      return matchesSearch && matchesBarangay && matchesAgency && matchesGender;
     });
 
     // Sort by creation date in ascending order (oldest/first added first)
@@ -120,7 +120,7 @@ export default function FarmersList() {
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateA - dateB;
     });
-  }, [farmers, searchTerm, selectedBarangay, selectedOrganization, selectedGender, commoditySummaryByRsbsa]);
+  }, [farmers, searchTerm, selectedBarangay, selectedAgency, selectedGender, commoditySummaryByRsbsa]);
 
   const totalPages = Math.ceil(filteredFarmers.length / ITEMS_PER_PAGE);
   const paginatedFarmers = filteredFarmers.slice(
@@ -220,18 +220,18 @@ export default function FarmersList() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
               <label className="text-sm font-medium text-earth-700">
-                Filter by Organization:
+                Filter by Agency:
               </label>
               <select
-                value={selectedOrganization}
+                value={selectedAgency}
                 onChange={(e) => {
-                  setSelectedOrganization(e.target.value);
+                  setSelectedAgency(e.target.value);
                   setCurrentPage(1);
                 }}
                 className="input-modern w-full sm:w-64"
               >
-                <option value="all">All organizations</option>
-                {allOrganizations.map((org) => (
+                <option value="all">All agencies</option>
+                {allAgencies.map((org) => (
                   <option key={org} value={org}>
                     {org}
                   </option>

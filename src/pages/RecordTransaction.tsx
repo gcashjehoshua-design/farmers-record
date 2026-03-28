@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useFarmers, useCreateTransaction } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/useToast";
 
 export default function RecordTransaction() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: farmers, isLoading } = useFarmers();
   const createTransaction = useCreateTransaction();
   const { toasts, success, error, info } = useToast();
@@ -22,6 +23,32 @@ export default function RecordTransaction() {
   const [transactionType, setTransactionType] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Auto-fill farmer from query parameter if provided
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const farmerCode = params.get("farmer")?.trim();
+    
+    // Only run if we have a farmer code and farmers are loaded
+    if (!farmerCode || !farmers || farmers.length === 0) {
+      return;
+    }
+    
+    console.log(`[RecordTransaction] Attempting auto-fill for code: "${farmerCode}"`);
+    
+    // Case-insensitive search
+    const foundFarmer = farmers.find(f => 
+      f.rsbsaCode.trim().toLowerCase() === farmerCode.toLowerCase()
+    );
+    
+    if (foundFarmer) {
+      console.log(`[RecordTransaction] ✓ Found farmer: ${formatFarmerDisplayName(foundFarmer)}`);
+      setSelectedFarmer(foundFarmer);
+      setCurrentStep(1);
+    } else {
+      console.warn(`[RecordTransaction] ✗ Farmer not found with code: "${farmerCode}"`);
+    }
+  }, [location.search, farmers]);
 
   const term = searchTerm.trim().toLowerCase();
   const filteredFarmers =

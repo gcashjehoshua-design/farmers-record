@@ -38,6 +38,7 @@ const farmerFormSchema = z.object({
   parcelAddress3: z.string().optional(),
   parcelArea: z.string().optional(),
   cropArea: z.string().optional(),
+  farmType: z.string().optional(),
   tribe: z.string().optional(),
   agency: z.string().optional(),
   ownershipType: z.string().optional(),
@@ -111,6 +112,7 @@ function farmerToFormDefaults(f?: Partial<Farmer>): FarmerFormValues {
     parcelAddress3: f?.parcelAddress3 ?? "",
     parcelArea: f?.parcelArea != null ? String(f.parcelArea) : "",
     cropArea: f?.cropArea != null ? String(f.cropArea) : "",
+    farmType: f?.farmType ?? "",
     tribe: f?.tribe ?? "",
     agency: f?.agency ?? "",
     ownershipType: f?.ownershipType ?? "",
@@ -159,6 +161,7 @@ function formValuesToFarmerPayload(data: FarmerFormValues): Omit<Farmer, "create
     parcelAddress3: data.parcelAddress3?.trim() || undefined,
     parcelArea: parseOptionalNumber(data.parcelArea),
     cropArea: parseOptionalNumber(data.cropArea),
+    farmType: data.farmType?.trim() || undefined,
     tribe: data.tribe?.trim() || undefined,
     agency: data.agency?.trim() || undefined,
     ownershipType: data.ownershipType?.trim() || undefined,
@@ -484,6 +487,20 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
             <FormField name="parcelNo" label="Parcel no." placeholder="e.g. 1" />
             <FormField name="parcelArea" label="Parcel area" type="number" placeholder="hectares" />
             <FormField name="cropArea" label="Crop area" type="number" placeholder="hectares" />
+            <Controller
+              name="farmType"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Farm type</label>
+                  <select {...field} className="input-modern" value={field.value ?? ""}>
+                    <option value="">Select Farm Type</option>
+                    <option value="Rainfed Lowland">Rainfed Lowland</option>
+                    <option value="Rainfed Upland">Rainfed Upland</option>
+                  </select>
+                </div>
+              )}
+            />
           </div>
           <FormField name="parcelAddress1" label="Parcel address 1" />
           <FormField name="parcelAddress2" label="Parcel address 2" />
@@ -496,7 +513,22 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField name="tribe" label="Tribe" />
             <FormField name="agency" label="Agency" />
-            <FormField name="ownershipType" label="Ownership type" />
+            <Controller
+              name="ownershipType"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Ownership type</label>
+                  <select {...field} className="input-modern" value={field.value ?? ""}>
+                    <option value="">Select</option>
+                    <option value="Registered Owner">Registered Owner</option>
+                    <option value="Tenant">Tenant</option>
+                    <option value="Lessee">Lessee</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+              )}
+            />
             <FormField name="ownerName" label="Owner name" />
             <FormField name="dateEncoded" label="Date encoded" type="date" />
           </div>

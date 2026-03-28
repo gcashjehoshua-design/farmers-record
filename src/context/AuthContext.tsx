@@ -217,35 +217,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const normalizedEmail = email.trim().toLowerCase();
 
-        // Call backend API instead of Supabase directly (bypasses rate limits)
+        // Call PostgreSQL RPC function to create user
         try {
-          const response = await fetch("/api/users/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fullName: fullName.trim(),
-              email: normalizedEmail,
-              role,
-              password,
-            }),
+          const { data, error: rpcError } = await supabase.rpc("admin_create_user", {
+            p_full_name: fullName.trim(),
+            p_email: normalizedEmail,
+            p_role: role,
+            p_password: password,
           });
 
-          if (!response.ok) {
-            let errorMessage = "Failed to create user";
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.error || errorMessage;
-            } catch (parseError) {
-              // If response is not JSON, use status text
-              errorMessage = response.statusText || `Error: ${response.status}`;
-            }
-            throw new Error(errorMessage);
-          }
-
-          try {
-            await response.json();
-          } catch (parseError) {
-            throw new Error("Server returned invalid response. Please check that backend is running and environment variables are configured.");
+          if (rpcError) {
+            throw new Error(rpcError.message || "Failed to create user");
           }
 
           await refreshCurrentUserAndUsers();
@@ -305,16 +287,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error("Only admin users can delete users.");
         }
 
-        const { error } = await supabase
-          .from("app_users")
-          .delete()
-          .eq("id", id);
+        try {
+          const { error: rpcError } = await supabase.rpc("admin_delete_user", {
+            p_user_id: id,
+          });
 
-        if (error) {
-          throw new Error(error.message || "Failed to delete user.");
+          if (rpcError) {
+            throw new Error(rpcError.message || "Failed to delete user");
+          }
+
+          await refreshCurrentUserAndUsers();
+        } catch (error) {
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new Error("Failed to delete user - unexpected error");
         }
-
-        await refreshCurrentUserAndUsers();
       },
     }),
     [user, users, loading]

@@ -31,6 +31,7 @@ const mapFarmerFromDb = (row: Database["public"]["Tables"]["farmers"]["Row"]): F
   parcelAddress3: row.parcel_address_3 || undefined,
   parcelArea: row.parcel_area || undefined,
   cropArea: row.crop_area || undefined,
+  farmType: row.farm_type || undefined,
   tribe: row.tribe || undefined,
   agency: row.agency || undefined,
   ownershipType: row.ownership_type || undefined,
@@ -67,6 +68,7 @@ const mapFarmerToDb = (farmer: Omit<Farmer, "createdAt" | "updatedAt">) => ({
   parcel_address_3: farmer.parcelAddress3 || null,
   parcel_area: farmer.parcelArea || null,
   crop_area: farmer.cropArea || null,
+  farm_type: farmer.farmType || null,
   tribe: farmer.tribe || null,
   agency: farmer.agency || null,
   ownership_type: farmer.ownershipType || null,
@@ -181,6 +183,7 @@ export const farmerService = {
     if (farmerData.parcelAddress3 !== undefined) updateData.parcel_address_3 = farmerData.parcelAddress3 || null;
     if (farmerData.parcelArea !== undefined) updateData.parcel_area = farmerData.parcelArea || null;
     if (farmerData.cropArea !== undefined) updateData.crop_area = farmerData.cropArea || null;
+    if (farmerData.farmType !== undefined) updateData.farm_type = farmerData.farmType || null;
     if (farmerData.tribe !== undefined) updateData.tribe = farmerData.tribe || null;
     if (farmerData.agency !== undefined) updateData.agency = farmerData.agency || null;
     if (farmerData.ownershipType !== undefined) updateData.ownership_type = farmerData.ownershipType || null;
@@ -463,21 +466,26 @@ const RSBSA_IN_CHUNK = 150;
 
 // Dashboard
 export const dashboardService = {
-  stats: async (month?: number, year?: number, day?: number): Promise<DashboardStats> => {
+  stats: async (month?: number | null, year?: number, day?: number): Promise<DashboardStats> => {
     const now = new Date();
-    const selectedMonth = month !== undefined ? month : now.getMonth() + 1;
     const selectedYear = year !== undefined ? year : now.getFullYear();
     const selectedDay = day !== undefined ? day : undefined;
 
     let startDate: Date;
     let endDate: Date;
 
-    if (selectedDay !== undefined) {
-      startDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 0, 0, 0, 0);
-      endDate = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59, 999);
+    if (month !== undefined && month !== null) {
+      if (selectedDay !== undefined && selectedDay !== null) {
+        startDate = new Date(selectedYear, month - 1, selectedDay, 0, 0, 0, 0);
+        endDate = new Date(selectedYear, month - 1, selectedDay, 23, 59, 59, 999);
+      } else {
+        startDate = new Date(selectedYear, month - 1, 1, 0, 0, 0, 0);
+        endDate = new Date(selectedYear, month, 0, 23, 59, 59, 999);
+      }
     } else {
-      startDate = new Date(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0);
-      endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
+      // Yearly
+      startDate = new Date(selectedYear, 0, 1, 0, 0, 0, 0);
+      endDate = new Date(selectedYear, 11, 31, 23, 59, 59, 999);
     }
 
     const startIso = startDate.toISOString();
@@ -498,15 +506,22 @@ export const dashboardService = {
   },
 
   /** List visits (transactions with farmer names) for a given month/year and optional day, for PDF export */
-  visitsList: async (month: number, year: number, day?: number): Promise<Array<Transaction & { farmerName: string }>> => {
+  visitsList: async (month: number | null, year: number, day?: number): Promise<Array<Transaction & { farmerName: string }>> => {
     let startDate: Date;
     let endDate: Date;
-    if (day !== undefined) {
-      startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
-      endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+    if (month !== null) {
+      if (day !== undefined && day !== null) {
+        startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+        endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+      } else {
+        startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      }
     } else {
-      startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
-      endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      // Yearly
+      startDate = new Date(year, 0, 1, 0, 0, 0, 0);
+      endDate = new Date(year, 11, 31, 23, 59, 59, 999);
     }
 
     const txRows = await fetchTransactionRowsInVisitRange(startDate.toISOString(), endDate.toISOString());
