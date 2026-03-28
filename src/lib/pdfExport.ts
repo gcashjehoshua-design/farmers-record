@@ -109,12 +109,6 @@ function addPdfFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
   doc.setTextColor(0, 0, 0);
 }
 
-/** Format amount for PDF - use Php prefix (₱ may not render in jsPDF helvetica) */
-function formatAmount(amount: number | null | undefined): string {
-  if (amount == null) return "-";
-  return `Php ${amount.toLocaleString("en-PH")}`;
-}
-
 /** Max chars per column at 9pt (approx 2mm per char) - prevents overlap */
 const MAX_CHARS: Record<string, number> = {
   date: 12,
