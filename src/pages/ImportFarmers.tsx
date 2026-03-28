@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, CheckCircle, FileUp, ArrowLeft } from "lucide-react";
@@ -214,6 +215,7 @@ function parseExcelToFarmers(buffer: ArrayBuffer): FarmerImportData[] {
 
 export default function ImportFarmers() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toasts, success, error: showError } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [fileSelected, setFileSelected] = useState<File | null>(null);
@@ -282,13 +284,46 @@ export default function ImportFarmers() {
             showError("No farmers to import.");
             return;
           }
+
+          // 1. Fetch existing RSBSA codes to prevent duplicates
+          const { data: existingFarmers, error: fetchError } = await supabase
+            .from("farmers")
+            .select("rsbsa_code");
+
+          if (fetchError) {
+            console.error("Error checking existing farmers:", fetchError);
+            throw fetchError;
+          }
+
+          const existingCodes = new Set(existingFarmers?.map(f => f.rsbsa_code) || []);
+          const duplicates = farmers.filter(f => existingCodes.has(f.rsbsaCode));
+          const newFarmers = farmers.filter(f => !existingCodes.has(f.rsbsaCode));
+
+          if (newFarmers.length === 0) {
+            showError("All farmers in this file are already registered in the system.");
+            setImportStatus("idle");
+            setIsLoading(false);
+            return;
+          }
+
+          if (duplicates.length > 0) {
+            const confirmImport = window.confirm(
+              `${duplicates.length} farmers are already registered and will be skipped. Proceed with importing the ${newFarmers.length} new farmers?`
+            );
+            if (!confirmImport) {
+              setImportStatus("idle");
+              setIsLoading(false);
+              return;
+            }
+          }
+
           let importedCount = 0;
           let commoditiesCount = 0;
 
-          // Batch insert farmers
+          // 2. Batch insert ONLY new farmers
           const BATCH_SIZE = 50;
-          for (let i = 0; i < farmers.length; i += BATCH_SIZE) {
-            const batch = farmers.slice(i, i + BATCH_SIZE);
+          for (let i = 0; i < newFarmers.length; i += BATCH_SIZE) {
+            const batch = newFarmers.slice(i, i + BATCH_SIZE);
             const farmersData = batch.map((f) => ({
               rsbsa_code: f.rsbsaCode,
               first_name: f.firstName,
@@ -371,7 +406,7 @@ export default function ImportFarmers() {
 
             importedCount += batch.length;
             commoditiesCount += commoditiesData.length;
-            const progress = Math.round((importedCount / farmers.length) * 100);
+            const progress = Math.round((importedCount / newFarmers.length) * 100);
             setImportProgress(progress);
           }
 
@@ -380,6 +415,11 @@ export default function ImportFarmers() {
           success(
             `Successfully imported ${importedCount} farmers and ${commoditiesCount} commodity records!`
           );
+
+          // Refresh the farmers list cache so the new data shows up immediately
+          queryClient.invalidateQueries({ queryKey: ["farmers"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["commodities", "all"] });
 
           setTimeout(() => {
             navigate("/farmers");

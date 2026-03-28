@@ -62,6 +62,10 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
   const { width } = getPageDimensions(doc);
   let y = MARGIN;
 
+  // Set standard font for the entire header to ensure consistency across pages
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+
   // Try to add logos (center row)
   const logoPaths = getLogoPaths();
   const logoSize = 12;
@@ -105,6 +109,10 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
   doc.setDrawColor(139, 115, 85);
   doc.setLineWidth(0.5);
   doc.line(MARGIN, y, width - MARGIN, y);
+  
+  // Reset font to normal for the content that follows
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(BODY_FONT);
 }
 
 /** Add footer with page number and date */
@@ -278,6 +286,8 @@ export async function exportFarmersToPdf(
   const filename = `farmers-directory-${new Date().toISOString().split('T')[0]}.pdf`;
 
   if (farmers.length === 0) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(BODY_FONT);
     doc.text("No farmers found matching the criteria.", MARGIN, y);
     addFootersToAllPages(doc);
     doc.save(filename);
