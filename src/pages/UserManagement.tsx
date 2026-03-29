@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Shield, UserPlus, Users, Trash2, ToggleLeft, ToggleRight, Mail, Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function UserManagement() {
   const { user, users, createUser, updateUserRole, toggleUserActive, deleteUser } = useAuth();
@@ -18,6 +19,11 @@ export default function UserManagement() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Deletion confirmation state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!user || user.role !== "admin") {
     return (
@@ -79,8 +85,40 @@ export default function UserManagement() {
     }
   };
 
+  const handleDeleteClick = (id: string, name: string) => {
+    setUserToDelete({ id, name });
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteUser(userToDelete.id);
+      setFormSuccess(`User ${userToDelete.name} deleted successfully.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete user.";
+      setFormError(message);
+    } finally {
+      setIsDeleting(false);
+      setShowConfirmModal(false);
+      setUserToDelete(null);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete ${userToDelete?.name}? This action cannot be undone and will permanently remove the user's access.`}
+        confirmText="Delete User"
+        type="danger"
+        isLoading={isDeleting}
+      />
       {/* Header Section */}
       <div className="border-b border-gray-200 bg-farm-50/80">
         <div className="container mx-auto px-4 max-w-5xl py-6">
@@ -344,7 +382,7 @@ export default function UserManagement() {
                                 size="sm"
                                 variant="destructive"
                                 className="h-9 px-3 text-xs"
-                                onClick={() => deleteUser(u.id)}
+                                onClick={() => handleDeleteClick(u.id, u.fullName)}
                                 disabled={isSelf}
                               >
                                 <Trash2 className="w-3.5 h-3.5 mr-1" />
