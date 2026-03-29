@@ -38,6 +38,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -89,9 +90,13 @@ export default function Login() {
         localStorage.removeItem("rememberedEmail");
       }
       
+      // Show success message briefly before navigating
+      setError(null);
+      setFormSuccess("Sign in successful! Redirecting...");
+      
       setTimeout(() => {
         navigate("/", { replace: true });
-      }, 100);
+      }, 1500);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to log in.";
       setError(message);
@@ -112,10 +117,10 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
-        <Card className="card-modern border-farm-200 animate-slide-up shadow-lg">
-          <CardHeader className="bg-gradient-to-b from-farm-50 to-farm-100 border-b-2 border-farm-200">
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex justify-center gap-4">
+        <Card className="card-modern border-farm-200 animate-slide-up shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-b from-farm-50 to-farm-100 border-b-2 border-farm-200 p-8">
+            <div className="flex flex-col items-center gap-6">
+              <div className="flex justify-center gap-6 pt-2">
                 {logos.map((logo) => (
                   <img
                     key={logo.name}
@@ -124,20 +129,20 @@ export default function Login() {
                       .replace("-logo.png", "")
                       .replace(/-/g, " ")
                       .toUpperCase()}
-                    className="h-12 w-12 object-contain drop-shadow-sm"
+                    className="h-14 w-14 object-contain drop-shadow-md"
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
                     }}
                   />
                 ))}
               </div>
-              <div className="flex items-center gap-3 w-full">
-                <div className="p-3 bg-farm-100 rounded-xl">
-                  <Lock className="w-6 h-6 text-farm-700" />
+              <div className="flex items-center gap-4 w-full bg-white/40 p-4 rounded-2xl backdrop-blur-sm border border-white/50 shadow-sm">
+                <div className="p-3 bg-farm-600 rounded-xl shadow-inner">
+                  <Lock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl font-display">Department of Agriculture</CardTitle>
-                  <CardDescription className="text-sm">
+                  <CardTitle className="text-2xl font-display font-bold text-earth-900 leading-tight">Department of Agriculture</CardTitle>
+                  <CardDescription className="text-sm font-medium text-earth-600">
                     Farmers Record and Transactions System
                   </CardDescription>
                 </div>
@@ -149,6 +154,15 @@ export default function Login() {
               <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-pulse">
                 <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                 <span>{error}</span>
+              </div>
+            )}
+            
+            {formSuccess && (
+              <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 animate-fade-in shadow-sm">
+                <div className="w-5 h-5 mt-0.5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                </div>
+                <span className="font-medium">{formSuccess}</span>
               </div>
             )}
 

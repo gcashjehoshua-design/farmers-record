@@ -16,6 +16,16 @@ import Toast from "@/components/Toast";
 export default function TransactionHistory() {
   const navigate = useNavigate();
   const { data: transactions = [], isLoading: txLoading, refetch: refetchTransactions } = useTransactions();
+  
+  // Sort transactions by date descending (latest at top)
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+      const dateA = new Date(a.officeVisitAt || a.createdAt).getTime();
+      const dateB = new Date(b.officeVisitAt || b.createdAt).getTime();
+      return dateB - dateA;
+    });
+  }, [transactions]);
+
   const { data: farmers = [] } = useFarmers();
   const { user } = useAuth();
   const { toasts, success, error: showError } = useToast();
@@ -71,7 +81,7 @@ export default function TransactionHistory() {
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((tx) => {
+    return sortedTransactions.filter((tx) => {
       const farmer = farmers.find(f => f.rsbsaCode === tx.rsbsaCode);
       if (!farmer) return false;
 
@@ -80,7 +90,7 @@ export default function TransactionHistory() {
 
       return barangayMatch && agencyMatch;
     });
-  }, [transactions, farmers, selectedBarangay, selectedAgency]);
+  }, [sortedTransactions, farmers, selectedBarangay, selectedAgency]);
 
   const transactionTypeColors: Record<string, string> = {
     "Loan": "bg-blue-100 text-blue-700",
@@ -375,37 +385,37 @@ export default function TransactionHistory() {
 
         {/* Print Filter Dialog */}
         {isPrintDialogOpen && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-            <Card className="w-full max-w-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] scale-in max-h-[90vh] overflow-hidden flex flex-col border-[#5a443a] rounded-2xl bg-[#38261e]">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 bg-gradient-to-r from-[#1a301a] to-[#2d5a3d] border-b border-[#3a543a]/30 flex-shrink-0">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+            <Card className="w-full max-w-2xl shadow-2xl scale-in max-h-[90vh] overflow-hidden flex flex-col border-farm-200 rounded-2xl bg-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8 bg-gradient-to-r from-farm-50 to-farm-100 border-b-2 border-farm-200 flex-shrink-0">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10 shadow-inner">
-                    <FileDown className="w-7 h-7 text-white" />
+                  <div className="p-3 bg-farm-200 rounded-xl shadow-inner">
+                    <FileDown className="w-7 h-7 text-farm-700" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl font-display font-bold text-white tracking-tight">PDF Report Options</CardTitle>
-                    <p className="text-sm text-green-100/90 mt-1 font-medium">Select categories to include in the generated PDF</p>
+                    <CardTitle className="text-2xl font-display font-bold text-earth-900 tracking-tight">PDF Report Options</CardTitle>
+                    <p className="text-sm text-earth-600 mt-1 font-medium">Select categories to include in the generated PDF</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsPrintDialogOpen(false)}
-                  className="text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-full flex-shrink-0 hover:rotate-90"
+                  className="text-earth-400 hover:text-earth-600 hover:bg-farm-200 transition-all duration-200 p-2 rounded-full flex-shrink-0"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </CardHeader>
-              <CardContent className="space-y-8 p-8 overflow-y-auto flex-1 bg-[#38261e] custom-scrollbar">
+              <CardContent className="space-y-8 p-8 overflow-y-auto flex-1 bg-white custom-scrollbar">
                 <div className="grid gap-8">
                   {/* Transaction Type Checkboxes */}
                   {transactionTypes.length > 0 && (
-                    <div className="space-y-4 p-6 bg-[#140d0a]/40 border-2 border-[#5a443a]/30 rounded-2xl shadow-inner">
-                      <h3 className="font-bold text-[#eee8e6] text-base flex items-center gap-2 px-1">
-                        <Filter className="w-4 h-4 text-[#809c80]" />
+                    <div className="space-y-4 p-6 bg-farm-50 border-2 border-farm-100 rounded-2xl shadow-inner">
+                      <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
+                        <Filter className="w-4 h-4 text-farm-600" />
                         Transaction Type
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {transactionTypes.map((type) => (
-                          <label key={type} className="flex items-center gap-3 cursor-pointer hover:bg-[#5a443a]/40 p-3 rounded-xl transition-all border border-[#5a443a]/20 hover:border-[#809c80]/40 group shadow-sm">
+                          <label key={type} className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">
                             <div className="relative flex items-center">
                               <input
                                 type="checkbox"
@@ -416,10 +426,10 @@ export default function TransactionHistory() {
                                     transactionTypes: { ...prev.transactionTypes, [type]: e.target.checked },
                                   }))
                                 }
-                                className="w-5 h-5 rounded-md cursor-pointer accent-[#4A7C59] border-[#5a443a] bg-[#140d0a] transition-all"
+                                className="w-5 h-5 rounded-md cursor-pointer accent-farm-600 border-farm-300 bg-white transition-all"
                               />
                             </div>
-                            <span className="text-sm text-[#eee8e6] font-semibold group-hover:text-white transition-colors">{type}</span>
+                            <span className="text-sm text-earth-700 font-semibold group-hover:text-farm-700 transition-colors">{type}</span>
                           </label>
                         ))}
                       </div>
@@ -429,14 +439,14 @@ export default function TransactionHistory() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Agency Checkboxes */}
                     {Object.keys(printFilters.agencies).length > 0 && (
-                      <div className="space-y-4 p-6 bg-[#140d0a]/40 border-2 border-[#5a443a]/30 rounded-2xl shadow-inner">
-                        <h3 className="font-bold text-[#eee8e6] text-base flex items-center gap-2 px-1">
-                          <Filter className="w-4 h-4 text-[#809c80]" />
+                      <div className="space-y-4 p-6 bg-farm-50 border-2 border-farm-100 rounded-2xl shadow-inner">
+                        <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
+                          <Filter className="w-4 h-4 text-farm-600" />
                           Agencies
                         </h3>
                         <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                           {Object.entries(printFilters.agencies).map(([org, checked]) => (
-                            <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-[#5a443a]/40 p-3 rounded-xl transition-all border border-[#5a443a]/20 hover:border-[#809c80]/40 group shadow-sm">
+                            <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">
                               <input
                                 type="checkbox"
                                 checked={checked}
@@ -446,9 +456,9 @@ export default function TransactionHistory() {
                                     agencies: { ...prev.agencies, [org]: e.target.checked },
                                   }))
                                 }
-                                className="w-5 h-5 rounded-md cursor-pointer accent-[#4A7C59] border-[#5a443a] bg-[#140d0a]"
+                                className="w-5 h-5 rounded-md cursor-pointer accent-farm-600 border-farm-300 bg-white"
                               />
-                              <span className="text-sm text-[#eee8e6] font-semibold truncate group-hover:text-white transition-colors" title={org}>{org}</span>
+                              <span className="text-sm text-earth-700 font-semibold truncate group-hover:text-farm-700 transition-colors" title={org}>{org}</span>
                             </label>
                           ))}
                         </div>
@@ -457,14 +467,14 @@ export default function TransactionHistory() {
 
                     {/* Barangay Checkboxes */}
                     {Object.keys(printFilters.barangays).length > 0 && (
-                      <div className="space-y-4 p-6 bg-[#140d0a]/40 border-2 border-[#5a443a]/30 rounded-2xl shadow-inner">
-                        <h3 className="font-bold text-[#eee8e6] text-base flex items-center gap-2 px-1">
-                          <Filter className="w-4 h-4 text-[#809c80]" />
+                      <div className="space-y-4 p-6 bg-farm-50 border-2 border-farm-100 rounded-2xl shadow-inner">
+                        <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
+                          <Filter className="w-4 h-4 text-farm-600" />
                           Barangays
                         </h3>
                         <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                           {Object.entries(printFilters.barangays).map(([barangay, checked]) => (
-                            <label key={barangay} className="flex items-center gap-3 cursor-pointer hover:bg-[#5a443a]/40 p-3 rounded-xl transition-all border border-[#5a443a]/20 hover:border-[#809c80]/40 group shadow-sm">
+                            <label key={barangay} className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">
                               <input
                                 type="checkbox"
                                 checked={checked}
@@ -474,9 +484,9 @@ export default function TransactionHistory() {
                                     barangays: { ...prev.barangays, [barangay]: e.target.checked },
                                   }))
                                 }
-                                className="w-5 h-5 rounded-md cursor-pointer accent-[#4A7C59] border-[#5a443a] bg-[#140d0a]"
+                                className="w-5 h-5 rounded-md cursor-pointer accent-farm-600 border-farm-300 bg-white"
                               />
-                              <span className="text-sm text-[#eee8e6] font-semibold truncate group-hover:text-white transition-colors" title={barangay}>{barangay}</span>
+                              <span className="text-sm text-earth-700 font-semibold truncate group-hover:text-farm-700 transition-colors" title={barangay}>{barangay}</span>
                             </label>
                           ))}
                         </div>
@@ -487,16 +497,16 @@ export default function TransactionHistory() {
               </CardContent>
 
               {/* Action Buttons - Fixed at bottom */}
-              <div className="flex gap-4 p-8 pt-6 border-t border-[#5a443a]/20 bg-[#38261e] flex-shrink-0 shadow-2xl">
+              <div className="flex gap-4 p-8 pt-6 border-t-2 border-farm-100 bg-farm-50/50 flex-shrink-0 shadow-inner">
                 <button
                   onClick={() => setIsPrintDialogOpen(false)}
-                  className="flex-1 px-6 py-4 border-2 border-[#5a443a] text-[#eee8e6] font-bold text-base rounded-xl hover:bg-[#5a443a] hover:text-white transition-all duration-200 active:scale-95 shadow-md"
+                  className="flex-1 px-6 py-4 border-2 border-earth-200 text-earth-700 font-bold text-base rounded-xl hover:bg-white hover:text-earth-900 transition-all duration-200 active:scale-95 shadow-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handlePrintWithFilters}
-                  className="flex-1 px-6 py-4 bg-gradient-to-r from-[#1a301a] to-[#2d5a3d] hover:from-[#2d5a3d] hover:to-[#4A7C59] text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-[0_8px_25px_rgba(0,0,0,0.4)] active:scale-95 group"
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-farm-600 to-farm-700 hover:from-farm-500 hover:to-farm-600 text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg active:scale-95 group"
                 >
                   <FileDown className="w-6 h-6 group-hover:scale-110 transition-transform" />
                   <span className="uppercase text-xs font-black tracking-widest">Generate PDF</span>

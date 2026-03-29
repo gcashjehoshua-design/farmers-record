@@ -116,11 +116,11 @@ export default function RecordTransaction() {
         <Toast key={toast.id} type={toast.type} message={toast.message} />
       ))}
       {/* Header Section */}
-      <div className="border-b border-gray-200 bg-harvest-50/80">
+      <div className="border-b border-gray-200 bg-farm-50/80">
         <div className="container mx-auto px-4 max-w-4xl py-6">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-harvest-100 rounded-2xl">
-              <Clipboard className="w-10 h-10 text-harvest-700" />
+            <div className="p-4 bg-farm-100 rounded-2xl">
+              <Clipboard className="w-10 h-10 text-farm-700" />
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-display font-bold mb-1 text-gray-900">
@@ -137,7 +137,7 @@ export default function RecordTransaction() {
       {/* Main Content */}
       <div className="container mx-auto px-4 max-w-4xl py-8 space-y-6">
         {/* Progress Stepper */}
-        <Card className="card-modern border-harvest-200 animate-slide-up">
+        <Card className="card-modern border-farm-200 animate-slide-up">
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               {steps.map((step, index) => (
@@ -145,7 +145,7 @@ export default function RecordTransaction() {
                   <div className="flex flex-col items-center flex-1">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-base transition-all duration-300 ${
                       index <= currentStep 
-                        ? "bg-gradient-harvest text-white shadow-lg scale-110" 
+                        ? "bg-farm-600 text-white shadow-lg scale-110" 
                         : "bg-gray-200 text-gray-500"
                     }`}>
                       {index < currentStep ? <Check className="w-6 h-6" /> : index + 1}
@@ -158,7 +158,7 @@ export default function RecordTransaction() {
                   </div>
                   {index !== steps.length - 1 && (
                     <div className={`flex-1 h-2 mx-4 rounded-full transition-all duration-300 ${
-                      index < currentStep ? "bg-gradient-harvest" : "bg-gray-200"
+                      index < currentStep ? "bg-farm-600" : "bg-gray-200"
                     }`} />
                   )}
                 </div>
@@ -264,11 +264,11 @@ export default function RecordTransaction() {
 
           {/* STEP 2: Select Transaction Type */}
           {currentStep >= 1 && selectedFarmer && (
-            <Card className="card-modern border-harvest-200 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <CardHeader className="bg-gradient-to-r from-harvest-50 to-harvest-100 border-b-2 border-harvest-200">
+            <Card className="card-modern border-farm-200 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <CardHeader className="bg-gradient-to-r from-farm-50 to-farm-100 border-b-2 border-farm-200">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-harvest-200 rounded-xl">
-                    <Edit className="w-6 h-6 text-harvest-700" />
+                  <div className="p-3 bg-farm-200 rounded-xl">
+                    <Edit className="w-6 h-6 text-farm-700" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-display">Step 2: Transaction Type</CardTitle>
