@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lock, Mail, AlertTriangle, LogIn, Eye, EyeOff } from "lucide-react";
+import { Lock, Users, AlertTriangle, LogIn, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabaseUrl } from "@/lib/supabase";
 
@@ -34,12 +34,12 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -57,10 +57,10 @@ export default function Login() {
   })();
 
   const validateForm = () => {
-    const errors: { email?: string; password?: string } = {};
+    const errors: { username?: string; password?: string } = {};
     
-    if (!email.trim()) {
-      errors.email = "Username is required";
+    if (!username.trim()) {
+      errors.username = "Username is required";
     }
     
     if (!password) {
@@ -82,12 +82,12 @@ export default function Login() {
     setIsSubmitting(true);
     
     try {
-      await login(email, password);
+      await login(username, password);
       
       if (rememberMe) {
-        localStorage.setItem("rememberedEmail", email);
+        localStorage.setItem("rememberedUsername", username);
       } else {
-        localStorage.removeItem("rememberedEmail");
+        localStorage.removeItem("rememberedUsername");
       }
       
       // Show success message briefly before navigating
@@ -105,11 +105,11 @@ export default function Login() {
     }
   };
 
-  // Load remembered email on mount
+  // Load remembered username on mount
   useEffect(() => {
-    const remembered = localStorage.getItem("rememberedEmail");
+    const remembered = localStorage.getItem("rememberedUsername");
     if (remembered) {
-      setEmail(remembered);
+      setUsername(remembered);
       setRememberMe(true);
     }
   }, []);
@@ -173,24 +173,24 @@ export default function Login() {
                   Username
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Users className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
                     type="text"
                     autoComplete="username"
                     placeholder="Enter your username"
                     className={`input-modern h-11 pl-9 transition-colors ${
-                      fieldErrors.email ? "border-red-300 bg-red-50" : ""
+                      fieldErrors.username ? "border-red-300 bg-red-50" : ""
                     }`}
-                    value={email}
+                    value={username}
                     onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: undefined });
+                      setUsername(e.target.value);
+                      if (fieldErrors.username) setFieldErrors({ ...fieldErrors, username: undefined });
                     }}
                     disabled={isSubmitting}
                   />
                 </div>
-                {fieldErrors.email && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.email}</p>
+                {fieldErrors.username && (
+                  <p className="text-xs text-red-600 mt-1">{fieldErrors.username}</p>
                 )}
               </div>
 
@@ -248,7 +248,7 @@ export default function Login() {
               <Button
                 type="submit"
                 className="btn-farm w-full h-11 text-base font-semibold mt-6 hover:shadow-lg transition-all"
-                disabled={isSubmitting || !email || !password}
+                disabled={isSubmitting || !username || !password}
               >
                 {isSubmitting ? (
                   <>

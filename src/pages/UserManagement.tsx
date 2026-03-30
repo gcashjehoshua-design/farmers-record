@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, UserPlus, Users, Trash2, ToggleLeft, ToggleRight, Mail, Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Shield, UserPlus, Users, Trash2, ToggleLeft, ToggleRight, Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function UserManagement() {
   const { user, users, createUser, updateUserRole, toggleUserActive, deleteUser } = useAuth();
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [role, setRole] = useState<"admin" | "staff">("staff");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -48,7 +48,7 @@ export default function UserManagement() {
     setFormError(null);
     setFormSuccess(null);
 
-    if (!fullName.trim() || !email.trim() || !password) {
+    if (!fullName.trim() || !username.trim() || !password) {
       setFormError("Please fill in all required fields.");
       return;
     }
@@ -67,13 +67,13 @@ export default function UserManagement() {
       setIsSubmitting(true);
       await createUser({
         fullName,
-        email,
+        username,
         role,
         password,
       });
       setFormSuccess("User account created successfully.");
       setFullName("");
-      setEmail("");
+      setUsername("");
       setPassword("");
       setConfirmPassword("");
       setRole("staff");
@@ -185,12 +185,12 @@ export default function UserManagement() {
                     Username
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Users className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <Input
-                      type="email"
+                      type="text"
                       className="input-modern h-11 pl-9"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       required
                     />
                   </div>
@@ -320,7 +320,9 @@ export default function UserManagement() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="py-3 text-sm">{u.email}</TableCell>
+                          <TableCell className="py-3 text-sm">
+                            {u.username}
+                          </TableCell>
                           <TableCell className="py-3 text-sm capitalize">
                             <select
                               className="input-modern h-11 text-sm px-4 w-full"

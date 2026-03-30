@@ -8,7 +8,7 @@ export interface AppUser {
   id: string;
   authUserId: string;
   fullName: string;
-  email: string;
+  username: string;
   role: UserRole;
   isActive: boolean;
   createdAt: string;
@@ -18,9 +18,9 @@ interface AuthContextValue {
   user: AppUser | null;
   users: AppUser[];
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  createUser: (input: { fullName: string; email: string; role: UserRole; password: string }) => Promise<void>;
+  createUser: (input: { fullName: string; username: string; role: UserRole; password: string }) => Promise<void>;
   updateUserRole: (id: string, role: UserRole) => Promise<void>;
   toggleUserActive: (id: string) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
@@ -35,12 +35,18 @@ function mapRowToAppUser(row: AppUserRow): AppUser {
     id: row.id,
     authUserId: row.auth_user_id,
     fullName: row.full_name,
-    email: row.email,
+    username: row.email.replace("@passicity.gov.ph", ""),
     role: (row.role as UserRole) ?? "staff",
     isActive: row.is_active,
     createdAt: row.created_at,
   };
 }
+
+const getEmailFromUsername = (username: string) => {
+  const normalized = username.trim().toLowerCase();
+  if (normalized.includes("@")) return normalized;
+  return `${normalized}@passicity.gov.ph`;
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -195,9 +201,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       users,
       loading,
-      login: async (email, password) => {
+      login: async (username, password) => {
+        const email = getEmailFromUsername(username);
         const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
+          email,
           password,
         });
         if (error) {
@@ -210,18 +217,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setUsers([]);
       },
-      createUser: async ({ fullName, email, role, password }) => {
+      createUser: async ({ fullName, username, role, password }) => {
         if (!user || user.role !== "admin") {
           throw new Error("Only admin users can create accounts.");
         }
 
-        const normalizedEmail = email.trim().toLowerCase();
+        const email = getEmailFromUsername(username);
 
         // Call PostgreSQL RPC function to create user
         try {
           const { error: rpcError } = await (supabase as any).rpc("admin_create_user", {
             p_full_name: fullName.trim(),
-            p_email: normalizedEmail,
+            p_email: email,
             p_role: role,
             p_password: password,
           });
