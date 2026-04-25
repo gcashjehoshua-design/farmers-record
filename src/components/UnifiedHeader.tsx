@@ -117,7 +117,7 @@ export default function UnifiedHeader() {
                 to={item.path}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-200 no-underline text-sm font-medium ${
                   isActive
-                    ? "bg-farm-600 text-white shadow-md"
+                    ? "bg-farm-50 text-farm-700 border border-farm-200 shadow-sm"
                     : "text-earth-700 hover:bg-earth-50 hover:text-farm-700"
                 }`}
               >

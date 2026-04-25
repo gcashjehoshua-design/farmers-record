@@ -52,11 +52,11 @@ export default function ConfirmationModal({
   const getConfirmBtnClass = () => {
     switch (type) {
       case 'danger':
-        return 'bg-red-600 hover:bg-red-700 text-white';
+        return 'bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-300';
       case 'info':
-        return 'bg-sky-600 hover:bg-sky-700 text-white';
+        return 'bg-white text-sky-600 border border-sky-200 hover:bg-sky-50 hover:border-sky-300';
       default:
-        return 'bg-farm-600 hover:bg-farm-700 text-white';
+        return 'bg-white text-farm-700 border border-farm-200 hover:bg-gray-50 hover:border-farm-300';
     }
   };
 
@@ -80,18 +80,19 @@ export default function ConfirmationModal({
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={onClose}
                 disabled={isLoading}
-                className="flex-1 h-12 border-2 border-earth-200 text-earth-700 hover:bg-earth-50 font-semibold"
+                className="flex-1 h-12 font-semibold hover:scale-105 active:scale-95"
               >
                 {cancelText}
               </Button>
               <Button
                 type="button"
+                variant="secondary"
                 onClick={onConfirm}
                 disabled={isLoading}
-                className={`flex-1 h-12 font-bold shadow-md border-0 ${getConfirmBtnClass()}`}
+                className={`flex-1 h-12 font-bold shadow-md hover:scale-105 active:scale-95 ${getConfirmBtnClass()}`}
               >
                 {isLoading ? "Processing..." : confirmText}
               </Button>

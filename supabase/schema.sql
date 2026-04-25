@@ -12,6 +12,7 @@ DROP VIEW IF EXISTS dashboard_stats CASCADE;
 -- Drop tables (triggers on these tables go away with the tables — required before dropping update_updated_at_column())
 DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS farmer_commodities CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS farmers CASCADE;
 DROP TABLE IF EXISTS app_users CASCADE;
 
@@ -105,6 +106,18 @@ CREATE TABLE app_users (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create PROJECTS table for implemented/ongoing programs
+CREATE TABLE projects (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_type VARCHAR(120) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'ongoing',
+  implemented_at TIMESTAMP WITH TIME ZONE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT projects_status_check CHECK (status IN ('ongoing', 'implemented'))
+);
+
 -- Create indexes for better query performance
 CREATE INDEX idx_farmers_name ON farmers(last_name, first_name);
 CREATE INDEX idx_farmers_rsbsa ON farmers(rsbsa_code);
@@ -113,6 +126,8 @@ CREATE INDEX idx_farmers_is_farmer ON farmers(is_farmer);
 CREATE INDEX idx_farmer_commodities_rsbsa ON farmer_commodities(rsbsa_code);
 CREATE INDEX idx_transactions_rsbsa_code ON transactions(rsbsa_code);
 CREATE INDEX idx_transactions_office_visit_at ON transactions(office_visit_at);
+CREATE INDEX idx_projects_status ON projects(status);
+CREATE INDEX idx_projects_type ON projects(project_type);
 
 -- Create function to update updated_at timestamp with restricted search_path
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -139,10 +154,16 @@ CREATE TRIGGER update_farmer_commodities_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_projects_updated_at
+  BEFORE UPDATE ON projects
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE farmers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for farmers table (authenticated users can read, all)
 CREATE POLICY "authenticated_can_read_farmers" ON farmers
@@ -213,6 +234,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON farmer_commodities TO authenticated;
 -- Grant table-level permissions for farmers and transactions (RLS policies handle row-level security)
 GRANT SELECT, INSERT, UPDATE, DELETE ON farmers TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON transactions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON projects TO authenticated;
 
 -- Create policies for app_users table
 -- Allow all authenticated users to read all profiles (needed for auth/UI)
@@ -264,6 +286,41 @@ CREATE POLICY "admin_can_delete_users" ON app_users
       WHERE auth_user_id = auth.uid() 
       AND role = 'admin'
       AND is_active = true
+    )
+  );
+
+-- Projects policies
+CREATE POLICY "authenticated_can_read_projects" ON projects
+  FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "admin_can_insert_projects" ON projects
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM app_users
+      WHERE auth_user_id = auth.uid()
+        AND role = 'admin'
+        AND is_active = true
+    )
+  );
+
+CREATE POLICY "admin_can_update_projects" ON projects
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM app_users
+      WHERE auth_user_id = auth.uid()
+        AND role = 'admin'
+        AND is_active = true
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM app_users
+      WHERE auth_user_id = auth.uid()
+        AND role = 'admin'
+        AND is_active = true
     )
   );
 

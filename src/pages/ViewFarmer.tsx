@@ -97,14 +97,14 @@ export default function ViewFarmer() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => setShowReactivateConfirm(false)}
-                        className="flex-1 px-4 py-2 bg-earth-100 text-earth-700 rounded-lg font-medium hover:bg-earth-200 transition-colors"
+                        className="flex-1 px-4 py-2 bg-farm-300 text-white rounded-lg font-medium hover:bg-farm-400 transition-colors hover:scale-105 active:scale-95"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleReactivate}
                         disabled={updateFarmer.isPending}
-                        className="flex-1 px-4 py-2 bg-farm-600 text-white rounded-lg font-medium hover:bg-farm-700 transition-colors disabled:opacity-50"
+                        className="flex-1 px-4 py-2 bg-farm-300 text-white rounded-lg font-medium hover:bg-farm-400 transition-colors hover:scale-105 active:scale-95 disabled:opacity-50"
                       >
                         {updateFarmer.isPending ? "Reactivating..." : "Reactivate"}
                       </button>
@@ -127,8 +127,8 @@ export default function ViewFarmer() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               onClick={() => navigate("/farmers")}
-              variant="outline"
-              className="w-full sm:w-auto h-12 px-8 border-2 border-earth-300"
+              variant="secondary"
+              className="w-full sm:w-auto h-12 px-8 hover:scale-105 active:scale-95"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Directory
@@ -136,7 +136,7 @@ export default function ViewFarmer() {
             {user?.role === "admin" && (
               <Button
                 onClick={() => setShowReactivateConfirm(true)}
-                className="w-full sm:w-auto h-12 px-8 bg-farm-600 hover:bg-farm-700 text-white border-0 shadow-md"
+                className="w-full sm:w-auto h-12 px-8 bg-white hover:bg-gray-100 text-farm-700 border border-farm-200 shadow-sm hover:shadow-md"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reactivate Profile
@@ -173,8 +173,8 @@ export default function ViewFarmer() {
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => navigate("/farmers", { replace: true })}
-                variant="outline"
-                className="border-earth-400 text-earth-700 hover:bg-earth-200/80"
+                variant="secondary"
+                className="hover:scale-105 active:scale-95"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Farmers
@@ -464,9 +464,12 @@ export default function ViewFarmer() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="border-sky-300 text-sky-700 hover:bg-sky-50"
+                    className="bg-white border-sky-300 text-sky-700 hover:bg-sky-50"
                     onClick={async () =>
-                      await exportProfileTransactionsToPdf(formatFarmerDisplayName(farmer), transactions)
+                  await exportProfileTransactionsToPdf(formatFarmerDisplayName(farmer), transactions, {
+                    barangay: farmer.farmerAddress1,
+                    agency: farmer.agency,
+                  })
                     }
                   >
                     <FileDown className="w-4 h-4 mr-2" />

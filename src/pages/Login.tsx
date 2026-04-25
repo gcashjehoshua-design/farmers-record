@@ -115,10 +115,10 @@ export default function Login() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-[#fdfaf7] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
-        <Card className="card-modern border-farm-200 animate-slide-up shadow-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-b from-farm-50 to-farm-100 border-b-2 border-farm-200 p-8">
+        <Card className="card-modern border-earth-400 animate-slide-up shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-b from-farm-200 to-farm-300 border-b-2 border-earth-400 p-8">
             <div className="flex flex-col items-center gap-6">
               <div className="flex justify-center gap-6 pt-2">
                 {logos.map((logo) => (
@@ -129,19 +129,19 @@ export default function Login() {
                       .replace("-logo.png", "")
                       .replace(/-/g, " ")
                       .toUpperCase()}
-                    className="h-14 w-14 object-contain drop-shadow-md"
+                    className="h-16 w-16 object-contain drop-shadow-md"
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
                     }}
                   />
                 ))}
               </div>
-              <div className="flex items-center gap-4 w-full bg-white/40 p-4 rounded-2xl backdrop-blur-sm border border-white/50 shadow-sm">
-                <div className="p-3 bg-farm-600 rounded-xl shadow-inner">
+              <div className="flex items-center gap-4 w-full bg-white/50 p-4 rounded-2xl backdrop-blur-sm border border-earth-300 shadow-sm">
+                <div className="p-3 bg-farm-400 rounded-xl shadow-inner">
                   <Lock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl font-display font-bold text-earth-900 leading-tight">Department of Agriculture</CardTitle>
+                  <CardTitle className="text-2xl font-display font-bold text-earth-800 leading-tight">Department of Agriculture</CardTitle>
                   <CardDescription className="text-sm font-medium text-earth-600">
                     Farmers Record and Transactions System
                   </CardDescription>
@@ -151,15 +151,15 @@ export default function Login() {
           </CardHeader>
           <CardContent className="p-6 space-y-5">
             {error && (
-              <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-pulse">
+              <div className="flex items-start gap-3 rounded-lg border border-red-400 bg-red-100 px-4 py-3 text-sm text-red-800 animate-pulse">
                 <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                 <span>{error}</span>
               </div>
             )}
             
             {formSuccess && (
-              <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 animate-fade-in shadow-sm">
-                <div className="w-5 h-5 mt-0.5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+              <div className="flex items-start gap-3 rounded-lg border border-emerald-400 bg-emerald-100 px-4 py-3 text-sm text-emerald-800 animate-fade-in shadow-sm">
+                <div className="w-5 h-5 mt-0.5 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
                   <div className="w-2 h-2 rounded-full bg-white" />
                 </div>
                 <span className="font-medium">{formSuccess}</span>
@@ -173,13 +173,13 @@ export default function Login() {
                   Username
                 </label>
                 <div className="relative">
-                  <Users className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Users className="w-4 h-4 text-earth-600 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
                     type="text"
                     autoComplete="username"
                     placeholder="Enter your username"
                     className={`input-modern h-11 pl-9 transition-colors ${
-                      fieldErrors.username ? "border-red-300 bg-red-50" : ""
+                      fieldErrors.username ? "border-red-400 bg-red-50" : ""
                     }`}
                     value={username}
                     onChange={(e) => {
@@ -190,7 +190,7 @@ export default function Login() {
                   />
                 </div>
                 {fieldErrors.username && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.username}</p>
+                  <p className="text-xs text-red-400 mt-1">{fieldErrors.username}</p>
                 )}
               </div>
 
@@ -200,13 +200,13 @@ export default function Login() {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Lock className="w-4 h-4 text-earth-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <Input
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     placeholder="••••••••"
                     className={`input-modern h-11 pl-9 pr-11 transition-colors ${
-                      fieldErrors.password ? "border-red-300 bg-red-50" : ""
+                      fieldErrors.password ? "border-red-400 bg-red-50" : ""
                     }`}
                     value={password}
                     onChange={(e) => {
@@ -218,14 +218,14 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-400 hover:text-earth-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-300 hover:text-earth-200 transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {fieldErrors.password && (
-                  <p className="text-xs text-red-600 mt-1">{fieldErrors.password}</p>
+                  <p className="text-xs text-red-400 mt-1">{fieldErrors.password}</p>
                 )}
               </div>
 
@@ -237,7 +237,7 @@ export default function Login() {
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={isSubmitting}
-                  className="w-4 h-4 rounded border-earth-300 cursor-pointer"
+                  className="w-4 h-4 rounded border-earth-400 cursor-pointer accent-farm-400"
                 />
                 <label htmlFor="rememberMe" className="text-sm text-earth-700 cursor-pointer">
                   Remember this account
@@ -267,7 +267,7 @@ export default function Login() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-xs text-earth-600">
+        <div className="text-center mt-6 text-xs text-earth-200">
           <p>Farmers Record and Transactions System</p>
           <p className="mt-1">© 2026 Passi City Agriculture Office</p>
         </div>

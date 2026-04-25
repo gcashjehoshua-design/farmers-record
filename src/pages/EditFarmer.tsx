@@ -51,8 +51,8 @@ export default function EditFarmer() {
         <div className="flex items-center justify-between gap-4 mb-4">
           <Button
             onClick={() => navigate("/farmers", { replace: true })}
-            variant="outline"
-            className="flex items-center gap-2"
+            variant="secondary"
+            className="flex items-center gap-2 hover:scale-105 active:scale-95"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Farmers

@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
-import type { Farmer, FarmerCommodity, Transaction, DashboardStats } from "@/types";
+import type { Farmer, FarmerCommodity, Transaction, DashboardStats, Project } from "@/types";
 
 /** PostgREST/Supabase default max rows per request — paginate past this for full lists. */
 const REST_PAGE_SIZE = 1000;
@@ -109,6 +109,16 @@ const mapTransactionToDb = (transaction: Omit<Transaction, "id" | "createdAt">) 
   description: transaction.description || null,
   notes: transaction.notes || null,
   office_visit_at: transaction.officeVisitAt ? transaction.officeVisitAt.toISOString() : new Date().toISOString(),
+});
+
+const mapProjectFromDb = (row: Database["public"]["Tables"]["projects"]["Row"]): Project => ({
+  id: row.id,
+  projectType: row.project_type as Project["projectType"],
+  status: row.status as Project["status"],
+  implementedAt: row.implemented_at ? new Date(row.implemented_at) : undefined,
+  notes: row.notes || undefined,
+  createdAt: new Date(row.created_at),
+  updatedAt: new Date(row.updated_at),
 });
 
 // Farmers
@@ -407,6 +417,52 @@ export const transactionService = {
       from += REST_PAGE_SIZE;
     }
     return allRows.map(mapTransactionFromDb);
+  },
+};
+
+// Projects
+export const projectService = {
+  list: async (): Promise<Project[]> => {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapProjectFromDb);
+  },
+
+  create: async (input: Omit<Project, "id" | "createdAt" | "updatedAt">): Promise<Project> => {
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({
+        project_type: input.projectType,
+        status: input.status,
+        implemented_at: input.implementedAt ? input.implementedAt.toISOString() : null,
+        notes: input.notes || null,
+      } as never)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapProjectFromDb(data);
+  },
+
+  update: async (id: string, input: Partial<Project>): Promise<Project> => {
+    const updateData: Database["public"]["Tables"]["projects"]["Update"] = {};
+    if (input.projectType !== undefined) updateData.project_type = input.projectType;
+    if (input.status !== undefined) updateData.status = input.status;
+    if (input.implementedAt !== undefined) {
+      updateData.implemented_at = input.implementedAt ? input.implementedAt.toISOString() : null;
+    }
+    if (input.notes !== undefined) updateData.notes = input.notes || null;
+
+    const { data, error } = await supabase
+      .from("projects")
+      .update(updateData as never)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapProjectFromDb(data);
   },
 };
 

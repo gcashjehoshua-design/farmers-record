@@ -19,6 +19,7 @@ import EditFarmer from "@/pages/EditFarmer";
 import Settings from "@/pages/Settings";
 import UserManagement from "@/pages/UserManagement";
 import InactiveFarmers from "@/pages/InactiveFarmers";
+import Projects from "@/pages/Projects";
 import Login from "@/pages/Login";
 
 // Tailwind will provide global theming and styles.
@@ -41,13 +42,18 @@ function AppLayout() {
   let directPath = "/";
   if (location.pathname.startsWith("/farmers") && !location.pathname.includes("/farmers/")) directPath = "/";
   else if (location.pathname.startsWith("/farmers/")) directPath = "/farmers";
-  else if (location.pathname.startsWith("/record-transaction") || location.pathname.startsWith("/transaction-history") || location.pathname.startsWith("/settings")) directPath = "/";
+  else if (
+    location.pathname.startsWith("/record-transaction") ||
+    location.pathname.startsWith("/transaction-history") ||
+    location.pathname.startsWith("/projects") ||
+    location.pathname.startsWith("/settings")
+  ) directPath = "/";
   else if (location.pathname.startsWith("/add-farmer")) directPath = "/farmers";
 
   const isFarmerProfilePage = location.pathname.match(/^\/farmers\/[^/]+(\/edit)?$/);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF6F0]">
+    <div className="min-h-screen flex flex-col bg-[#f5f3f0]">
       <MenuToggle isOpen={isMenuOpen} onToggle={() => setIsMenuOpen(!isMenuOpen)} />
       <HamburgerMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       <div
@@ -67,6 +73,7 @@ function AppLayout() {
             <Route path="/import-farmers" element={<ImportFarmers />} />
             <Route path="/record-transaction" element={<RecordTransaction />} />
             <Route path="/transaction-history" element={<TransactionHistory />} />
+            <Route path="/projects" element={<Projects />} />
             <Route path="/farmers/:id/edit" element={<EditFarmer />} />
             <Route path="/farmers/:id" element={<ViewFarmer />} />
             <Route path="/farmers" element={<FarmersList />} />

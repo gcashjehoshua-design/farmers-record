@@ -362,8 +362,8 @@ export default function UserManagement() {
                               <Button
                                 type="button"
                                 size="sm"
-                                variant="outline"
-                                className="h-9 px-3 border-2 border-earth-200 hover:border-earth-400 text-xs"
+                                variant="secondary"
+                                className="h-9 px-3 text-xs hover:scale-105 active:scale-95"
                                 onClick={() => toggleUserActive(u.id)}
                                 disabled={isSelf}
                               >

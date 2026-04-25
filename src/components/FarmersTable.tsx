@@ -97,12 +97,13 @@ export default function FarmersTable({ farmers, onDelete, commoditySummaryByRsbs
                   <div className="flex items-center justify-center gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
-                      className={`border-2 transition-all ${
+                      variant="secondary"
+                      className={`transition-all ${
                         inactive 
-                          ? "border-gray-200 text-gray-500 hover:bg-gray-50" 
-                          : "border-sky-200 text-sky-600 hover:bg-sky-50 hover:border-sky-400"
+                          ? "bg-gray-300 text-gray-600 hover:bg-gray-400 hover:scale-105 active:scale-95 disabled:opacity-50" 
+                          : "hover:scale-105 active:scale-95"
                       }`}
+                      disabled={inactive}
                       onClick={() => navigate(`/farmers/${farmer.rsbsaCode}`)}
                     >
                       <Edit className="w-4 h-4 mr-1" />
@@ -111,11 +112,11 @@ export default function FarmersTable({ farmers, onDelete, commoditySummaryByRsbs
                     {onDelete ? (
                       <Button
                         size="sm"
-                        variant={inactive ? "default" : "destructive"}
-                        className={`border-0 shadow-sm ${
+                        variant={inactive ? "secondary" : "destructive"}
+                        className={`shadow-sm transition-all ${
                           inactive 
-                            ? "bg-farm-600 hover:bg-farm-700 text-white" 
-                            : "bg-red-500 hover:bg-red-600 text-white"
+                            ? "bg-farm-300 text-white hover:bg-farm-400 hover:scale-105 active:scale-95" 
+                            : "hover:scale-105 active:scale-95"
                         }`}
                         onClick={() => onDelete(farmer)}
                       >

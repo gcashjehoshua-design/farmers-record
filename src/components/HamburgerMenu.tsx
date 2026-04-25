@@ -1,6 +1,6 @@
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { supabaseUrl } from "@/lib/supabase";
-import { Home, Users, Clipboard, UserPlus, History, X, UserCog, LogOut, Upload } from "lucide-react";
+import { Home, Users, Clipboard, UserPlus, History, X, UserCog, LogOut, Upload, FolderKanban } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface LogoUrl {
@@ -15,15 +15,16 @@ const navItems = [
   { path: "/import-farmers", label: "Import Farmers", icon: Upload },
   { path: "/record-transaction", label: "Transaction", icon: Clipboard },
   { path: "/transaction-history", label: "History", icon: History },
+  { path: "/projects", label: "Projects", icon: FolderKanban },
   { path: "/add-farmer", label: "Add Farmer", icon: UserPlus },
   { path: "/users", label: "User Management", icon: UserCog, requiresAdmin: true },
 ];
 
 const LOGOS_BUCKET = "logos";
 const FALLBACK_LOGOS = [
+  "agriculture-office-logo.png",
   "passi-city-logo.png",
   "palangga-passi-logo.png",
-  "agriculture-office-logo.png",
 ];
 
 function getLogosPathPrefix(): string {

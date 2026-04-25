@@ -21,7 +21,6 @@ export default function RecordTransaction() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
   const [transactionType, setTransactionType] = useState("");
-  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
 
   // Auto-fill farmer from query parameter if provided
@@ -88,7 +87,6 @@ export default function RecordTransaction() {
       await createTransaction.mutateAsync({
         rsbsaCode: selectedFarmer.rsbsaCode,
         transactionType,
-        description: description || undefined,
         notes: notes || undefined,
       });
       success(`Transaction recorded for ${formatFarmerDisplayName(selectedFarmer)}!`);
@@ -104,7 +102,6 @@ export default function RecordTransaction() {
     setSearchTerm("");
     setSelectedFarmer(null);
     setTransactionType("");
-    setDescription("");
     setNotes("");
   };
 
@@ -309,16 +306,6 @@ export default function RecordTransaction() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-5 p-6">
-                <div>
-                  <label className="text-base font-semibold text-gray-900 mb-3 block">Brief Description</label>
-                  <Input
-                    placeholder="Describe the transaction"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="input-modern h-14 text-base"
-                  />
-                </div>
-
                 <div>
                   <label className="text-base font-semibold text-gray-900 mb-3 block">Additional Notes (Optional)</label>
                   <textarea

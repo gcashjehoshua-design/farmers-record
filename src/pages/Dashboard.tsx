@@ -181,6 +181,14 @@ export default function Dashboard() {
   // Define chart colors - theme-compliant palette
   const GENDER_COLORS = ['#f87171', '#60a5fa']; // Warm red for Female-like, Cool blue for Male-like
   const ORG_COLORS = ['#16a34a', '#ea580c', '#06b6d4', '#9333ea', '#f43f5e', '#14b8a6', '#f59e0b', '#7c3aed', '#ec4899', '#10b981'];
+  
+  // Barangay colors - unique color for each barangay
+  const BARANGAY_COLORS = [
+    '#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#eab308',
+    '#84cc16', '#22c55e', '#14b8a6', '#06d6d4', '#0891b2', '#0284c7', '#1e40af', '#7c3aed',
+    '#a855f7', '#d946ef', '#e11d48', '#ea580c', '#fb923c', '#fbbf24', '#fcd34d', '#bfdbfe',
+    '#a7f3d0', '#a5f3fc', '#c7d2fe', '#ddd6fe', '#fbcfe8', '#fecdd3', '#fed7aa', '#fef3c7'
+  ];
 
   const handlePrintVisitsPdf = async () => {
     setIsPrintingVisits(true);
@@ -404,7 +412,7 @@ export default function Dashboard() {
               type="button"
               variant="outline"
               size="sm"
-              className="mt-4 w-full sm:w-auto border-sky-300 text-sky-700 hover:bg-sky-50"
+              className="mt-4 w-full sm:w-auto bg-white border-sky-300 text-sky-700 hover:bg-sky-50"
               onClick={handlePrintVisitsPdf}
               disabled={isPrintingVisits}
             >
@@ -628,7 +636,7 @@ export default function Dashboard() {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, value }) => `${name}: ${Math.round(value as number)}`}
+                          label={false}
                           outerRadius={100}
                           innerRadius={60}
                           paddingAngle={2}
@@ -644,6 +652,19 @@ export default function Dashboard() {
                         />
                       </PieChart>
                     </ResponsiveContainer>
+                    <div className="mt-4 flex items-center justify-center gap-6 text-sm text-earth-700">
+                      {genderChartData.map((entry, index) => (
+                        <div key={`gender-legend-${entry.name}`} className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full"
+                            style={{ backgroundColor: GENDER_COLORS[index % GENDER_COLORS.length] }}
+                          />
+                          <span className="font-medium">
+                            {entry.name}: {entry.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -710,6 +731,19 @@ export default function Dashboard() {
                         />
                       </PieChart>
                     </ResponsiveContainer>
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-earth-700">
+                      {agencyChartData.map((entry, index) => (
+                        <div key={`agency-legend-${entry.name}`} className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full"
+                            style={{ backgroundColor: ORG_COLORS[index % ORG_COLORS.length] }}
+                          />
+                          <span className="font-medium truncate" title={entry.name}>
+                            {entry.name}: {entry.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -737,32 +771,37 @@ export default function Dashboard() {
 
           {/* Barangay Bar Chart */}
           <div className="md:col-span-2">
-            <Card className="card-modern border-green-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.65s' }}>
-              <CardHeader className="bg-gradient-to-br from-green-50 to-green-100/50 border-b-2 border-green-200 relative overflow-hidden">
+            <Card className="card-modern border-teal-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.65s' }}>
+              <CardHeader className="bg-gradient-to-br from-teal-50 to-teal-100/50 border-b-2 border-teal-200 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                 <div className="flex items-center gap-3 relative z-10">
-                  <div className="p-2.5 bg-green-100 rounded-xl text-green-600 shadow-sm">
+                  <div className="p-2.5 bg-teal-100 rounded-xl text-teal-600 shadow-sm">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-display text-green-900">Farmers by Barangay</CardTitle>
-                    <CardDescription className="text-green-700/80 mt-1">All Passi City barangays with farmer count</CardDescription>
+                    <CardTitle className="text-xl font-display text-teal-900">Farmers by Barangay</CardTitle>
+                    <CardDescription className="text-teal-700/80 mt-1">Farmers per barangay in Passi City</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
-                  <ResponsiveContainer width="100%" height={Math.max(600, barangayChartData.length * 40)}>
-                    <BarChart data={barangayChartData} layout="vertical" margin={{ left: 0, right: 20, top: 5, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
-                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#4b5563' }} axisLine={false} tickLine={false} />
-                      <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12, fontWeight: 500, fill: '#4b5563' }} axisLine={false} tickLine={false} />
+                <div className="overflow-y-auto pr-2 custom-scrollbar max-h-96">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={barangayChartData} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                      <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={70} tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={0} />
+                      <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} dx={-10} />
                       <Tooltip 
                         cursor={{ fill: '#f3f4f6' }}
-                        contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                        itemStyle={{ color: '#16a34a', fontWeight: 600 }}
+                        contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', padding: '12px' }}
+                        itemStyle={{ color: '#14b8a6', fontWeight: 600 }}
+                        labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
                       />
-                      <Bar dataKey="value" fill="#16a34a" radius={[0, 6, 6, 0]} barSize={24} />
+                      <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
+                        {barangayChartData.map((_entry, index) => (
+                          <Cell key={`cell-${index}`} fill={BARANGAY_COLORS[index % BARANGAY_COLORS.length]} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -850,16 +889,15 @@ export default function Dashboard() {
                 <div className="flex gap-3 pt-2">
                 <Button
                   onClick={handleCloseDatePicker}
-                  variant="outline"
-                  className="flex-1 h-12 border-2 border-earth-200 text-earth-700 font-semibold"
+                  variant="secondary"
+                  className="flex-1 h-12 font-semibold hover:scale-105 active:scale-95"
                 >
                   Cancel
                 </Button>
                 <button
                   onClick={handleConfirmDate}
                   type="button"
-                  className="flex-1 h-12 bg-farm-600 hover:bg-farm-700 text-white font-semibold rounded-xl shadow-farm hover:shadow-farm-lg min-w-[120px] flex items-center justify-center gap-2 transition-all duration-300"
-                  style={{ backgroundColor: '#2D5A3D' }}
+                  className="flex-1 h-12 bg-farm-300 hover:bg-farm-400 text-white font-semibold rounded-xl shadow-sm border-0 hover:shadow-md min-w-[120px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
                 >
                   <Save className="w-5 h-5" />
                   <span>Save</span>
@@ -990,14 +1028,14 @@ export default function Dashboard() {
             <div className="flex gap-4 p-8 pt-6 border-t-2 border-earth-300 bg-white flex-shrink-0">
               <button
                 onClick={() => setIsPrintDialogOpen(false)}
-                className="flex-1 px-6 py-3 border-2 border-earth-400 text-earth-700 font-semibold text-base rounded-lg hover:bg-earth-100 transition-all duration-200 active:scale-95"
+                className="flex-1 px-6 py-3 bg-farm-300 text-white font-semibold text-base rounded-lg hover:bg-farm-400 transition-all duration-200 active:scale-95 hover:scale-105"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExportFilteredFarmersPdf}
                 disabled={isPrintingFiltered}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-farm-600 to-farm-700 hover:from-farm-700 hover:to-farm-800 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold text-base rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
+                className="flex-1 px-6 py-3 bg-farm-300 text-white font-semibold text-base rounded-lg hover:bg-farm-400 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FileDown className="w-5 h-5" />
                 {isPrintingFiltered ? "Exporting..." : "Export to PDF"}

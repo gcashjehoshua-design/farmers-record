@@ -288,7 +288,7 @@ export default function TransactionHistory() {
               type="button"
               variant="outline"
               size="sm"
-              className="mt-4 border-sky-300 text-sky-700 hover:bg-sky-50"
+              className="mt-4 bg-white border-sky-300 text-sky-700 hover:bg-sky-50"
               onClick={() => setIsPrintDialogOpen(true)}
             >
               <FileDown className="w-4 h-4 mr-2" />
@@ -320,13 +320,13 @@ export default function TransactionHistory() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-gray-200 bg-gray-50">
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Farmer Name</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Barangay</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Agency</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Transaction Type</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date of Visit</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Notes</th>
-                      {isAdmin && <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Actions</th>}
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Farmer Name</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Barangay</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Agency</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Transaction Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date of Visit</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Notes</th>
+                      {isAdmin && <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -340,28 +340,31 @@ export default function TransactionHistory() {
                             if (farmer) navigate(`/farmers/${farmer.rsbsaCode}`);
                           }}
                         >
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
                             {farmer ? formatFarmerDisplayName(farmer) : "Unknown"}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{farmer?.farmerAddress1 || "-"}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{farmer?.agency || "-"}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-6 py-4 text-sm text-gray-600">{farmer?.farmerAddress1 || "-"}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{farmer?.agency || "-"}</td>
+                          <td className="px-6 py-4">
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getTransactionTypeColor(tx.transactionType)}`}>
                               {tx.transactionType}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-6 py-4 text-sm text-gray-600">
                             {new Date(tx.officeVisitAt || tx.createdAt).toLocaleDateString('en-PH', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
                             })}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title={tx.notes || ""}>
+                          <td
+                            className="px-6 py-4 align-top text-sm text-gray-600 whitespace-pre-wrap break-all max-w-[20rem]"
+                            title={tx.notes || ""}
+                          >
                             {tx.notes || "-"}
                           </td>
                           {isAdmin && (
-                            <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => handleDeleteTransaction(tx.id)}
                                 disabled={deletingId === tx.id}
@@ -500,13 +503,13 @@ export default function TransactionHistory() {
               <div className="flex gap-4 p-8 pt-6 border-t-2 border-farm-100 bg-farm-50/50 flex-shrink-0 shadow-inner">
                 <button
                   onClick={() => setIsPrintDialogOpen(false)}
-                  className="flex-1 px-6 py-4 border-2 border-earth-200 text-earth-700 font-bold text-base rounded-xl hover:bg-white hover:text-earth-900 transition-all duration-200 active:scale-95 shadow-sm"
+                  className="flex-1 px-6 py-4 bg-farm-300 text-white font-bold text-base rounded-xl hover:bg-farm-400 transition-all duration-200 active:scale-95 shadow-sm hover:scale-105"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handlePrintWithFilters}
-                  className="flex-1 px-6 py-4 bg-gradient-to-r from-farm-600 to-farm-700 hover:from-farm-500 hover:to-farm-600 text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg active:scale-95 group"
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-farm-600 to-farm-700 hover:from-farm-500 hover:to-farm-600 text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg active:scale-95 group hover:scale-105"
                 >
                   <FileDown className="w-6 h-6 group-hover:scale-110 transition-transform" />
                   <span className="uppercase text-xs font-black tracking-widest">Generate PDF</span>

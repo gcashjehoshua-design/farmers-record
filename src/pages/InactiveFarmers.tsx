@@ -206,7 +206,8 @@ export default function InactiveFarmers() {
                 <Button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  variant="outline"
+                  variant="secondary"
+                  className="hover:scale-105 active:scale-95"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Previous
@@ -217,7 +218,8 @@ export default function InactiveFarmers() {
                 <Button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  variant="outline"
+                  variant="secondary"
+                  className="hover:scale-105 active:scale-95"
                 >
                   Next
                   <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />

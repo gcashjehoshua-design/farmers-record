@@ -140,10 +140,10 @@ export default function FarmerPrintModal({
           <div className="flex gap-4 pt-2">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={onClose}
               disabled={isPrinting}
-              className="flex-1 h-14 border-2 border-earth-200 text-earth-700 hover:bg-earth-50 hover:text-earth-900 font-bold rounded-xl transition-all shadow-sm active:scale-95"
+              className="flex-1 h-14 font-bold rounded-xl transition-all shadow-sm active:scale-95 hover:scale-105"
             >
               Cancel
             </Button>

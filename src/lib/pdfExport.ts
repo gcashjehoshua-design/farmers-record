@@ -9,7 +9,7 @@ const PAGE_HEIGHT_P = 297;
 const PAGE_WIDTH_L = 297;
 const PAGE_HEIGHT_L = 210;
 const HEADER_HEIGHT = 45;
-const FOOTER_HEIGHT = 15;
+const FOOTER_HEIGHT = 34;
 const CONTENT_TOP = MARGIN + HEADER_HEIGHT;
 const CONTENT_BOTTOM = PAGE_HEIGHT_P - FOOTER_HEIGHT;
 const ROW_HEIGHT = 8;
@@ -68,7 +68,7 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
 
   // Try to add logos (center row)
   const logoPaths = getLogoPaths();
-  const logoSize = 12;
+  const logoSize = 18;
   const logoGap = 8;
   const totalLogosWidth = logoPaths.length * logoSize + (logoPaths.length - 1) * logoGap;
   let startX = (width - totalLogosWidth) / 2;
@@ -99,6 +99,11 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
   doc.text("City of Passi Agriculture Office", width / 2, y, { align: "center" });
   y += 6;
 
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Brgy. Sablogon, City of Passi, Iloilo", width / 2, y, { align: "center" });
+  y += 6;
+
   // Report title
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
@@ -118,7 +123,25 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
 /** Add footer with page number and date */
 function addPdfFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
   const { width, height } = getPageDimensions(doc);
+  const signatureLineY = height - 20;
+  const signatureTextY = signatureLineY + 4;
   const y = height - 8;
+
+  // Signature block (appears on every printable page)
+  const signatureStartX = width - 95;
+  const signatureEndX = width - MARGIN;
+  doc.setDrawColor(120, 120, 120);
+  doc.setLineWidth(0.3);
+  doc.line(signatureStartX, signatureLineY, signatureEndX, signatureLineY);
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 30, 30);
+  doc.text("LIELA A. ROSBERO", (signatureStartX + signatureEndX) / 2, signatureTextY, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(70, 70, 70);
+  doc.text("( Senior Agriculturist)", (signatureStartX + signatureEndX) / 2, signatureTextY + 4, { align: "center" });
+
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
@@ -149,6 +172,42 @@ function truncateToFit(text: string, key: keyof typeof MAX_CHARS): string {
   const max = MAX_CHARS[key] ?? 20;
   if (text.length <= max) return text;
   return text.slice(0, max - 2) + "..";
+}
+
+function buildPdfTimestamp(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+// Shared table style for all printable reports (keeps visual consistency)
+const TABLE_HEADER_FILL: [number, number, number] = [232, 242, 255];
+const TABLE_HEADER_TEXT: [number, number, number] = [30, 64, 175];
+const TABLE_BODY_TEXT: [number, number, number] = [31, 41, 55];
+const TABLE_BORDER: [number, number, number] = [191, 219, 254];
+
+function drawStandardTableHeader(
+  doc: jsPDF,
+  y: number,
+  headers: string[],
+  colWidths: number[],
+  paddingX = 2
+): number {
+  const contentWidth = colWidths.reduce((a, b) => a + b, 0);
+  doc.setFontSize(HEADER_FONT);
+  doc.setFont("helvetica", "bold");
+  doc.setFillColor(...TABLE_HEADER_FILL);
+  doc.setDrawColor(...TABLE_BORDER);
+  doc.rect(MARGIN, y - 5, contentWidth, ROW_HEIGHT, "FD");
+  doc.setTextColor(...TABLE_HEADER_TEXT);
+
+  let x = MARGIN;
+  headers.forEach((h, i) => {
+    doc.text(h, x + paddingX, y + 2);
+    x += colWidths[i];
+  });
+  doc.setTextColor(...TABLE_BODY_TEXT);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(BODY_FONT);
+  return y + ROW_HEIGHT;
 }
 
 /** Add footer to all pages */
@@ -265,25 +324,34 @@ export async function exportFarmersToPdf(
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const { top, bottom } = getPageDimensions(doc);
 
-  await addPdfHeader(doc, "Farmers Directory");
+  await addPdfHeader(doc, "Farmers Record List Report");
   let y = top;
 
   doc.setFontSize(BODY_FONT);
-  doc.setFont("helvetica", "normal");
-  
+  doc.setFont("helvetica", "bold");
+
   const filterLines: string[] = [];
   if (filters.barangay && filters.barangay !== "all") filterLines.push(`Barangay: ${filters.barangay}`);
   if (filters.gender && filters.gender !== "all") filterLines.push(`Gender: ${filters.gender}`);
   if (filters.agency && filters.agency !== "all") filterLines.push(`Agency: ${filters.agency}`);
-  
+
   if (filterLines.length > 0) {
-    doc.text(`Filters: ${filterLines.join(" | ")}`, MARGIN, y);
+    doc.text("Applied Filters:", MARGIN, y);
     y += 6;
+    doc.setFont("helvetica", "normal");
+    for (const line of filterLines) {
+      doc.text(`• ${line}`, MARGIN + 4, y);
+      y += 5;
+    }
+    y += 2;
   }
+  doc.setFont("helvetica", "bold");
   doc.text(`Total farmers: ${farmers.length}`, MARGIN, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Generated: ${new Date().toLocaleDateString("en-PH", { dateStyle: "long" })}`, MARGIN, y + 6);
   y += 12;
 
-  const filename = `farmers-directory-${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = `farmers-directory-${buildPdfTimestamp()}.pdf`;
 
   if (farmers.length === 0) {
     doc.setFont("helvetica", "normal");
@@ -295,41 +363,51 @@ export async function exportFarmersToPdf(
   }
 
   // Landscape A4 width is 297mm. Margins 15mm each -> 267mm available.
-  const colWidths = [100, 80, 87]; 
-  const headers = ["Name", "Barangay", "Agency"];
+  const colWidths = [72, 22, 45, 50, 30, 48];
+  const headers = ["Farmer Name", "Gender", "Barangay", "Agency", "Phone", "Date Encoded"];
+  const lineHeight = 4;
+  const cellPaddingX = 2;
+  const cellPaddingTop = 3;
+  const rowBottomPadding = 2;
 
-  doc.setFontSize(HEADER_FONT);
-  doc.setFont("helvetica", "bold");
-  doc.setFillColor(238, 245, 238); // farm-50
-  doc.rect(MARGIN, y - 5, colWidths.reduce((a, b) => a + b, 0), ROW_HEIGHT, "F");
-  let x = MARGIN;
-  headers.forEach((h, i) => {
-    doc.text(h, x + 2, y + 2);
-    x += colWidths[i];
-  });
-  y += ROW_HEIGHT;
-  doc.setFont("helvetica", "normal");
+  const drawHeader = () => {
+    y = drawStandardTableHeader(doc, y, headers, colWidths, cellPaddingX);
+  };
+
+  drawHeader();
 
   for (const f of farmers) {
-    if (y > bottom - ROW_HEIGHT) {
-      doc.addPage();
-      await addPdfHeader(doc, "Farmers Directory (continued)");
-      y = top;
-    }
-    doc.setFontSize(BODY_FONT);
-    let x = MARGIN;
-    
+    const dateEncoded =
+      f.dateEncoded != null
+        ? new Date(f.dateEncoded).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
+        : "-";
     const row = [
-      truncateToFit(formatFarmerDisplayName(f), "name"),
-      truncateToFit(f.farmerAddress1 || "-", "barangay"),
-      truncateToFit(f.agency || "-", "org")
+      formatFarmerDisplayName(f) || "-",
+      f.gender || "-",
+      f.farmerAddress1 || "-",
+      f.agency || "-",
+      f.phone || "-",
+      dateEncoded,
     ];
+    const rowLines = row.map((text, i) =>
+      doc.splitTextToSize(String(text), Math.max(6, colWidths[i] - cellPaddingX * 2))
+    );
+    const maxLines = Math.max(...rowLines.map((lines) => lines.length), 1);
+    const rowHeight = cellPaddingTop + maxLines * lineHeight + rowBottomPadding;
 
-    row.forEach((cell, i) => {
-      doc.text(String(cell), x + 2, y + 2);
+    if (y + rowHeight > bottom) {
+      doc.addPage();
+      await addPdfHeader(doc, "Farmers Record List Report (continued)");
+      y = top;
+      drawHeader();
+    }
+
+    let x = MARGIN;
+    rowLines.forEach((lines, i) => {
+      doc.text(lines, x + cellPaddingX, y + cellPaddingTop);
       x += colWidths[i];
     });
-    y += ROW_HEIGHT;
+    y += rowHeight;
   }
 
   addFootersToAllPages(doc);
@@ -339,12 +417,14 @@ export async function exportFarmersToPdf(
 /** Export a single farmer's transaction history to PDF */
 export async function exportProfileTransactionsToPdf(
   farmerName: string,
-  transactions: Transaction[]
+  transactions: Transaction[],
+  farmerMeta?: { barangay?: string; agency?: string }
 ): Promise<void> {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const { top, bottom } = getPageDimensions(doc);
 
-  await addPdfHeader(doc, "Transaction History");
-  let y = CONTENT_TOP;
+  await addPdfHeader(doc, "Transaction History Report");
+  let y = top;
 
   doc.setFontSize(BODY_FONT);
   doc.setFont("helvetica", "bold");
@@ -356,64 +436,62 @@ export async function exportProfileTransactionsToPdf(
   if (transactions.length === 0) {
     doc.text("No transactions recorded.", MARGIN, y);
     addFootersToAllPages(doc);
-    doc.save(`transaction-history-${farmerName.replace(/\s+/g, "-")}.pdf`);
+    doc.save(`transaction-history-${farmerName.replace(/\s+/g, "-")}-${buildPdfTimestamp()}.pdf`);
     return;
   }
 
-  const colWidths = [35, 20, 30, 50, 45];
-  const headers = ["Date of Visit", "Time", "Type", "Description", "Notes"];
+  const colWidths = [62, 34, 34, 42, 30, 65];
+  const headers = ["Farmer Name", "Barangay", "Agency", "Transaction Type", "Date of Visit", "Notes"];
+  const lineHeight = 4;
+  const cellPaddingX = 2;
+  const cellPaddingTop = 3;
+  const rowBottomPadding = 2;
 
-  doc.setFontSize(HEADER_FONT);
-  doc.setFont("helvetica", "bold");
-  doc.setFillColor(238, 245, 238);
-  doc.rect(MARGIN, y - 5, colWidths.reduce((a, b) => a + b, 0), ROW_HEIGHT, "F");
-  let x = MARGIN;
-  headers.forEach((h, i) => {
-    doc.text(h, x + 2, y + 2);
-    x += colWidths[i];
-  });
-  y += ROW_HEIGHT;
-  doc.setFont("helvetica", "normal");
+  const drawHeader = () => {
+    y = drawStandardTableHeader(doc, y, headers, colWidths, cellPaddingX);
+  };
+
+  drawHeader();
 
   const sorted = [...transactions].sort((a, b) => new Date(b.officeVisitAt || b.createdAt).getTime() - new Date(a.officeVisitAt || a.createdAt).getTime());
-  const rows = sorted.map((tx) => {
+  for (const tx of sorted) {
     const date = new Date(tx.officeVisitAt || tx.createdAt);
     const dateStr = date.toLocaleDateString("en-PH", {
       month: "short",
       day: "numeric",
-      year: "2-digit",
+      year: "numeric",
     });
-    const timeStr = date.toLocaleTimeString("en-PH", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-    return [
-      truncateToFit(dateStr, "dateVisit"),
-      truncateToFit(timeStr, "time"),
-      truncateToFit(tx.transactionType, "type"),
-      truncateToFit(tx.description || "-", "desc"),
-      truncateToFit(tx.notes || "-", "notes"),
+    const rowData = [
+      farmerName || "-",
+      farmerMeta?.barangay || "-",
+      farmerMeta?.agency || "-",
+      tx.transactionType || "-",
+      dateStr,
+      tx.notes || "-",
     ];
-  });
+    const rowLines = rowData.map((text, i) =>
+      doc.splitTextToSize(String(text), Math.max(6, colWidths[i] - cellPaddingX * 2))
+    );
+    const maxLines = Math.max(...rowLines.map((lines) => lines.length), 1);
+    const rowHeight = cellPaddingTop + maxLines * lineHeight + rowBottomPadding;
 
-  for (const row of rows) {
-    if (y > CONTENT_BOTTOM - ROW_HEIGHT) {
+    if (y + rowHeight > bottom) {
       doc.addPage();
-      await addPdfHeader(doc, "Transaction History (continued)");
-      y = CONTENT_TOP;
+      await addPdfHeader(doc, "Transaction History Report (continued)");
+      y = top;
+      drawHeader();
     }
-    doc.setFontSize(BODY_FONT);
+
     let x = MARGIN;
-    row.forEach((cell, i) => {
-      doc.text(String(cell), x + 2, y + 2);
+    rowLines.forEach((lines, i) => {
+      doc.text(lines, x + cellPaddingX, y + cellPaddingTop);
       x += colWidths[i];
     });
-    y += ROW_HEIGHT;
+    y += rowHeight;
   }
 
   addFootersToAllPages(doc);
-  doc.save(`transaction-history-${farmerName.replace(/\s+/g, "-")}.pdf`);
+  doc.save(`transaction-history-${farmerName.replace(/\s+/g, "-")}-${buildPdfTimestamp()}.pdf`);
 }
 
 /** Export all transactions list (from history page) to PDF */
@@ -421,10 +499,11 @@ export async function exportAllTransactionsToPdf(
   transactions: Array<Transaction & { farmerName: string; barangay?: string; agency?: string }>,
   appliedFilters: string[]
 ): Promise<void> {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const { top, bottom } = getPageDimensions(doc);
 
   await addPdfHeader(doc, "Transaction History Report");
-  let y = CONTENT_TOP;
+  let y = top;
 
   // Add filters info
   if (appliedFilters.length > 0) {
@@ -435,10 +514,10 @@ export async function exportAllTransactionsToPdf(
     
     doc.setFont("helvetica", "normal");
     for (const filter of appliedFilters) {
-      if (y > CONTENT_BOTTOM - 10) {
+      if (y > bottom - 10) {
         doc.addPage();
         await addPdfHeader(doc, "Transaction History Report (continued)");
-        y = CONTENT_TOP;
+        y = top;
       }
       doc.text(`• ${filter}`, MARGIN + 4, y);
       y += 5;
@@ -456,32 +535,37 @@ export async function exportAllTransactionsToPdf(
   if (transactions.length === 0) {
     doc.text("No records match the selected filters.", MARGIN, y);
     addFootersToAllPages(doc);
-    doc.save(`transaction-history-report.pdf`);
+    doc.save(`transaction-history-report-${buildPdfTimestamp()}.pdf`);
     return;
   }
 
-  const colWidths = [45, 30, 30, 30, 45]; // Total 180
-  const headers = ["Farmer Name", "Barangay", "Agency", "Type", "Date of Visit"];
+  // Landscape A4: 297mm width -> 267mm usable width with 15mm margins.
+  const colWidths = [62, 34, 34, 42, 30, 65];
+  const headers = ["Farmer Name", "Barangay", "Agency", "Transaction Type", "Date of Visit", "Notes"];
+  const contentWidth = colWidths.reduce((a, b) => a + b, 0);
+  const lineHeight = 4;
+  const cellPaddingX = 2;
+  const cellPaddingTop = 3;
+  const rowBottomPadding = 2;
 
-  doc.setFontSize(HEADER_FONT);
-  doc.setFont("helvetica", "bold");
-  doc.setFillColor(238, 245, 238);
-  doc.rect(MARGIN, y - 5, colWidths.reduce((a, b) => a + b, 0), ROW_HEIGHT, "F");
-  let x = MARGIN;
-  headers.forEach((h, i) => {
-    doc.text(h, x + 2, y + 2);
-    x += colWidths[i];
-  });
-  y += ROW_HEIGHT;
-  doc.setFont("helvetica", "normal");
+  const drawHeader = () => {
+    doc.setFontSize(HEADER_FONT);
+    doc.setFont("helvetica", "bold");
+    doc.setFillColor(238, 245, 238);
+    doc.rect(MARGIN, y - 5, contentWidth, ROW_HEIGHT, "F");
+    let x = MARGIN;
+    headers.forEach((h, i) => {
+      doc.text(h, x + cellPaddingX, y + 2);
+      x += colWidths[i];
+    });
+    y += ROW_HEIGHT;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(BODY_FONT);
+  };
+
+  drawHeader();
 
   for (const tx of transactions) {
-    if (y > CONTENT_BOTTOM - ROW_HEIGHT) {
-      doc.addPage();
-      await addPdfHeader(doc, "Transaction History Report (continued)");
-      y = CONTENT_TOP;
-    }
-    
     const date = new Date(tx.officeVisitAt || tx.createdAt);
     const dateStr = date.toLocaleDateString("en-PH", {
       month: "short",
@@ -490,24 +574,37 @@ export async function exportAllTransactionsToPdf(
     });
 
     const rowData = [
-      truncateToFit(tx.farmerName, "farmer"),
-      truncateToFit(tx.barangay || "-", "date"), // reuse max chars for barangay
-      truncateToFit(tx.agency || "-", "type"), // reuse max chars for agency
-      truncateToFit(tx.transactionType, "type"),
-      dateStr
+      tx.farmerName || "-",
+      tx.barangay || "-",
+      tx.agency || "-",
+      tx.transactionType || "-",
+      dateStr,
+      tx.notes || "-",
     ];
 
-    doc.setFontSize(BODY_FONT);
+    const rowLines = rowData.map((text, i) =>
+      doc.splitTextToSize(String(text), Math.max(6, colWidths[i] - cellPaddingX * 2))
+    );
+    const maxLines = Math.max(...rowLines.map((lines) => lines.length), 1);
+    const rowHeight = cellPaddingTop + maxLines * lineHeight + rowBottomPadding;
+
+    if (y + rowHeight > bottom) {
+      doc.addPage();
+      await addPdfHeader(doc, "Transaction History Report (continued)");
+      y = top;
+      drawHeader();
+    }
+
     let xRow = MARGIN;
-    rowData.forEach((cell, i) => {
-      doc.text(String(cell), xRow + 2, y + 2);
+    rowLines.forEach((lines, i) => {
+      doc.text(lines, xRow + cellPaddingX, y + cellPaddingTop);
       xRow += colWidths[i];
     });
-    y += ROW_HEIGHT;
+    y += rowHeight;
   }
 
   addFootersToAllPages(doc);
-  doc.save(`transaction-history-report.pdf`);
+  doc.save(`transaction-history-report-${buildPdfTimestamp()}.pdf`);
 }
 
 /** Export filtered farmers list to PDF */

@@ -106,8 +106,8 @@ export default function FarmerProfile() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               onClick={() => navigate("/farmers")}
-              variant="outline"
-              className="w-full sm:w-auto h-12 px-8 border-2 border-earth-300"
+              variant="secondary"
+              className="w-full sm:w-auto h-12 px-8 hover:scale-105 active:scale-95"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Directory
@@ -115,7 +115,7 @@ export default function FarmerProfile() {
             {user?.role === "admin" && (
               <Button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full sm:w-auto h-12 px-8 bg-farm-600 hover:bg-farm-700 text-white border-0 shadow-md"
+                className="w-full sm:w-auto h-12 px-8 bg-white hover:bg-gray-100 text-farm-700 border border-farm-200 shadow-sm hover:shadow-md"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reactivate Profile

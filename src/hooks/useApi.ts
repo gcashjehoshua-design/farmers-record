@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { farmerService, commodityService, transactionService, dashboardService } from "@/services/api";
-import type { Farmer, FarmerCommodity, Transaction } from "@/types";
+import { farmerService, commodityService, transactionService, dashboardService, projectService } from "@/services/api";
+import type { Farmer, FarmerCommodity, Transaction, Project } from "@/types";
 
 // Farmers hooks
 export const useFarmers = (includeInactive = false) => {
@@ -163,5 +163,33 @@ export const useVisitsList = (month: number | null, year: number, day?: number) 
     queryKey: ["visitsList", month, year, day],
     queryFn: () => dashboardService.visitsList(month, year, day),
     enabled: (month === null || (month >= 1 && month <= 12)) && year > 0,
+  });
+};
+
+// Projects hooks
+export const useProjects = () => {
+  return useQuery({
+    queryKey: ["projects"],
+    queryFn: () => projectService.list(),
+  });
+};
+
+export const useCreateProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<Project, "id" | "createdAt" | "updatedAt">) => projectService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+};
+
+export const useUpdateProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Project> }) => projectService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
   });
 };

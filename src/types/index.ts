@@ -70,3 +70,31 @@ export type DashboardStats = {
   farmersVisitedThisMonth: number;
   visitsThisMonth: number;
 }
+
+export type ProjectStatus = "ongoing" | "implemented";
+
+export type ProjectType =
+  | "Crop Insurance"
+  | "Livestock Insurance"
+  | "ABSS"
+  | "RCEF Inbred Seed Assistance"
+  | "Hybrid Seed Assistance"
+  | "Inbred Seed Fertilizer Assistance"
+  | "Hybrid Seed Fertilizer Assistance"
+  | "Farmers Financial Assistance - Loan"
+  | "Farmers Financial Assistance - RFFA"
+  | "Rabies Vaccination"
+  | "Livestock / Poultry Treatment"
+  | "Training"
+  | "Technical Assistance"
+  | "Soil Analysis";
+
+export type Project = {
+  id: string;
+  projectType: ProjectType;
+  status: ProjectStatus;
+  implementedAt?: Date;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};

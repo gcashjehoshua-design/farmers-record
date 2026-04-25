@@ -577,8 +577,8 @@ export default function ImportFarmers() {
         <div className="flex gap-3">
           <Button
             onClick={() => navigate("/farmers")}
-            variant="outline"
-            className="flex-1"
+            variant="secondary"
+            className="flex-1 hover:scale-105 active:scale-95"
           >
             Cancel
           </Button>

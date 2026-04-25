@@ -5,13 +5,14 @@ import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Save, RotateCcw, Plus, Trash2 } from "lucide-react";
-import { useCreateFarmer, useUpdateFarmer } from "@/hooks/useApi";
+import { useCreateFarmer, useUpdateFarmer, useAllCommodities } from "@/hooks/useApi";
 import type { Farmer } from "@/types";
 import { PASSI_BARANGAYS } from "@/constants/barangays";
 import { buildOfficialFullName } from "@/lib/farmerDisplay";
 import { commodityService } from "@/services/api";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
+import { classifyCommodityName } from "@/lib/commodityClassification";
 
 /** Matches ImportFarmers.tsx Excel columns and `Farmer` / Supabase schema */
 const farmerFormSchema = z.object({
@@ -33,9 +34,12 @@ const farmerFormSchema = z.object({
   farmerAddress2: z.string().optional(),
   farmerAddress3: z.string().optional(),
   parcelNo: z.string().optional(),
-  parcelAddress1: z.string().optional(),
-  parcelAddress2: z.string().optional(),
-  parcelAddress3: z.string().optional(),
+  parcels: z.array(
+    z.object({
+      parcelNumber: z.number(),
+      parcelAddress: z.string().optional(),
+    })
+  ),
   parcelArea: z.string().optional(),
   cropArea: z.string().optional(),
   farmType: z.string().optional(),
@@ -76,13 +80,27 @@ function parseOptionalNumber(v: string | undefined): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function parseOptionalInt(v: string | undefined): number | undefined {
-  if (v === undefined || v === null || String(v).trim() === "") return undefined;
-  const n = parseInt(String(v).trim(), 10);
-  return Number.isFinite(n) ? n : undefined;
+function normalizeCommodityKey(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function formatCommodityLabel(name: string): string {
+  return titleCaseWords(name.replace(/\s+/g, " ").trim());
+}
+
+function commodityUnitLabel(name: string | undefined): "Heads" | "Hectares" {
+  if (!name || !name.trim()) return "Heads";
+  return classifyCommodityName(name).segment === "livestock" ? "Heads" : "Hectares";
 }
 
 function farmerToFormDefaults(f?: Partial<Farmer>): FarmerFormValues {
+  const parcels = [];
+  if (f?.parcelNo) {
+    if (f?.parcelAddress1) parcels.push({ parcelNumber: 1, parcelAddress: f.parcelAddress1 });
+    if (f?.parcelAddress2) parcels.push({ parcelNumber: 2, parcelAddress: f.parcelAddress2 });
+    if (f?.parcelAddress3) parcels.push({ parcelNumber: 3, parcelAddress: f.parcelAddress3 });
+  }
+
   return {
     rsbsaCode: f?.rsbsaCode ?? "",
     firstName: f?.firstName ?? "",
@@ -107,9 +125,7 @@ function farmerToFormDefaults(f?: Partial<Farmer>): FarmerFormValues {
     farmerAddress2: f?.farmerAddress2 ?? "",
     farmerAddress3: f?.farmerAddress3 ?? "",
     parcelNo: f?.parcelNo != null ? String(f.parcelNo) : "",
-    parcelAddress1: f?.parcelAddress1 ?? "",
-    parcelAddress2: f?.parcelAddress2 ?? "",
-    parcelAddress3: f?.parcelAddress3 ?? "",
+    parcels: parcels.length > 0 ? parcels : [{ parcelNumber: 1, parcelAddress: "" }],
     parcelArea: f?.parcelArea != null ? String(f.parcelArea) : "",
     cropArea: f?.cropArea != null ? String(f.cropArea) : "",
     farmType: f?.farmType ?? "",
@@ -136,6 +152,15 @@ function formValuesToFarmerPayload(data: FarmerFormValues): Omit<Farmer, "create
     : undefined;
   const fullName = buildOfficialFullName(lastName, firstName, middleName, undefined);
 
+  // Map parcels back to parcelNo and parcelAddress1-3
+  const maxParcelNumber = Math.max(...data.parcels.map(p => p.parcelNumber), 0);
+  const parcelAddresses: { [key: number]: string | undefined } = {};
+  data.parcels.forEach(p => {
+    if (p.parcelAddress?.trim()) {
+      parcelAddresses[p.parcelNumber] = p.parcelAddress.trim();
+    }
+  });
+
   return {
     rsbsaCode: data.rsbsaCode.trim(),
     firstName,
@@ -155,10 +180,10 @@ function formValuesToFarmerPayload(data: FarmerFormValues): Omit<Farmer, "create
     farmerAddress1: data.farmerAddress1?.trim() || undefined,
     farmerAddress2: data.farmerAddress2?.trim() || undefined,
     farmerAddress3: data.farmerAddress3?.trim() || undefined,
-    parcelNo: parseOptionalInt(data.parcelNo),
-    parcelAddress1: data.parcelAddress1?.trim() || undefined,
-    parcelAddress2: data.parcelAddress2?.trim() || undefined,
-    parcelAddress3: data.parcelAddress3?.trim() || undefined,
+    parcelNo: maxParcelNumber > 0 ? maxParcelNumber : undefined,
+    parcelAddress1: parcelAddresses[1] || undefined,
+    parcelAddress2: parcelAddresses[2] || undefined,
+    parcelAddress3: parcelAddresses[3] || undefined,
     parcelArea: parseOptionalNumber(data.parcelArea),
     cropArea: parseOptionalNumber(data.cropArea),
     farmType: data.farmType?.trim() || undefined,
@@ -199,6 +224,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
   const { toasts, error: showError } = useToast();
   const queryClient = useQueryClient();
   const isEditMode = !!initialData?.rsbsaCode;
+  const { data: allCommodities = [] } = useAllCommodities();
 
   const defaultValues = useMemo(() => farmerToFormDefaults(initialData), [initialData]);
 
@@ -213,6 +239,24 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "commodities" });
+  const { fields: parcelFields, append: appendParcel, remove: removeParcel } = useFieldArray({ control, name: "parcels" });
+  const watchedCommodities = useWatch({ control, name: "commodities" });
+
+  const commodityOptions = useMemo(() => {
+    const unique = new Map<string, string>();
+    for (const commodity of allCommodities) {
+      const rawName =
+        typeof commodity === "string"
+          ? commodity
+          : (commodity as { commodityName?: string }).commodityName || "";
+      const key = normalizeCommodityKey(rawName);
+      if (!key) continue;
+      if (!unique.has(key)) {
+        unique.set(key, formatCommodityLabel(rawName));
+      }
+    }
+    return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
+  }, [allCommodities]);
 
   // Add mode: do not reset on mount — avoids React Strict Mode double-mount clearing the form and fixes typing stalls.
   // Edit mode: hydrate when farmer record is available.
@@ -237,9 +281,10 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
           (c) => c.commodityName && c.commodityName.trim().length > 0
         );
         for (const c of rows) {
+          const normalizedCommodity = formatCommodityLabel(c.commodityName);
           await commodityService.create({
             rsbsaCode: payload.rsbsaCode,
-            commodityName: c.commodityName.trim(),
+            commodityName: normalizedCommodity,
             numberOfHeads: c.numberOfHeads || 0,
           });
         }
@@ -490,7 +535,6 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
             <h3 className="text-xl font-display font-bold text-gray-900">Parcel &amp; farm area</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField name="parcelNo" label="Parcel no." placeholder="e.g. 1" />
             <FormField name="parcelArea" label="Parcel area" type="number" placeholder="hectares" />
             <FormField name="cropArea" label="Crop area" type="number" placeholder="hectares" />
             <Controller
@@ -508,9 +552,62 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
               )}
             />
           </div>
-          <FormField name="parcelAddress1" label="Parcel address 1" />
-          <FormField name="parcelAddress2" label="Parcel address 2" />
-          <FormField name="parcelAddress3" label="Parcel address 3" />
+
+          {/* Dynamic Parcels Section */}
+          <div className="space-y-4 border-t border-harvest-200 pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">Parcel details</label>
+            </div>
+            {parcelFields.map((field, index) => (
+              <div key={field.id} className="space-y-3 p-4 bg-white/60 rounded-lg border border-harvest-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-gray-800">Parcel {field.parcelNumber}</h4>
+                  {parcelFields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeParcel(index)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="Remove parcel"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
+                <Controller
+                  name={`parcels.${index}.parcelAddress` as const}
+                  control={control}
+                  render={({ field: addressField }) => (
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">
+                        Parcel address {field.parcelNumber}
+                      </label>
+                      <input
+                        {...addressField}
+                        type="text"
+                        placeholder={`Address for parcel ${field.parcelNumber}`}
+                        className="input-modern"
+                        disabled={isInactive}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                const nextNumber = Math.max(...parcelFields.map(p => p.parcelNumber), 0) + 1;
+                if (nextNumber <= 3) {
+                  appendParcel({ parcelNumber: nextNumber, parcelAddress: "" });
+                }
+              }}
+              disabled={parcelFields.length >= 3 || isInactive}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-harvest-200 text-gray-800 rounded-lg font-medium hover:bg-harvest-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Plus size={18} />
+              Add another parcel
+            </button>
+          </div>
         </div>
 
         {/* Other */}
@@ -547,7 +644,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
             <div className="flex items-center justify-between gap-3 border-b border-green-200 pb-3">
               <div>
                 <h3 className="text-xl font-display font-bold text-gray-900">Commodities</h3>
-                <p className="text-sm text-gray-600">COMMODITY NAME and NUMBER OF HEADS (optional)</p>
+                <p className="text-sm text-gray-600">Commodity name and quantity (Heads for livestock, Hectares for crops)</p>
               </div>
               <Button
                 type="button"
@@ -567,7 +664,19 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
                   render={({ field: f }) => (
                     <div className="flex-1 min-w-[140px] space-y-1">
                       <label className="text-xs font-medium text-gray-600">Commodity name</label>
-                      <input {...f} className="input-modern text-sm" placeholder="e.g. Rice" />
+                      <select
+                        {...f}
+                        className="input-modern text-sm"
+                        value={f.value || ""}
+                        onChange={(e) => f.onChange(formatCommodityLabel(e.target.value))}
+                      >
+                        <option value="">Select commodity</option>
+                        {commodityOptions.map((commodityName) => (
+                          <option key={`commodity-${commodityName}`} value={commodityName}>
+                            {commodityName}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   )}
                 />
@@ -576,7 +685,9 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
                   control={control}
                   render={({ field: f }) => (
                     <div className="w-28 space-y-1">
-                      <label className="text-xs font-medium text-gray-600">Heads</label>
+                      <label className="text-xs font-medium text-gray-600">
+                        {commodityUnitLabel(watchedCommodities?.[index]?.commodityName)}
+                      </label>
                       <input
                         {...f}
                         type="number"

@@ -307,7 +307,8 @@ export default function FarmersList() {
           <div className="flex items-end gap-3 flex-wrap">
             <Button
               onClick={() => setShowPrintModal(true)}
-              className="btn-secondary h-14 px-8 text-base bg-sky-600 hover:bg-sky-700 text-white border-0"
+              variant="outline"
+              className="h-14 px-8 text-base bg-white border-sky-300 text-sky-700 hover:bg-sky-50"
               disabled={farmers?.length === 0}
             >
               <Printer className="w-5 h-5 mr-2" />
@@ -377,8 +378,8 @@ export default function FarmersList() {
                 <Button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  variant="outline"
-                  className="border-2 border-earth-200 hover:bg-earth-50 hover:border-farm-400 disabled:opacity-50"
+                  variant="secondary"
+                  className="hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Previous
@@ -396,8 +397,8 @@ export default function FarmersList() {
                 <Button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  variant="outline"
-                  className="border-2 border-earth-200 hover:bg-earth-50 hover:border-farm-400 disabled:opacity-50"
+                  variant="secondary"
+                  className="hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
                   Next
                   <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
