@@ -7,7 +7,7 @@ import { exportVisitsToPdf, exportFilteredFarmersToPdf } from "@/lib/pdfExport";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, UserPlus, TrendingUp, ArrowRight, CalendarDays, X, Save, FileDown, BarChart3, Clipboard, Sprout, Bird, UsersRound, Building2, MapPin } from "lucide-react";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import { PASSI_BARANGAYS } from "@/constants/barangays";
@@ -548,7 +548,15 @@ export default function Dashboard() {
                             itemStyle={{ color: '#16a34a', fontWeight: 600 }}
                             labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
                           />
-                          <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} barSize={32} />
+                          <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} barSize={32}>
+                            <LabelList
+                              dataKey="value"
+                              position="top"
+                              fill="#166534"
+                              fontSize={11}
+                              fontWeight={600}
+                            />
+                          </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -572,7 +580,7 @@ export default function Dashboard() {
                       <ResponsiveContainer width="100%" height={320}>
                         <BarChart data={livestockChartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={5} />
+                          <XAxis dataKey="name" interval={0} angle={-20} textAnchor="end" height={58} tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={5} />
                           <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} dx={-10} />
                           <Tooltip 
                             cursor={{ fill: '#fef3c7' }}
@@ -580,7 +588,15 @@ export default function Dashboard() {
                             itemStyle={{ color: '#d97706', fontWeight: 600 }}
                             labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
                           />
-                          <Bar dataKey="value" fill="#d97706" radius={[6, 6, 0, 0]} barSize={40} />
+                          <Bar dataKey="value" fill="#d97706" radius={[6, 6, 0, 0]} barSize={40}>
+                            <LabelList
+                              dataKey="value"
+                              position="top"
+                              fill="#92400e"
+                              fontSize={11}
+                              fontWeight={600}
+                            />
+                          </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     </div>

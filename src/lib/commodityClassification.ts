@@ -15,9 +15,27 @@ export const LIVESTOCK_BUCKET_NAMES = ["Pig", "Chicken", "Other livestock"] as c
 
 export const PRINT_FARM_TYPE_KEYS = [...CROP_BUCKET_NAMES, ...LIVESTOCK_BUCKET_NAMES] as const;
 
+function normalizeCommodityText(raw: string): string {
+  return raw.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** Keep labels readable and merge common typo variants (e.g. "Riice" -> "Rice"). */
+function canonicalCommodityLabel(raw: string): string {
+  const n = normalizeCommodityText(raw);
+  if (!n) return "";
+
+  // Common typo variants for rice from Excel/import data.
+  if (/^ri+ce$/.test(n)) return "Rice";
+
+  return n
+    .split(" ")
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+    .join(" ");
+}
+
 /** Map free-text commodity labels into dashboard buckets (crops vs livestock). */
 export function classifyCommodityName(raw: string): { segment: "crop" | "livestock"; bucket: string } {
-  const n = raw.toLowerCase().replace(/\s+/g, " ").trim();
+  const n = normalizeCommodityText(raw);
 
   if (/(pig|hog|swine|pork)/.test(n)) return { segment: "livestock", bucket: "Pig" };
   if (/(chicken|poultry|broiler|layer)/.test(n)) return { segment: "livestock", bucket: "Chicken" };
@@ -43,28 +61,32 @@ export function classifyCommodityName(raw: string): { segment: "crop" | "livesto
   return { segment: "crop", bucket: "Other crops" };
 }
 
-function countsForBuckets<T extends string>(
+function countsForCommodities(
   commodities: Pick<FarmerCommodity, "commodityName">[] | undefined,
-  buckets: readonly T[],
   segment: "crop" | "livestock"
 ): { name: string; value: number }[] {
-  const counts: Record<string, number> = {};
-  for (const b of buckets) counts[b] = 0;
+  const counts = new Map<string, number>();
   (commodities || []).forEach((c) => {
-    const { segment: seg, bucket } = classifyCommodityName(c.commodityName || "");
-    if (seg === segment) counts[bucket] = (counts[bucket] ?? 0) + 1;
+    const name = c.commodityName || "";
+    const { segment: seg } = classifyCommodityName(name);
+    if (seg !== segment) return;
+    const label = canonicalCommodityLabel(name);
+    if (!label) return;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
   });
-  return buckets.map((name) => ({ name, value: counts[name] ?? 0 }));
+  return Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 }
 
 export function cropCommodityChartData(
   commodities: Pick<FarmerCommodity, "commodityName">[] | undefined
 ): { name: string; value: number }[] {
-  return countsForBuckets(commodities, CROP_BUCKET_NAMES, "crop");
+  return countsForCommodities(commodities, "crop");
 }
 
 export function livestockCommodityChartData(
   commodities: Pick<FarmerCommodity, "commodityName">[] | undefined
 ): { name: string; value: number }[] {
-  return countsForBuckets(commodities, LIVESTOCK_BUCKET_NAMES, "livestock");
+  return countsForCommodities(commodities, "livestock");
 }
