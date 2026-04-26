@@ -73,21 +73,7 @@ export type DashboardStats = {
 
 export type ProjectStatus = "ongoing" | "implemented";
 
-export type ProjectType =
-  | "Crop Insurance"
-  | "Livestock Insurance"
-  | "ABSS"
-  | "RCEF Inbred Seed Assistance"
-  | "Hybrid Seed Assistance"
-  | "Inbred Seed Fertilizer Assistance"
-  | "Hybrid Seed Fertilizer Assistance"
-  | "Farmers Financial Assistance - Loan"
-  | "Farmers Financial Assistance - RFFA"
-  | "Rabies Vaccination"
-  | "Livestock / Poultry Treatment"
-  | "Training"
-  | "Technical Assistance"
-  | "Soil Analysis";
+export type ProjectType = string;
 
 export type Project = {
   id: string;

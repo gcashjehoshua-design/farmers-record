@@ -36,7 +36,8 @@ function buildLogoUrl(path: string): string {
 function getLogoPaths(): string[] {
   const prefix = (import.meta.env.VITE_LOGOS_PATH_PREFIX as string) || "";
   const pathJoin = (p: string, n: string) => (p ? (p.endsWith("/") ? p + n : p + "/" + n) : n);
-  return ["passi-city-logo.png", "palangga-passi-logo.png", "agriculture-office-logo.png"].map((n) =>
+  // Required order: Agri Logo, City of Passi Logo, Palangga Passi Logo
+  return ["agriculture-office-logo.png", "passi-city-logo.png", "palangga-passi-logo.png"].map((n) =>
     pathJoin(prefix, n)
   );
 }
@@ -224,7 +225,8 @@ export async function exportVisitsToPdf(
   visits: Array<Transaction & { farmerName: string }>,
   options: { month: number | null; year: number; day?: number }
 ): Promise<void> {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const { top, bottom } = getPageDimensions(doc);
 
   let periodLabel = `${options.year}`;
   if (options.month !== null) {
@@ -241,7 +243,7 @@ export async function exportVisitsToPdf(
   }
 
   await addPdfHeader(doc, "Visits Report");
-  let y = CONTENT_TOP;
+  let y = top;
 
   doc.setFontSize(BODY_FONT);
   doc.setFont("helvetica", "normal");
@@ -260,20 +262,18 @@ export async function exportVisitsToPdf(
     return;
   }
 
-  const colWidths = [20, 18, 50, 30, 35, 30]; // Adjusted widths to sum up to approx 180 (page width minus margins)
+  const colWidths = [26, 20, 54, 34, 70, 63];
   const headers = ["Date", "Time", "Farmer", "Type", "Description", "Notes"];
+  const lineHeight = 4;
+  const cellPaddingX = 2;
+  const cellPaddingTop = 3;
+  const rowBottomPadding = 2;
 
-  doc.setFontSize(HEADER_FONT);
-  doc.setFont("helvetica", "bold");
-  doc.setFillColor(238, 245, 238); // farm-50
-  doc.rect(MARGIN, y - 5, colWidths.reduce((a, b) => a + b, 0), ROW_HEIGHT, "F");
-  let x = MARGIN;
-  headers.forEach((h, i) => {
-    doc.text(h, x + 2, y + 2);
-    x += colWidths[i];
-  });
-  y += ROW_HEIGHT;
-  doc.setFont("helvetica", "normal");
+  const drawHeader = () => {
+    y = drawStandardTableHeader(doc, y, headers, colWidths, cellPaddingX);
+  };
+
+  drawHeader();
 
   const rows = visits.map((v) => {
     const date = new Date(v.officeVisitAt || v.createdAt);
@@ -288,28 +288,35 @@ export async function exportVisitsToPdf(
       hour12: true,
     });
     return [
-      truncateToFit(dateStr, "date"),
-      truncateToFit(timeStr, "time"),
-      truncateToFit(v.farmerName, "farmer"),
-      truncateToFit(v.transactionType, "type"),
-      truncateToFit(v.description || "-", "desc"),
-      truncateToFit(v.notes || "-", "notes"),
+      dateStr,
+      timeStr,
+      v.farmerName || "-",
+      v.transactionType || "-",
+      v.description || "-",
+      v.notes || "-",
     ];
   });
 
   for (const row of rows) {
-    if (y > CONTENT_BOTTOM - ROW_HEIGHT) {
+    const rowLines = row.map((text, i) =>
+      doc.splitTextToSize(String(text), Math.max(8, colWidths[i] - cellPaddingX * 2))
+    );
+    const maxLines = Math.max(...rowLines.map((lines) => lines.length), 1);
+    const rowHeight = cellPaddingTop + maxLines * lineHeight + rowBottomPadding;
+
+    if (y + rowHeight > bottom) {
       doc.addPage();
       await addPdfHeader(doc, "Visits Report (continued)");
-      y = CONTENT_TOP;
+      y = top;
+      drawHeader();
     }
-    doc.setFontSize(BODY_FONT);
+
     let x = MARGIN;
-    row.forEach((cell, i) => {
-      doc.text(String(cell), x + 2, y + 2);
+    rowLines.forEach((lines, i) => {
+      doc.text(lines, x + cellPaddingX, y + cellPaddingTop);
       x += colWidths[i];
     });
-    y += ROW_HEIGHT;
+    y += rowHeight;
   }
 
   addFootersToAllPages(doc);

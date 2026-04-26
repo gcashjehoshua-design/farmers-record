@@ -1,29 +1,12 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useCreateProject, useProjects, useUpdateProject } from "@/hooks/useApi";
+import { useCreateProject, useDeleteProject, useProjects, useUpdateProject } from "@/hooks/useApi";
 import { useAuth } from "@/hooks/useAuth";
 import type { Project, ProjectStatus, ProjectType } from "@/types";
-import { FolderKanban, Plus, Save, CalendarDays, X } from "lucide-react";
+import { FolderKanban, Plus, Save, CalendarDays, X, Pencil, Trash2 } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
-
-const PROJECT_TYPES: ProjectType[] = [
-  "Crop Insurance",
-  "Livestock Insurance",
-  "ABSS",
-  "RCEF Inbred Seed Assistance",
-  "Hybrid Seed Assistance",
-  "Inbred Seed Fertilizer Assistance",
-  "Hybrid Seed Fertilizer Assistance",
-  "Farmers Financial Assistance - Loan",
-  "Farmers Financial Assistance - RFFA",
-  "Rabies Vaccination",
-  "Livestock / Poultry Treatment",
-  "Training",
-  "Technical Assistance",
-  "Soil Analysis",
-];
 
 export default function Projects() {
   const { user } = useAuth();
@@ -33,57 +16,63 @@ export default function Projects() {
   const { data: projects = [], isLoading } = useProjects();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
-  const isSaving = createProject.isPending || updateProject.isPending;
+  const deleteProject = useDeleteProject();
+  const isSaving = createProject.isPending || updateProject.isPending || deleteProject.isPending;
 
-  const [projectType, setProjectType] = useState<ProjectType>(PROJECT_TYPES[0]);
+  const [projectType, setProjectType] = useState<ProjectType>("");
   const [status, setStatus] = useState<ProjectStatus>("ongoing");
   const [implementedAt, setImplementedAt] = useState<string>("");
-  const [notes, setNotes] = useState<string>("");
   const [filter, setFilter] = useState<"all" | ProjectStatus | "history">("all");
   const [projectToImplement, setProjectToImplement] = useState<Project | null>(null);
+  const [modalMode, setModalMode] = useState<"mark" | "edit">("mark");
   const [implementDate, setImplementDate] = useState<string>("");
 
+  const byLatestDateDesc = (a: Project, b: Project) => {
+    const aTime = (a.implementedAt ?? a.createdAt).getTime();
+    const bTime = (b.implementedAt ?? b.createdAt).getTime();
+    return bTime - aTime;
+  };
+
   const ongoingProjects = useMemo(
-    () => projects.filter((p) => p.status === "ongoing"),
+    () => projects.filter((p) => p.status === "ongoing").sort(byLatestDateDesc),
     [projects]
   );
   const implementedProjects = useMemo(
-    () => projects.filter((p) => p.status === "implemented"),
+    () => projects.filter((p) => p.status === "implemented").sort(byLatestDateDesc),
     [projects]
   );
   const historyProjects = useMemo(
-    () =>
-      [...implementedProjects].sort(
-        (a, b) => (b.implementedAt?.getTime() ?? 0) - (a.implementedAt?.getTime() ?? 0)
-      ),
+    () => [...implementedProjects].sort(byLatestDateDesc),
     [implementedProjects]
   );
 
   const visibleProjects = useMemo(() => {
-    if (filter === "all") return projects;
+    if (filter === "all") return [...projects].sort(byLatestDateDesc);
     if (filter === "history") return historyProjects;
-    return projects.filter((p) => p.status === filter);
+    return projects.filter((p) => p.status === filter).sort(byLatestDateDesc);
   }, [filter, projects, historyProjects]);
 
   const resetForm = () => {
-    setProjectType(PROJECT_TYPES[0]);
+    setProjectType("");
     setStatus("ongoing");
     setImplementedAt("");
-    setNotes("");
   };
 
   const handleCreate = async () => {
     if (!isAdmin) return;
+    if (!projectType.trim()) {
+      showError("Please enter a project name.");
+      return;
+    }
     if (status === "implemented" && !implementedAt) {
       showError("Please provide the implemented date.");
       return;
     }
     try {
       await createProject.mutateAsync({
-        projectType,
+        projectType: projectType.trim(),
         status,
         implementedAt: status === "implemented" ? new Date(implementedAt) : undefined,
-        notes: notes.trim() || undefined,
       });
       success("Project added.");
       resetForm();
@@ -93,14 +82,17 @@ export default function Projects() {
     }
   };
 
-  const markAsImplemented = async (p: Project) => {
+  const saveImplementDate = async (p: Project) => {
     if (!isAdmin) return;
     try {
       await updateProject.mutateAsync({
         id: p.id,
-        data: { status: "implemented", implementedAt: new Date(implementDate) },
+        data: {
+          status: modalMode === "mark" ? "implemented" : p.status,
+          implementedAt: new Date(implementDate),
+        },
       });
-      success("Project marked as implemented.");
+      success(modalMode === "mark" ? "Project marked as implemented." : "Implemented date updated.");
       setProjectToImplement(null);
       setImplementDate("");
     } catch (e) {
@@ -114,8 +106,32 @@ export default function Projects() {
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const dd = String(today.getDate()).padStart(2, "0");
+    setModalMode("mark");
     setImplementDate(`${yyyy}-${mm}-${dd}`);
     setProjectToImplement(p);
+  };
+
+  const openEditDateModal = (p: Project) => {
+    const base = p.implementedAt ?? new Date();
+    const yyyy = base.getFullYear();
+    const mm = String(base.getMonth() + 1).padStart(2, "0");
+    const dd = String(base.getDate()).padStart(2, "0");
+    setModalMode("edit");
+    setImplementDate(`${yyyy}-${mm}-${dd}`);
+    setProjectToImplement(p);
+  };
+
+  const handleDelete = async (p: Project) => {
+    if (!isAdmin) return;
+    const confirmed = window.confirm(`Delete project "${p.projectType}"? This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await deleteProject.mutateAsync(p.id);
+      success("Project deleted.");
+    } catch (e) {
+      console.error(e);
+      showError("Failed to delete project.");
+    }
   };
 
   return (
@@ -128,7 +144,9 @@ export default function Projects() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md shadow-2xl animate-scale-in">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-xl">Mark Project as Implemented</CardTitle>
+              <CardTitle className="text-xl">
+                {modalMode === "mark" ? "Mark Project as Implemented" : "Edit Implemented Date"}
+              </CardTitle>
               <button
                 type="button"
                 onClick={() => setProjectToImplement(null)}
@@ -168,7 +186,7 @@ export default function Projects() {
                   type="button"
                   className="flex-1 bg-farm-600 hover:bg-farm-700 text-white"
                   disabled={!implementDate || isSaving}
-                  onClick={() => void markAsImplemented(projectToImplement)}
+                  onClick={() => void saveImplementDate(projectToImplement)}
                 >
                   {isSaving ? "Saving..." : "Confirm"}
                 </Button>
@@ -203,17 +221,13 @@ export default function Projects() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-earth-700">Project</label>
-                <select
+                <input
+                  type="text"
                   value={projectType}
-                  onChange={(e) => setProjectType(e.target.value as ProjectType)}
+                  onChange={(e) => setProjectType(e.target.value)}
                   className="input-modern"
-                >
-                  {PROJECT_TYPES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Type project name"
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-earth-700">Status</label>
@@ -236,16 +250,6 @@ export default function Projects() {
                   value={implementedAt}
                   onChange={(e) => setImplementedAt(e.target.value)}
                   disabled={status !== "implemented"}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-earth-700">Notes (optional)</label>
-                <input
-                  type="text"
-                  className="input-modern"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Brief notes"
                 />
               </div>
             </div>
@@ -294,7 +298,6 @@ export default function Projects() {
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Project</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Date Implemented</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Notes</th>
                     {isAdmin && <th className="px-4 py-3 text-right font-semibold text-gray-700">Actions</th>}
                   </tr>
                 </thead>
@@ -322,23 +325,46 @@ export default function Projects() {
                             })
                           : "-"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{p.notes || "-"}</td>
                       {isAdmin && (
                         <td className="px-4 py-3 text-right">
-                          {p.status !== "implemented" ? (
+                          <div className="inline-flex items-center gap-2">
+                            {p.status !== "implemented" ? (
+                              <Button
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                                onClick={() => openImplementModal(p)}
+                                disabled={isSaving}
+                                className="bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                              >
+                                <Save className="w-4 h-4 mr-1" />
+                                Mark Implemented
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                                className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                                onClick={() => openEditDateModal(p)}
+                                disabled={isSaving}
+                              >
+                                <Pencil className="w-4 h-4 mr-1" />
+                                Edit Date
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               type="button"
-                              onClick={() => openImplementModal(p)}
+                              variant="outline"
+                                className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                              onClick={() => void handleDelete(p)}
                               disabled={isSaving}
-                              className="bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200"
                             >
-                              <Save className="w-4 h-4 mr-1" />
-                              Mark Implemented
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
                             </Button>
-                          ) : (
-                            <span className="text-xs text-gray-500">Done</span>
-                          )}
+                          </div>
                         </td>
                       )}
                     </tr>

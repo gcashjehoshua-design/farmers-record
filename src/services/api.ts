@@ -464,6 +464,14 @@ export const projectService = {
     if (error) throw error;
     return mapProjectFromDb(data);
   },
+
+  delete: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
 };
 
 async function resolveTotalFarmerCount(): Promise<number> {
