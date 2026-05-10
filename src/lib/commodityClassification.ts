@@ -8,6 +8,8 @@ export const CROP_BUCKET_NAMES = [
   "Banana",
   "Vegetables",
   "Fruit Trees",
+  "Root Crops",
+  "Spices & Industrial",
   "Other crops",
 ] as const;
 
@@ -25,7 +27,7 @@ function canonicalCommodityLabel(raw: string): string {
   if (!n) return "";
 
   // Common typo variants for rice from Excel/import data.
-  if (/^ri+ce$/.test(n)) return "Rice";
+  if (/^ri+ce$/.test(n) || n === "palay") return "Rice";
 
   return n
     .split(" ")
@@ -37,9 +39,14 @@ function canonicalCommodityLabel(raw: string): string {
 export function classifyCommodityName(raw: string): { segment: "crop" | "livestock"; bucket: string } {
   const n = normalizeCommodityText(raw);
 
+  // Exclude timber/hardwood and other non-agricultural items from livestock
+  if (/(mahogany|hardwood|timber|wood|lumber|bamboo|acacia)/.test(n)) {
+    return { segment: "crop", bucket: "Other crops" };
+  }
+
   if (/(pig|hog|swine|pork)/.test(n)) return { segment: "livestock", bucket: "Pig" };
-  if (/(chicken|poultry|broiler|layer)/.test(n)) return { segment: "livestock", bucket: "Chicken" };
-  if (/(goat|cattle|cow|carabao|buffalo|sheep|duck|turkey)/.test(n)) {
+  if (/(chicken|poultry|broiler|layer|bird)/.test(n)) return { segment: "livestock", bucket: "Chicken" };
+  if (/(goat|cattle|cow|carabao|buffalo|sheep|duck|turkey|fish|tilapia|catfish|aquaculture|pet|cat|dog|rabbit|horse|donkey)/.test(n)) {
     return { segment: "livestock", bucket: "Other livestock" };
   }
 
@@ -48,11 +55,21 @@ export function classifyCommodityName(raw: string): { segment: "crop" | "livesto
   if (/(sugar|cane)/.test(n)) return { segment: "crop", bucket: "Sugar Cane" };
   if (n.includes("pineapple")) return { segment: "crop", bucket: "Pineapple" };
   if (n.includes("banana")) return { segment: "crop", bucket: "Banana" };
-  if (/(vegetable|veg\b|gabi|kangkong|eggplant|tomato|cabbage|pechay|okra)/.test(n)) {
+  
+  if (/(vegetable|veg\b|gabi|kangkong|eggplant|tomato|cabbage|pechay|okra|squash|kalabasa|bitter|gourd|ampalaya|pepper|chili|bean|monggo)/.test(n)) {
     return { segment: "crop", bucket: "Vegetables" };
   }
+  
+  if (/(root crop|ube|cassava|sweet potato|camote|ginger|turmeric|potato)/.test(n)) {
+    return { segment: "crop", bucket: "Root Crops" };
+  }
+
+  if (/(coffee|cacao|rubber|tobacco|cotton|industrial)/.test(n)) {
+    return { segment: "crop", bucket: "Spices & Industrial" };
+  }
+
   if (
-    /(fruit tree|mango|citrus|coconut|papaya|lanzones|calamansi|coffee|cacao)/.test(n) ||
+    /(fruit tree|mango|citrus|coconut|papaya|lanzones|calamansi|dragon|rambutan|jackfruit|guava|pomelo|star apple)/.test(n) ||
     (n.includes("fruit") && !n.includes("vegetable"))
   ) {
     return { segment: "crop", bucket: "Fruit Trees" };
@@ -68,12 +85,23 @@ function countsForCommodities(
   const counts = new Map<string, number>();
   (commodities || []).forEach((c) => {
     const name = c.commodityName || "";
-    const { segment: seg } = classifyCommodityName(name);
+    const { segment: seg, bucket } = classifyCommodityName(name);
     if (seg !== segment) return;
-    const label = canonicalCommodityLabel(name);
+
+    // For crops, use the bucket (grouped). For livestock, use the individual label (original design).
+    const label = segment === "crop" ? bucket : canonicalCommodityLabel(name);
     if (!label) return;
+    
     counts.set(label, (counts.get(label) ?? 0) + 1);
   });
+  
+  // For crops, ensure all buckets appear even if 0
+  if (segment === "crop") {
+    CROP_BUCKET_NAMES.forEach(b => {
+      if (!counts.has(b)) counts.set(b, 0);
+    });
+  }
+
   return Array.from(counts.entries())
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));

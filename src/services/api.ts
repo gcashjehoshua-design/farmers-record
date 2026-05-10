@@ -307,12 +307,12 @@ export const commodityService = {
 
   /** All commodity rows (paginated) — used for dashboard farm-type analytics */
   listAll: async (): Promise<FarmerCommodity[]> => {
-    const allRows: Database["public"]["Tables"]["farmer_commodities"]["Row"][] = [];
+    const allRows: Array<{ id: string; rsbsa_code: string; commodity_name: string; created_at: string; updated_at: string }> = [];
     let from = 0;
     for (;;) {
       const { data, error } = await supabase
         .from("farmer_commodities")
-        .select("*")
+        .select("id, rsbsa_code, commodity_name, created_at, updated_at")
         .order("created_at", { ascending: false })
         .range(from, from + REST_PAGE_SIZE - 1);
 
@@ -322,7 +322,13 @@ export const commodityService = {
       if (batch.length < REST_PAGE_SIZE) break;
       from += REST_PAGE_SIZE;
     }
-    return allRows.map(mapCommodityFromDb);
+    return allRows.map(row => ({
+      id: row.id,
+      rsbsaCode: row.rsbsa_code,
+      commodityName: row.commodity_name,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+    }));
   },
 };
 
@@ -466,11 +472,18 @@ export const projectService = {
   },
 
   delete: async (id: string): Promise<void> => {
+    console.log(`📡 Deleting project with ID: ${id}`);
     const { error } = await supabase
       .from("projects")
       .delete()
       .eq("id", id);
-    if (error) throw error;
+    
+    if (error) {
+      console.error("❌ Supabase deletion error:", error);
+      throw error;
+    }
+    
+    console.log(`✅ Supabase deletion successful.`);
   },
 };
 

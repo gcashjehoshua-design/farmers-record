@@ -116,6 +116,13 @@ export default function Dashboard() {
     }));
   }, [agencyStats, farmers]);
 
+  // Create a lookup map for farmers to speed up transaction association
+  const farmerLookup = useMemo(() => {
+    const map = new Map<string, typeof farmers[0]>();
+    (farmers || []).forEach(f => map.set(f.rsbsaCode, f));
+    return map;
+  }, [farmers]);
+
   // Calculate visits per agency for the selected date period
   const visitsPerAgency = useMemo(() => {
     const orgVisits: Record<string, number> = {};
@@ -140,7 +147,7 @@ export default function Dashboard() {
     (transactions || []).forEach((tx) => {
       const txDate = new Date(tx.officeVisitAt || tx.createdAt);
       if (txDate >= startDate && txDate <= endDate) {
-        const farmer = (farmers || []).find(f => f.rsbsaCode === tx.rsbsaCode);
+        const farmer = farmerLookup.get(tx.rsbsaCode);
         if (farmer && farmer.agency) {
           orgVisits[farmer.agency] = (orgVisits[farmer.agency] || 0) + 1;
         }
@@ -148,7 +155,7 @@ export default function Dashboard() {
     });
     
     return orgVisits;
-  }, [transactions, farmers, selectedMonth, selectedYear, selectedDay]);
+  }, [transactions, farmerLookup, selectedMonth, selectedYear, selectedDay]);
 
   const cropChartData = useMemo(() => cropCommodityChartData(commodities), [commodities]);
   const livestockChartData = useMemo(() => livestockCommodityChartData(commodities), [commodities]);
@@ -538,10 +545,30 @@ export default function Dashboard() {
                   <CardContent className="p-6">
                     <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                       <ResponsiveContainer width="100%" height={320}>
-                        <BarChart data={cropChartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                        <BarChart 
+                          data={cropChartData} 
+                          margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+                        >
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                          <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={60} tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={5} />
-                          <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} dx={-10} />
+                          <XAxis 
+                            dataKey="name" 
+                            interval={0} 
+                            angle={-28} 
+                            textAnchor="end" 
+                            height={60} 
+                            tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} 
+                            axisLine={{ stroke: '#9ca3af' }} 
+                            tickLine={false} 
+                            dy={5} 
+                          />
+                          <YAxis 
+                            allowDecimals={false} 
+                            domain={[0, 'auto']} 
+                            tick={{ fontSize: 11, fill: '#4b5563' }} 
+                            axisLine={false} 
+                            tickLine={false} 
+                            dx={-10} 
+                          />
                           <Tooltip 
                             cursor={{ fill: '#f3f4f6' }}
                             contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', padding: '12px' }}
@@ -578,10 +605,30 @@ export default function Dashboard() {
                   <CardContent className="p-6">
                     <div className="max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                       <ResponsiveContainer width="100%" height={320}>
-                        <BarChart data={livestockChartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                        <BarChart 
+                          data={livestockChartData} 
+                          margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+                        >
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                          <XAxis dataKey="name" interval={0} angle={-20} textAnchor="end" height={58} tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={5} />
-                          <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} dx={-10} />
+                          <XAxis 
+                            dataKey="name" 
+                            interval={0} 
+                            angle={-20} 
+                            textAnchor="end" 
+                            height={58} 
+                            tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} 
+                            axisLine={{ stroke: '#9ca3af' }} 
+                            tickLine={false} 
+                            dy={5} 
+                          />
+                          <YAxis 
+                            allowDecimals={false} 
+                            domain={[0, 'auto']} 
+                            tick={{ fontSize: 11, fill: '#4b5563' }} 
+                            axisLine={false} 
+                            tickLine={false} 
+                            dx={-10} 
+                          />
                           <Tooltip 
                             cursor={{ fill: '#fef3c7' }}
                             contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', padding: '12px' }}
@@ -628,9 +675,9 @@ export default function Dashboard() {
           </div>
 
           {/* Gender Pie Chart */}
-          <div>
+          <div className="h-full">
             {genderChartData.length > 0 ? (
-              <Card className="card-modern border-rose-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.55s' }}>
+              <Card className="card-modern border-rose-200 animate-slide-up hover:shadow-lg transition-shadow duration-300 h-full" style={{ animationDelay: '0.55s' }}>
                 <CardHeader className="bg-gradient-to-br from-rose-50 to-blue-50/50 border-b-2 border-rose-200 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                   <div className="flex items-center gap-3 relative z-10">
@@ -685,7 +732,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="card-modern border-rose-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.55s' }}>
+              <Card className="card-modern border-rose-200 animate-slide-up hover:shadow-lg transition-shadow duration-300 h-full" style={{ animationDelay: '0.55s' }}>
                 <CardHeader className="bg-gradient-to-br from-rose-50 to-blue-50/50 border-b-2 border-rose-200 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                   <div className="flex items-center gap-3 relative z-10">
@@ -707,9 +754,9 @@ export default function Dashboard() {
           </div>
 
           {/* Agency Pie Chart */}
-          <div>
+          <div className="h-full">
             {agencyChartData.length > 0 ? (
-              <Card className="card-modern border-purple-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.60s' }}>
+              <Card className="card-modern border-purple-200 animate-slide-up hover:shadow-lg transition-shadow duration-300 h-full" style={{ animationDelay: '0.60s' }}>
                 <CardHeader className="bg-gradient-to-br from-purple-50 to-orange-50/50 border-b-2 border-purple-200 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                   <div className="flex items-center gap-3 relative z-10">
@@ -731,7 +778,7 @@ export default function Dashboard() {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name: _name, value }) => `${Math.round(value as number)}`}
+                          label={false}
                           outerRadius={100}
                           innerRadius={60}
                           paddingAngle={2}
@@ -764,7 +811,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="card-modern border-purple-200 animate-slide-up hover:shadow-lg transition-shadow duration-300" style={{ animationDelay: '0.60s' }}>
+              <Card className="card-modern border-purple-200 animate-slide-up hover:shadow-lg transition-shadow duration-300 h-full" style={{ animationDelay: '0.60s' }}>
                 <CardHeader className="bg-gradient-to-br from-purple-50 to-orange-50/50 border-b-2 border-purple-200 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                   <div className="flex items-center gap-3 relative z-10">

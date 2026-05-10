@@ -7,6 +7,7 @@ export const useFarmers = (includeInactive = false) => {
   return useQuery({
     queryKey: ["farmers", includeInactive],
     queryFn: () => farmerService.list(includeInactive),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
@@ -15,6 +16,7 @@ export const useFarmer = (rsbsaCode: string) => {
     queryKey: ["farmer", rsbsaCode],
     queryFn: () => farmerService.get(rsbsaCode),
     enabled: !!rsbsaCode,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -65,6 +67,7 @@ export const useCommoditiesByFarmer = (rsbsaCode: string) => {
     queryKey: ["commodities", "farmer", rsbsaCode],
     queryFn: () => commodityService.listByFarmer(rsbsaCode),
     enabled: !!rsbsaCode,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -110,6 +113,7 @@ export const useAllCommodities = () => {
   return useQuery({
     queryKey: ["commodities", "all"],
     queryFn: () => commodityService.listAll(),
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -118,6 +122,7 @@ export const useTransactions = () => {
   return useQuery({
     queryKey: ["transactions"],
     queryFn: () => transactionService.list(),
+    staleTime: 2 * 60 * 1000, // 2 minutes for transactions
   });
 };
 
@@ -155,6 +160,7 @@ export const useDashboardStats = (month?: number | null, year?: number, day?: nu
   return useQuery({
     queryKey: ["dashboard", month, year, day],
     queryFn: () => dashboardService.stats(month, year, day),
+    staleTime: 1 * 60 * 1000, // 1 minute for dashboard stats
   });
 };
 
@@ -171,6 +177,7 @@ export const useProjects = () => {
   return useQuery({
     queryKey: ["projects"],
     queryFn: () => projectService.list(),
+    staleTime: 10 * 60 * 1000,
   });
 };
 
@@ -198,10 +205,9 @@ export const useDeleteProject = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => projectService.delete(id),
-    onSuccess: (_, deletedId) => {
-      queryClient.setQueryData<Project[]>(["projects"], (oldData) =>
-        oldData ? oldData.filter((p) => p.id !== deletedId) : []
-      );
+    onSuccess: () => {
+      // Force a refetch and also manually remove from cache for immediate feedback
+      queryClient.invalidateQueries({ queryKey: ["projects"], exact: true });
     },
   });
 };

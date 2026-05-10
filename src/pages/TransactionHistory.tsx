@@ -70,14 +70,16 @@ export default function TransactionHistory() {
     [farmers]
   );
 
-  // Initialize print filters on component mount with available options
+  // Initialize print filters when the dialog opens
   useEffect(() => {
-    setPrintFilters({
-      barangays: Object.fromEntries(allBarangays.map((barangay) => [barangay, true])),
-      agencies: Object.fromEntries(allAgencies.map((agency) => [agency, true])),
-      transactionTypes: Object.fromEntries(transactionTypes.map((type) => [type, true])),
-    });
-  }, [allBarangays, allAgencies, transactionTypes]);
+    if (isPrintDialogOpen) {
+      setPrintFilters({
+        barangays: Object.fromEntries(allBarangays.map((barangay) => [barangay, true])),
+        agencies: Object.fromEntries(allAgencies.map((agency) => [agency, true])),
+        transactionTypes: Object.fromEntries(transactionTypes.map((type) => [type, true])),
+      });
+    }
+  }, [isPrintDialogOpen, allBarangays, allAgencies, transactionTypes]);
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {

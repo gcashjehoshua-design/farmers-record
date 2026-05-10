@@ -7,6 +7,7 @@ import type { Project, ProjectStatus, ProjectType } from "@/types";
 import { FolderKanban, Plus, Save, CalendarDays, X, Pencil, Trash2 } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function Projects() {
   const { user } = useAuth();
@@ -26,6 +27,9 @@ export default function Projects() {
   const [projectToImplement, setProjectToImplement] = useState<Project | null>(null);
   const [modalMode, setModalMode] = useState<"mark" | "edit">("mark");
   const [implementDate, setImplementDate] = useState<string>("");
+  
+  // Custom Confirmation Modal State
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const byLatestDateDesc = (a: Project, b: Project) => {
     const aTime = (a.implementedAt ?? a.createdAt).getTime();
@@ -61,11 +65,11 @@ export default function Projects() {
   const handleCreate = async () => {
     if (!isAdmin) return;
     if (!projectType.trim()) {
-      showError("Please enter a project name.");
+      showError("Please enter a valid project name before saving.");
       return;
     }
     if (status === "implemented" && !implementedAt) {
-      showError("Please provide the implemented date.");
+      showError("Please select the date when this project was implemented.");
       return;
     }
     try {
@@ -74,11 +78,11 @@ export default function Projects() {
         status,
         implementedAt: status === "implemented" ? new Date(implementedAt) : undefined,
       });
-      success("Project added.");
+      success("The new project has been successfully added to the record.");
       resetForm();
     } catch (e) {
       console.error(e);
-      showError("Failed to add project.");
+      showError("We encountered an issue while trying to save the project. Please try again.");
     }
   };
 
@@ -92,12 +96,14 @@ export default function Projects() {
           implementedAt: new Date(implementDate),
         },
       });
-      success(modalMode === "mark" ? "Project marked as implemented." : "Implemented date updated.");
+      success(modalMode === "mark" 
+        ? "Great! The project has been marked as implemented." 
+        : "The implementation date has been successfully updated.");
       setProjectToImplement(null);
       setImplementDate("");
     } catch (e) {
       console.error(e);
-      showError("Failed to update project.");
+      showError("We couldn't update the project status. Please check your connection and try again.");
     }
   };
 
@@ -121,16 +127,15 @@ export default function Projects() {
     setProjectToImplement(p);
   };
 
-  const handleDelete = async (p: Project) => {
-    if (!isAdmin) return;
-    const confirmed = window.confirm(`Delete project "${p.projectType}"? This cannot be undone.`);
-    if (!confirmed) return;
+  const handleDelete = async () => {
+    if (!isAdmin || !projectToDelete) return;
     try {
-      await deleteProject.mutateAsync(p.id);
-      success("Project deleted.");
+      await deleteProject.mutateAsync(projectToDelete.id);
+      success(`The project "${projectToDelete.projectType}" has been permanently removed.`);
+      setProjectToDelete(null);
     } catch (e) {
       console.error(e);
-      showError("Failed to delete project.");
+      showError("The project could not be deleted at this time. Please try again later.");
     }
   };
 
@@ -139,6 +144,18 @@ export default function Projects() {
       {toasts.map((toast) => (
         <Toast key={toast.id} type={toast.type} message={toast.message} />
       ))}
+
+      <ConfirmationModal
+        isOpen={!!projectToDelete}
+        onClose={() => setProjectToDelete(null)}
+        onConfirm={() => void handleDelete()}
+        title="Delete Project?"
+        message={`Are you sure you want to delete "${projectToDelete?.projectType}"? This action is permanent and cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        type="danger"
+        isLoading={deleteProject.isPending}
+      />
 
       {projectToImplement && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -358,7 +375,7 @@ export default function Projects() {
                               type="button"
                               variant="outline"
                                 className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
-                              onClick={() => void handleDelete(p)}
+                              onClick={() => setProjectToDelete(p)}
                               disabled={isSaving}
                             >
                               <Trash2 className="w-4 h-4 mr-1" />

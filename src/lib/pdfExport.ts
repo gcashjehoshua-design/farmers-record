@@ -124,24 +124,7 @@ async function addPdfHeader(doc: jsPDF, reportTitle: string): Promise<void> {
 /** Add footer with page number and date */
 function addPdfFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
   const { width, height } = getPageDimensions(doc);
-  const signatureLineY = height - 20;
-  const signatureTextY = signatureLineY + 4;
   const y = height - 8;
-
-  // Signature block (appears on every printable page)
-  const signatureStartX = width - 95;
-  const signatureEndX = width - MARGIN;
-  doc.setDrawColor(120, 120, 120);
-  doc.setLineWidth(0.3);
-  doc.line(signatureStartX, signatureLineY, signatureEndX, signatureLineY);
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 30, 30);
-  doc.text("LIELA A. ROSBERO", (signatureStartX + signatureEndX) / 2, signatureTextY, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(70, 70, 70);
-  doc.text("( Senior Agriculturist)", (signatureStartX + signatureEndX) / 2, signatureTextY + 4, { align: "center" });
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
@@ -150,6 +133,38 @@ function addPdfFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
   const dateStr = new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
   doc.text(`Generated on: ${dateStr}`, MARGIN, y);
   doc.text(`Page ${pageNum} of ${totalPages}`, width - MARGIN, y, { align: "right" });
+  doc.setTextColor(0, 0, 0);
+}
+
+/** Add signature block - ONLY on the last page */
+function addSignatureToLastPageOnly(doc: jsPDF): void {
+  const totalPages = doc.getNumberOfPages();
+  if (totalPages === 0) return;
+
+  // Set page to the last page and add signature
+  doc.setPage(totalPages);
+  const { width, height } = getPageDimensions(doc);
+  
+  const signatureLineY = height - 20;
+  const signatureTextY = signatureLineY + 4;
+  const signatureStartX = width - 95;
+  const signatureEndX = width - MARGIN;
+  
+  doc.setDrawColor(120, 120, 120);
+  doc.setLineWidth(0.3);
+  doc.line(signatureStartX, signatureLineY, signatureEndX, signatureLineY);
+  
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 30, 30);
+  doc.text("LIELA A. ROSBERO", (signatureStartX + signatureEndX) / 2, signatureTextY, { align: "center" });
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(70, 70, 70);
+  doc.text("( Senior Agriculturist)", (signatureStartX + signatureEndX) / 2, signatureTextY + 4, { align: "center" });
+  
+  // Reset text color
   doc.setTextColor(0, 0, 0);
 }
 
@@ -211,13 +226,15 @@ function drawStandardTableHeader(
   return y + ROW_HEIGHT;
 }
 
-/** Add footer to all pages */
+/** Add footer to all pages (page numbers and dates) and signature only to last page */
 function addFootersToAllPages(doc: jsPDF): void {
   const total = doc.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
     addPdfFooter(doc, i, total);
   }
+  // Add signature ONLY to the last page after all other footers are added
+  addSignatureToLastPageOnly(doc);
 }
 
 /** Export visits list (by day or month) to PDF */

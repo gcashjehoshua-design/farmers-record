@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useFarmers, useCreateTransaction } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
@@ -50,8 +50,8 @@ export default function RecordTransaction() {
   }, [location.search, farmers]);
 
   const term = searchTerm.trim().toLowerCase();
-  const filteredFarmers =
-    farmers?.filter((farmer) => {
+  const filteredFarmers = useMemo(() => {
+    const list = farmers?.filter((farmer) => {
       if (!term) return true;
       const display = formatFarmerDisplayName(farmer).toLowerCase();
       return (
@@ -64,6 +64,9 @@ export default function RecordTransaction() {
         (farmer.fullName && farmer.fullName.toLowerCase().includes(term))
       );
     }) || [];
+    // Limit to 100 results for performance
+    return list.slice(0, 100);
+  }, [farmers, term]);
 
   const handleSelectFarmer = (farmer: Farmer) => {
     setSelectedFarmer(farmer);
@@ -227,7 +230,7 @@ export default function RecordTransaction() {
                       </div>
                     ) : filteredFarmers.length > 0 ? (
                       <div className="divide-y divide-gray-100">
-                        {filteredFarmers.map((farmer) => (
+                        {filteredFarmers.map((farmer: Farmer) => (
                           <button
                             key={farmer.rsbsaCode}
                             type="button"
