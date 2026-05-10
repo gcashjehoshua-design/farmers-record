@@ -11,6 +11,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import { PASSI_BARANGAYS } from "@/constants/barangays";
+import type { Farmer } from "@/types";
 import {
   PRINT_FARM_TYPE_KEYS,
   cropCommodityChartData,
@@ -117,11 +118,11 @@ export default function Dashboard() {
   }, [agencyStats, farmers]);
 
   // Create a lookup map for farmers to speed up transaction association
-  const farmerLookup = useMemo(() => {
-    const map = new Map<string, typeof farmers[0]>();
-    (farmers || []).forEach(f => map.set(f.rsbsaCode, f));
-    return map;
-  }, [farmers]);
+   const farmerLookup = useMemo(() => {
+     const map = new Map<string, Farmer>();
+     (farmers || []).forEach(f => map.set(f.rsbsaCode, f));
+     return map;
+   }, [farmers]);
 
   // Calculate visits per agency for the selected date period
   const visitsPerAgency = useMemo(() => {
