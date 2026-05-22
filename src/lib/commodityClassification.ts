@@ -45,8 +45,8 @@ export function classifyCommodityName(raw: string): { segment: "crop" | "livesto
   }
 
   if (/(pig|hog|swine|pork)/.test(n)) return { segment: "livestock", bucket: "Pig" };
-  if (/(chicken|poultry|broiler|layer|bird)/.test(n)) return { segment: "livestock", bucket: "Chicken" };
-  if (/(goat|cattle|cow|carabao|buffalo|sheep|duck|turkey|fish|tilapia|catfish|aquaculture|pet|cat|dog|rabbit|horse|donkey)/.test(n)) {
+  if (/(chicken|poultry|broiler|layer|bird|swan)/.test(n)) return { segment: "livestock", bucket: "Chicken" };
+  if (/(goat|cattle|cow|carabao|buffalo|sheep|duck|turkey|fish|tilapia|catfish|bangus|hatchery|aquaculture|pond|pet|cat|dog|rabbit|horse|donkey)/.test(n)) {
     return { segment: "livestock", bucket: "Other livestock" };
   }
 

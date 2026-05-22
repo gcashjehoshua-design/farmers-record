@@ -88,8 +88,20 @@ function formatCommodityLabel(name: string): string {
   return titleCaseWords(name.replace(/\s+/g, " ").trim());
 }
 
-function commodityUnitLabel(name: string | undefined): "Heads" | "Hectares" {
+function commodityUnitLabel(name: string | undefined): "Heads" | "Hectares" | "Area (sqm)" {
   if (!name || !name.trim()) return "Heads";
+  const normalized = name.toLowerCase();
+  
+  // Fish related commodities should be Area
+  if (/(fish|tilapia|catfish|bangus|hatchery|aquaculture|pond)/.test(normalized)) {
+    return "Area (sqm)";
+  }
+  
+  // Swan should be Heads
+  if (normalized.includes("swan")) {
+    return "Heads";
+  }
+
   return classifyCommodityName(name).segment === "livestock" ? "Heads" : "Hectares";
 }
 
@@ -692,9 +704,11 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
                         {...f}
                         type="number"
                         min={0}
+                        step={commodityUnitLabel(watchedCommodities?.[index]?.commodityName) !== "Heads" ? "0.01" : "1"}
                         className="input-modern text-sm"
+                        placeholder="0"
                         value={f.value ?? 0}
-                        onChange={(e) => f.onChange(parseInt(e.target.value, 10) || 0)}
+                        onChange={(e) => f.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </div>
                   )}

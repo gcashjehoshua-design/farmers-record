@@ -71,7 +71,7 @@ export type DashboardStats = {
   visitsThisMonth: number;
 }
 
-export type ProjectStatus = "ongoing" | "implemented";
+export type ProjectStatus = "ongoing" | "implemented" | "inactive";
 
 export type ProjectType = string;
 

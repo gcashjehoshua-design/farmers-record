@@ -25,11 +25,11 @@ export default function Projects() {
   const [implementedAt, setImplementedAt] = useState<string>("");
   const [filter, setFilter] = useState<"all" | ProjectStatus | "history">("all");
   const [projectToImplement, setProjectToImplement] = useState<Project | null>(null);
-  const [modalMode, setModalMode] = useState<"mark" | "edit">("mark");
   const [implementDate, setImplementDate] = useState<string>("");
   
   // Custom Confirmation Modal State
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [projectToMakeInactive, setProjectToMakeInactive] = useState<Project | null>(null);
 
   const byLatestDateDesc = (a: Project, b: Project) => {
     const aTime = (a.implementedAt ?? a.createdAt).getTime();
@@ -45,9 +45,13 @@ export default function Projects() {
     () => projects.filter((p) => p.status === "implemented").sort(byLatestDateDesc),
     [projects]
   );
+  const inactiveProjects = useMemo(
+    () => projects.filter((p) => p.status === "inactive").sort(byLatestDateDesc),
+    [projects]
+  );
   const historyProjects = useMemo(
-    () => [...implementedProjects].sort(byLatestDateDesc),
-    [implementedProjects]
+    () => projects.filter((p) => p.status === "implemented" || p.status === "inactive").sort(byLatestDateDesc),
+    [projects]
   );
 
   const visibleProjects = useMemo(() => {
@@ -92,13 +96,11 @@ export default function Projects() {
       await updateProject.mutateAsync({
         id: p.id,
         data: {
-          status: modalMode === "mark" ? "implemented" : p.status,
+          status: "implemented",
           implementedAt: new Date(implementDate),
         },
       });
-      success(modalMode === "mark" 
-        ? "Great! The project has been marked as implemented." 
-        : "The implementation date has been successfully updated.");
+      success("Great! The project has been marked as implemented.");
       setProjectToImplement(null);
       setImplementDate("");
     } catch (e) {
@@ -107,22 +109,28 @@ export default function Projects() {
     }
   };
 
+  const handleMakeInactive = async (p: Project) => {
+    if (!isAdmin) return;
+    try {
+      await updateProject.mutateAsync({
+        id: p.id,
+        data: {
+          status: "inactive",
+        },
+      });
+      success(`The project "${p.projectType}" is now marked as inactive.`);
+      setProjectToMakeInactive(null);
+    } catch (e) {
+      console.error(e);
+      showError("Failed to update project status. Please try again.");
+    }
+  };
+
   const openImplementModal = (p: Project) => {
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const dd = String(today.getDate()).padStart(2, "0");
-    setModalMode("mark");
-    setImplementDate(`${yyyy}-${mm}-${dd}`);
-    setProjectToImplement(p);
-  };
-
-  const openEditDateModal = (p: Project) => {
-    const base = p.implementedAt ?? new Date();
-    const yyyy = base.getFullYear();
-    const mm = String(base.getMonth() + 1).padStart(2, "0");
-    const dd = String(base.getDate()).padStart(2, "0");
-    setModalMode("edit");
     setImplementDate(`${yyyy}-${mm}-${dd}`);
     setProjectToImplement(p);
   };
@@ -157,12 +165,24 @@ export default function Projects() {
         isLoading={deleteProject.isPending}
       />
 
+      <ConfirmationModal
+        isOpen={!!projectToMakeInactive}
+        onClose={() => setProjectToMakeInactive(null)}
+        onConfirm={() => void handleMakeInactive(projectToMakeInactive!)}
+        title="Make Project Inactive?"
+        message={`Are you sure you want to mark "${projectToMakeInactive?.projectType}" as inactive?`}
+        confirmText="Yes, Make Inactive"
+        cancelText="Cancel"
+        type="warning"
+        isLoading={updateProject.isPending}
+      />
+
       {projectToImplement && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md shadow-2xl animate-scale-in">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-xl">
-                {modalMode === "mark" ? "Mark Project as Implemented" : "Edit Implemented Date"}
+                Mark Project as Implemented
               </CardTitle>
               <button
                 type="button"
@@ -255,6 +275,7 @@ export default function Projects() {
                 >
                   <option value="ongoing">Ongoing</option>
                   <option value="implemented">Implemented</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </div>
             </div>
@@ -283,7 +304,7 @@ export default function Projects() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle>Project List</CardTitle>
             <div className="flex items-center gap-2">
-              {(["all", "ongoing", "implemented", "history"] as const).map((k) => (
+              {(["all", "ongoing", "implemented", "inactive", "history"] as const).map((k) => (
                 <button
                   key={k}
                   onClick={() => setFilter(k)}
@@ -293,13 +314,13 @@ export default function Projects() {
                       : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  {k === "all" ? "All" : k === "history" ? "History" : k === "ongoing" ? "Ongoing" : "Implemented"}
+                  {k === "all" ? "All" : k === "history" ? "History" : k === "ongoing" ? "Ongoing" : k === "implemented" ? "Implemented" : "Inactive"}
                 </button>
               ))}
             </div>
           </div>
           <p className="text-sm text-earth-600">
-            Ongoing: {ongoingProjects.length} · Implemented: {implementedProjects.length}
+            Ongoing: {ongoingProjects.length} · Implemented: {implementedProjects.length} · Inactive: {inactiveProjects.length}
           </p>
         </CardHeader>
         <CardContent>
@@ -327,10 +348,12 @@ export default function Projects() {
                           className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
                             p.status === "implemented"
                               ? "bg-green-100 text-green-800"
-                              : "bg-amber-100 text-amber-800"
+                              : p.status === "inactive"
+                                ? "bg-gray-100 text-gray-800"
+                                : "bg-amber-100 text-amber-800"
                           }`}
                         >
-                          {p.status === "implemented" ? "Implemented" : "Ongoing"}
+                          {p.status === "implemented" ? "Implemented" : p.status === "inactive" ? "Inactive" : "Ongoing"}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-700">
@@ -345,7 +368,7 @@ export default function Projects() {
                       {isAdmin && (
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-2">
-                            {p.status !== "implemented" ? (
+                            {p.status === "ongoing" && (
                               <Button
                                 size="sm"
                                 type="button"
@@ -357,17 +380,18 @@ export default function Projects() {
                                 <Save className="w-4 h-4 mr-1" />
                                 Mark Implemented
                               </Button>
-                            ) : (
+                            )}
+                            {p.status !== "inactive" && (
                               <Button
                                 size="sm"
                                 type="button"
                                 variant="outline"
-                                className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
-                                onClick={() => openEditDateModal(p)}
+                                className="bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100"
+                                onClick={() => setProjectToMakeInactive(p)}
                                 disabled={isSaving}
                               >
-                                <Pencil className="w-4 h-4 mr-1" />
-                                Edit Date
+                                <X className="w-4 h-4 mr-1" />
+                                Make Inactive
                               </Button>
                             )}
                             <Button
