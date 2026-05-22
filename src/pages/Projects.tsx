@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCreateProject, useDeleteProject, useProjects, useUpdateProject } from "@/hooks/useApi";
 import { useAuth } from "@/hooks/useAuth";
 import type { Project, ProjectStatus, ProjectType } from "@/types";
-import { FolderKanban, Plus, Save, CalendarDays, X, Pencil, Trash2 } from "lucide-react";
+import { FolderKanban, Plus, Save, CalendarDays, X, Trash2 } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import ConfirmationModal from "@/components/ConfirmationModal";
