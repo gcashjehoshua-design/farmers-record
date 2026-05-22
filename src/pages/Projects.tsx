@@ -22,7 +22,6 @@ export default function Projects() {
 
   const [projectType, setProjectType] = useState<ProjectType>("");
   const [status, setStatus] = useState<ProjectStatus>("ongoing");
-  const [implementedAt, setImplementedAt] = useState<string>("");
   const [filter, setFilter] = useState<"all" | ProjectStatus | "history">("all");
   const [projectToImplement, setProjectToImplement] = useState<Project | null>(null);
   const [implementDate, setImplementDate] = useState<string>("");
@@ -63,7 +62,6 @@ export default function Projects() {
   const resetForm = () => {
     setProjectType("");
     setStatus("ongoing");
-    setImplementedAt("");
   };
 
   const handleCreate = async () => {
@@ -72,15 +70,11 @@ export default function Projects() {
       showError("Please enter a valid project name before saving.");
       return;
     }
-    if (status === "implemented" && !implementedAt) {
-      showError("Please select the date when this project was implemented.");
-      return;
-    }
     try {
       await createProject.mutateAsync({
         projectType: projectType.trim(),
         status,
-        implementedAt: status === "implemented" ? new Date(implementedAt) : undefined,
+        implementedAt: status === "implemented" ? new Date() : undefined,
       });
       success("The new project has been successfully added to the record.");
       resetForm();
@@ -277,18 +271,6 @@ export default function Projects() {
                   <option value="implemented">Implemented</option>
                   <option value="inactive">Inactive</option>
                 </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-earth-700">Date Implemented</label>
-                <input
-                  type="date"
-                  className="input-modern"
-                  value={implementedAt}
-                  onChange={(e) => setImplementedAt(e.target.value)}
-                  disabled={status !== "implemented"}
-                />
               </div>
             </div>
             <Button onClick={handleCreate} disabled={isSaving} className="btn-farm">
