@@ -40,13 +40,13 @@ export function classifyCommodityName(raw: string): { segment: "crop" | "livesto
   const n = normalizeCommodityText(raw);
 
   // Exclude timber/hardwood and other non-agricultural items from livestock
-  if (/(mahogany|hardwood|timber|wood|lumber|bamboo|acacia)/.test(n)) {
+  if (/(mahogany|hardwood|timber|wood|lumber|bamboo|acacia|grass|forage|sacate|alfalfa|stalk|hay|silage)/.test(n)) {
     return { segment: "crop", bucket: "Other crops" };
   }
 
   if (/(pig|hog|swine|pork)/.test(n)) return { segment: "livestock", bucket: "Pig" };
-  if (/(chicken|poultry|broiler|layer|bird|swan|quail)/.test(n)) return { segment: "livestock", bucket: "Chicken" };
-  if (/(goat|cattle|cow|carabao|buffalo|sheep|duck|turkey|fish|tilapia|catfish|bangus|hatchery|aquaculture|pond|pet|cat|dog|rabbit|horse|donkey)/.test(n)) {
+  if (/(chicken|poultry|broiler|layer|bird|swan|quail|goose|geese)/.test(n)) return { segment: "livestock", bucket: "Chicken" };
+  if (/(goat|cattle|cow|carabao|buffalo|sheep|duck|turkey|fish|tilapia|catfish|bangus|hatchery|aquaculture|pond|pet|cat|dog|rabbit|horse|donkey|livestock|animal|head)/.test(n)) {
     return { segment: "livestock", bucket: "Other livestock" };
   }
 
@@ -56,23 +56,28 @@ export function classifyCommodityName(raw: string): { segment: "crop" | "livesto
   if (n.includes("pineapple")) return { segment: "crop", bucket: "Pineapple" };
   if (n.includes("banana")) return { segment: "crop", bucket: "Banana" };
   
-  if (/(vegetable|veg\b|gabi|kangkong|eggplant|tomato|cabbage|pechay|okra|squash|kalabasa|bitter|gourd|ampalaya|pepper|chili|bean|monggo)/.test(n)) {
+  if (/(vegetable|veg\b|gabi|kangkong|eggplant|tomato|cabbage|pechay|okra|squash|kalabasa|bitter|gourd|ampalaya|pepper|chili|bean|monggo|plant|seed|leaf|leafy)/.test(n)) {
     return { segment: "crop", bucket: "Vegetables" };
   }
   
-  if (/(root crop|ube|cassava|sweet potato|camote|ginger|turmeric|potato)/.test(n)) {
+  if (/(root crop|ube|cassava|sweet potato|camote|ginger|turmeric|potato|tuber)/.test(n)) {
     return { segment: "crop", bucket: "Root Crops" };
   }
 
-  if (/(coffee|cacao|rubber|tobacco|cotton|industrial)/.test(n)) {
+  if (/(coffee|cacao|rubber|tobacco|cotton|industrial|fiber|oil)/.test(n)) {
     return { segment: "crop", bucket: "Spices & Industrial" };
   }
 
   if (
-    /(fruit tree|mango|citrus|coconut|papaya|lanzones|calamansi|dragon|rambutan|jackfruit|guava|pomelo|star apple)/.test(n) ||
+    /(fruit tree|mango|citrus|coconut|papaya|lanzones|calamansi|dragon|rambutan|jackfruit|guava|pomelo|star apple|orchard|plantation)/.test(n) ||
     (n.includes("fruit") && !n.includes("vegetable"))
   ) {
     return { segment: "crop", bucket: "Fruit Trees" };
+  }
+
+  // Final heuristic: if it mentions 'hectare' or 'area', it's likely a crop
+  if (/(hectare|ha\b|area|farm|field|plantation)/.test(n)) {
+    return { segment: "crop", bucket: "Other crops" };
   }
 
   return { segment: "crop", bucket: "Other crops" };

@@ -97,8 +97,8 @@ function commodityUnitLabel(name: string | undefined): "Heads" | "Hectares" | "A
     return "Area (sqm)";
   }
   
-  // Swan and Quail should be Heads
-  if (normalized.includes("swan") || normalized.includes("quail")) {
+  // Swan, Quail, Geese/Goose should be Heads
+  if (/(swan|quail|goose|geese)/.test(normalized)) {
     return "Heads";
   }
 
