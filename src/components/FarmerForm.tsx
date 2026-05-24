@@ -231,6 +231,29 @@ const DisplayNamePreview = memo(function DisplayNamePreview({ control }: { contr
   );
 });
 
+const DEFAULT_COMMODITIES = [
+  "Rice",
+  "Corn",
+  "Sugar Cane",
+  "Pineapple",
+  "Banana",
+  "Vegetables",
+  "Fruit Trees",
+  "Root Crops",
+  "Coffee",
+  "Cacao",
+  "Rubber",
+  "Pig",
+  "Chicken",
+  "Duck",
+  "Goat",
+  "Cattle",
+  "Carabao",
+  "Geese",
+  "Quail",
+  "Forage Grass (sacate, Alfalfa, Green Corn Stalk)",
+];
+
 export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) {
   const isInactive = (initialData as any)?.isActive === false;
   const { toasts, error: showError } = useToast();
@@ -256,6 +279,14 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
 
   const commodityOptions = useMemo(() => {
     const unique = new Map<string, string>();
+    
+    // 1. Add defaults
+    for (const name of DEFAULT_COMMODITIES) {
+      const key = normalizeCommodityKey(name);
+      unique.set(key, name);
+    }
+
+    // 2. Add from database
     for (const commodity of allCommodities) {
       const rawName =
         typeof commodity === "string"
