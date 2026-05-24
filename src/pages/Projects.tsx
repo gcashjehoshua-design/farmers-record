@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCreateProject, useDeleteProject, useProjects, useUpdateProject } from "@/hooks/useApi";
 import { useAuth } from "@/hooks/useAuth";
 import type { Project, ProjectStatus, ProjectType } from "@/types";
-import { FolderKanban, Plus, Save, CalendarDays, X, Trash2 } from "lucide-react";
+import { FolderKanban, Plus, Save, CalendarDays, X, Trash2, RotateCcw } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import ConfirmationModal from "@/components/ConfirmationModal";
@@ -29,6 +29,7 @@ export default function Projects() {
   // Custom Confirmation Modal State
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [projectToMakeInactive, setProjectToMakeInactive] = useState<Project | null>(null);
+  const [projectToMakeActive, setProjectToMakeActive] = useState<Project | null>(null);
 
   const byLatestDateDesc = (a: Project, b: Project) => {
     const aTime = (a.implementedAt ?? a.createdAt).getTime();
@@ -120,6 +121,23 @@ export default function Projects() {
     }
   };
 
+  const handleMakeActive = async (p: Project) => {
+    if (!isAdmin) return;
+    try {
+      await updateProject.mutateAsync({
+        id: p.id,
+        data: {
+          status: "ongoing",
+        },
+      });
+      success(`The project "${p.projectType}" is now active again.`);
+      setProjectToMakeActive(null);
+    } catch (e) {
+      console.error(e);
+      showError("Failed to reactivate project. Please try again.");
+    }
+  };
+
   const openImplementModal = (p: Project) => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -168,6 +186,18 @@ export default function Projects() {
         confirmText="Yes, Make Inactive"
         cancelText="Cancel"
         type="warning"
+        isLoading={updateProject.isPending}
+      />
+
+      <ConfirmationModal
+        isOpen={!!projectToMakeActive}
+        onClose={() => setProjectToMakeActive(null)}
+        onConfirm={() => void handleMakeActive(projectToMakeActive!)}
+        title="Reactivate Project?"
+        message={`Are you sure you want to mark "${projectToMakeActive?.projectType}" as active again?`}
+        confirmText="Yes, Reactivate"
+        cancelText="Cancel"
+        type="info"
         isLoading={updateProject.isPending}
       />
 
@@ -374,6 +404,19 @@ export default function Projects() {
                               >
                                 <X className="w-4 h-4 mr-1" />
                                 Make Inactive
+                              </Button>
+                            )}
+                            {p.status === "inactive" && (
+                              <Button
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                                className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                                onClick={() => setProjectToMakeActive(p)}
+                                disabled={isSaving}
+                              >
+                                <RotateCcw className="w-4 h-4 mr-1" />
+                                Reactivate
                               </Button>
                             )}
                             <Button
