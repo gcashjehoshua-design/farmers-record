@@ -311,8 +311,11 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
   // Edit mode: hydrate when farmer record is available.
   useEffect(() => {
     if (!isEditMode || !initialData?.rsbsaCode) return;
-    reset(farmerToFormDefaults(initialData));
-  }, [isEditMode, initialData?.rsbsaCode, reset, initialData]);
+    
+    // Check if initialData has changed significantly (like commodities being loaded)
+    const formDefaults = farmerToFormDefaults(initialData);
+    reset(formDefaults);
+  }, [isEditMode, initialData, reset]);
 
   const createFarmer = useCreateFarmer();
   const updateFarmer = useUpdateFarmer();

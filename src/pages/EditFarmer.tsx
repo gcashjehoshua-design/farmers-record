@@ -1,20 +1,32 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useFarmer } from "@/hooks/useApi";
+import { useFarmer, useCommoditiesByFarmer } from "@/hooks/useApi";
 import FarmerForm from "@/components/FarmerForm";
 import { User, ArrowLeft } from "lucide-react";
 import Toast from "@/components/Toast";
 import { formatFarmerDisplayName } from "@/lib/farmerDisplay";
 import { useToast } from "@/hooks/useToast";
+import { useMemo } from "react";
 
 export default function EditFarmer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toasts, success } = useToast();
-  const { data: farmer, isLoading, error } = useFarmer(id || "");
+  const { data: farmer, isLoading: isFarmerLoading, error: farmerError } = useFarmer(id || "");
+  const { data: commodities, isLoading: isCommoditiesLoading } = useCommoditiesByFarmer(id || "");
 
-  if (error || (!isLoading && !farmer)) {
+  const combinedData = useMemo(() => {
+    if (!farmer) return undefined;
+    return {
+      ...farmer,
+      commodities: commodities || [],
+    };
+  }, [farmer, commodities]);
+
+  const isLoading = isFarmerLoading || isCommoditiesLoading;
+
+  if (farmerError || (!isLoading && !farmer)) {
     return (
       <div className="animate-fade-in">
         <div className="p-6 bg-red-50 border-2 border-red-300 text-red-700 rounded-2xl shadow-lg">
@@ -84,7 +96,7 @@ export default function EditFarmer() {
         </CardHeader>
         <CardContent className="p-6">
           <FarmerForm
-            initialData={farmer}
+            initialData={combinedData}
             onSuccess={() => {
               success("Farmer profile updated!");
               setTimeout(() => navigate(`/farmers/${id}`, { replace: true }), 500);

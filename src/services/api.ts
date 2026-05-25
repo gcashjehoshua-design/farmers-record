@@ -84,7 +84,7 @@ const mapCommodityFromDb = (row: Database["public"]["Tables"]["farmer_commoditie
   id: row.id,
   rsbsaCode: row.rsbsa_code,
   commodityName: row.commodity_name,
-  numberOfHeads: row.number_of_heads || undefined,
+  numberOfHeads: row.number_of_heads ?? undefined,
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),
 });
