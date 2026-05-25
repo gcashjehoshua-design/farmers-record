@@ -258,10 +258,10 @@ export default function FarmersList() {
                 }}
                 className="input-modern w-full sm:w-64"
               >
-                <option value="all">All barangays</option>
+                <option value="all">ALL BARANGAYS</option>
                 {allBarangays.map((bgy) => (
                   <option key={bgy} value={bgy}>
-                    {bgy}
+                    {bgy.toUpperCase()}
                   </option>
                 ))}
               </select>

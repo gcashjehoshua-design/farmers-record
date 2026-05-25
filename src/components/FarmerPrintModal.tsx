@@ -69,9 +69,9 @@ export default function FarmerPrintModal({
                   onChange={(e) => setFilters({ ...filters, barangay: e.target.value })}
                   className="w-full bg-farm-50 border-2 border-farm-100 focus:border-farm-500 text-earth-900 rounded-xl h-12 px-4 appearance-none transition-all cursor-pointer font-medium hover:border-farm-200"
                 >
-                  <option value="all">All Barangays</option>
+                  <option value="all">ALL BARANGAYS</option>
                   {barangays.map((b) => (
-                    <option key={b} value={b}>{b}</option>
+                    <option key={b} value={b}>{b.toUpperCase()}</option>
                   ))}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-earth-400 group-focus-within:text-farm-500 transition-colors">
