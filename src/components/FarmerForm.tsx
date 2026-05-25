@@ -155,7 +155,7 @@ function farmerToFormDefaults(f?: Partial<Farmer>): FarmerFormValues {
     commodities:
       f?.commodities && f.commodities.length > 0
         ? f.commodities.map((c) => ({
-            commodityName: c.commodityName,
+            commodityName: formatCommodityLabel(c.commodityName),
             numberOfHeads: c.numberOfHeads || 0,
           }))
         : [{ commodityName: "", numberOfHeads: 0 }],
@@ -654,8 +654,9 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
             <button
               type="button"
               onClick={() => {
-                const nextNumber = Math.max(...parcelFields.map(p => p.parcelNumber), 0) + 1;
-                if (nextNumber <= 3) {
+                const existingNumbers = parcelFields.map((p) => p.parcelNumber);
+                const nextNumber = [1, 2, 3].find((n) => !existingNumbers.includes(n));
+                if (nextNumber) {
                   appendParcel({ parcelNumber: nextNumber, parcelAddress: "" });
                 }
               }}
