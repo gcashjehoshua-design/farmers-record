@@ -4,7 +4,7 @@ import { useFarmer, useTransactionsByFarmer, useCommoditiesByFarmer, useUpdateFa
 import { exportProfileTransactionsToPdf } from "@/lib/pdfExport";
 import { User, History, Calendar, ArrowLeft, Edit, Phone, MapPin, Calendar as CalendarIcon, FileText, Building2, FileDown, Sprout, Clipboard, AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatFarmerDisplayName, formatCommoditySummary } from "@/lib/farmerDisplay";
+import { formatFarmerDisplayName, formatCommoditySummary, getCommodityUnitLabel } from "@/lib/farmerDisplay";
 import { useAuth } from "@/hooks/useAuth";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
@@ -406,7 +406,7 @@ export default function ViewFarmer() {
             </div>
             <div>
               <CardTitle className="text-xl text-earth-800">Commodities</CardTitle>
-              <p className="text-sm text-earth-600 mt-0.5">COMMODITY NAME and NUMBER OF HEADS (from import or records)</p>
+              <p className="text-sm text-earth-600 mt-0.5">COMMODITY NAME and QUANTITY (Heads for livestock, Hectares for crops)</p>
             </div>
           </div>
         </CardHeader>
@@ -419,14 +419,25 @@ export default function ViewFarmer() {
                 <thead>
                   <tr className="border-b-2 border-green-200 bg-green-50/80">
                     <th className="text-left py-2 px-3 font-semibold text-earth-800">Commodity name</th>
-                    <th className="text-left py-2 px-3 font-semibold text-earth-800">Number of heads</th>
+                    <th className="text-left py-2 px-3 font-semibold text-earth-800">Quantity / Area</th>
                   </tr>
                 </thead>
                 <tbody>
                   {commodities.map((c) => (
                     <tr key={c.id} className="border-b border-green-100">
                       <td className="py-2 px-3 font-medium text-earth-800">{c.commodityName}</td>
-                      <td className="py-2 px-3 text-earth-700">{c.numberOfHeads ?? "—"}</td>
+                      <td className="py-2 px-3 text-earth-700">
+                        {c.numberOfHeads != null ? (
+                          <div className="flex flex-col">
+                            <span className="font-bold">{c.numberOfHeads}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-earth-500 font-medium">
+                              {getCommodityUnitLabel(c.commodityName)}
+                            </span>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
