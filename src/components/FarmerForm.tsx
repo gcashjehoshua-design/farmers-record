@@ -152,7 +152,13 @@ function farmerToFormDefaults(f?: Partial<Farmer>): FarmerFormValues {
           ? new Date(f.dateEncoded as unknown as string).toISOString().slice(0, 10)
           : "",
     notes: f?.notes ?? "",
-    commodities: [{ commodityName: "", numberOfHeads: 0 }],
+    commodities:
+      f?.commodities && f.commodities.length > 0
+        ? f.commodities.map((c) => ({
+            commodityName: c.commodityName,
+            numberOfHeads: c.numberOfHeads || 0,
+          }))
+        : [{ commodityName: "", numberOfHeads: 0 }],
   };
 }
 
@@ -315,26 +321,32 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
   const onSubmit = async (data: FarmerFormValues) => {
     try {
       const payload = formValuesToFarmerPayload(data);
+      const rsbsaCode = isEditMode && initialData?.rsbsaCode ? initialData.rsbsaCode : payload.rsbsaCode;
 
       if (isEditMode && initialData?.rsbsaCode) {
         await updateFarmer.mutateAsync({ rsbsaCode: initialData.rsbsaCode, data: payload });
+        // Delete and re-create commodities for simplicity in edit mode
+        await commodityService.deleteAllByFarmer(initialData.rsbsaCode);
       } else {
         await createFarmer.mutateAsync(payload);
-        const rows = (data.commodities || []).filter(
-          (c) => c.commodityName && c.commodityName.trim().length > 0
-        );
-        for (const c of rows) {
-          const normalizedCommodity = formatCommodityLabel(c.commodityName);
-          await commodityService.create({
-            rsbsaCode: payload.rsbsaCode,
-            commodityName: normalizedCommodity,
-            numberOfHeads: c.numberOfHeads || 0,
-          });
-        }
-        if (rows.length > 0) {
-          await queryClient.invalidateQueries({ queryKey: ["commodities", "all"] });
-          await queryClient.invalidateQueries({ queryKey: ["commodities", "farmer", payload.rsbsaCode] });
-        }
+      }
+
+      // Create new commodities (same logic for both add and edit)
+      const rows = (data.commodities || []).filter(
+        (c) => c.commodityName && c.commodityName.trim().length > 0
+      );
+      for (const c of rows) {
+        const normalizedCommodity = formatCommodityLabel(c.commodityName);
+        await commodityService.create({
+          rsbsaCode: rsbsaCode,
+          commodityName: normalizedCommodity,
+          numberOfHeads: c.numberOfHeads || 0,
+        });
+      }
+
+      if (rows.length > 0 || isEditMode) {
+        await queryClient.invalidateQueries({ queryKey: ["commodities", "all"] });
+        await queryClient.invalidateQueries({ queryKey: ["commodities", "farmer", rsbsaCode] });
       }
 
       onSuccess?.();
@@ -681,9 +693,8 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
           <FormField name="notes" label="Notes" multiline rows={4} placeholder="Additional notes" />
         </div>
 
-        {/* Commodities — only on add (same as Excel rows) */}
-        {!isEditMode && (
-          <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl space-y-4 shadow-sm">
+        {/* Commodities (same as Excel rows) */}
+        <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl space-y-4 shadow-sm">
             <div className="flex items-center justify-between gap-3 border-b border-green-200 pb-3">
               <div>
                 <h3 className="text-xl font-display font-bold text-gray-900">Commodities</h3>
@@ -752,7 +763,6 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
               </div>
             ))}
           </div>
-        )}
 
         <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t-2 border-gray-200">
           <Button

@@ -43,6 +43,7 @@ export type Farmer = {
   isActive?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  commodities?: FarmerCommodity[];
 }
 
 export type FarmerCommodity = {

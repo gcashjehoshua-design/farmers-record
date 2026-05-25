@@ -153,14 +153,24 @@ export const farmerService = {
   },
 
   get: async (rsbsaCode: string): Promise<Farmer> => {
-    const { data, error } = await supabase
+    const { data: farmerData, error: farmerError } = await supabase
       .from("farmers")
       .select("*")
       .eq("rsbsa_code", rsbsaCode)
       .single();
 
-    if (error) throw error;
-    return mapFarmerFromDb(data);
+    if (farmerError) throw farmerError;
+
+    const { data: commodityData, error: commodityError } = await supabase
+      .from("farmer_commodities")
+      .select("*")
+      .eq("rsbsa_code", rsbsaCode);
+
+    if (commodityError) throw commodityError;
+
+    const farmer = mapFarmerFromDb(farmerData);
+    farmer.commodities = (commodityData || []).map(mapCommodityFromDb);
+    return farmer;
   },
 
   create: async (farmerData: Omit<Farmer, "createdAt" | "updatedAt">): Promise<Farmer> => {
@@ -301,6 +311,15 @@ export const commodityService = {
       .from("farmer_commodities")
       .delete()
       .eq("id", id);
+
+    if (error) throw error;
+  },
+
+  deleteAllByFarmer: async (rsbsaCode: string): Promise<void> => {
+    const { error } = await supabase
+      .from("farmer_commodities")
+      .delete()
+      .eq("rsbsa_code", rsbsaCode);
 
     if (error) throw error;
   },
