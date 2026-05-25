@@ -62,12 +62,12 @@ export default function EditFarmer() {
       <div className="border-b-2 border-earth-200 bg-earth-50/90 rounded-2xl p-6">
         <div className="flex items-center justify-between gap-4 mb-4">
           <Button
-            onClick={() => navigate("/farmers", { replace: true })}
+            onClick={() => navigate(`/farmers/${id}`, { replace: true })}
             variant="secondary"
             className="flex items-center gap-2 hover:scale-105 active:scale-95"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Farmers
+            Back to Profile
           </Button>
         </div>
         <div className="flex items-center gap-4">
