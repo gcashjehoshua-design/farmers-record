@@ -269,7 +269,7 @@ export default function Login() {
         {/* Footer */}
         <div className="text-center mt-6 text-xs text-earth-200">
           <p>Farmers Record and Transactions System</p>
-          <p className="mt-1">© 2026 Passi City Agriculture Office</p>
+          <p className="mt-1">© City of Agriculture Office. All rights reserved.</p>
         </div>
       </div>
     </div>
