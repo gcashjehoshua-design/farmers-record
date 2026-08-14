@@ -36,7 +36,7 @@ export default function FarmersTable({ farmers, onDelete, commoditySummaryByRsbs
             <th className="px-6 py-4 text-left text-sm font-bold text-earth-800 uppercase tracking-wider">Commodities</th>
             <th className="px-6 py-4 text-left text-sm font-bold text-earth-800 uppercase tracking-wider">RSBSA Code</th>
             <th className="px-6 py-4 text-left text-sm font-bold text-earth-800 uppercase tracking-wider">Contact</th>
-            <th className="px-6 py-4 text-left text-sm font-bold text-earth-800 uppercase tracking-wider">Location</th>
+            <th className="px-6 py-4 text-left text-sm font-bold text-earth-800 uppercase tracking-wider">Address</th>
             <th className="px-6 py-4 text-center text-sm font-bold text-earth-800 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>

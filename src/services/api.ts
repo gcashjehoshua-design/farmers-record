@@ -97,6 +97,7 @@ const mapTransactionFromDb = (row: Database["public"]["Tables"]["transactions"][
   amount: row.amount !== null && row.amount !== undefined ? Number(row.amount) : undefined,
   description: row.description || undefined,
   notes: row.notes || undefined,
+  status: (row.status as "ongoing" | "done") || "ongoing",
   officeVisitAt: row.office_visit_at ? new Date(row.office_visit_at) : undefined,
   createdAt: new Date(row.created_at),
 });
@@ -108,6 +109,7 @@ const mapTransactionToDb = (transaction: Omit<Transaction, "id" | "createdAt">) 
   amount: transaction.amount ?? null,
   description: transaction.description || null,
   notes: transaction.notes || null,
+  status: transaction.status || "ongoing",
   office_visit_at: transaction.officeVisitAt ? transaction.officeVisitAt.toISOString() : new Date().toISOString(),
 });
 
@@ -402,6 +404,7 @@ export const transactionService = {
     if (transactionData.amount !== undefined) updateData.amount = transactionData.amount ?? null;
     if (transactionData.description !== undefined) updateData.description = transactionData.description || null;
     if (transactionData.notes !== undefined) updateData.notes = transactionData.notes || null;
+    if (transactionData.status !== undefined) updateData.status = transactionData.status;
     if (transactionData.officeVisitAt !== undefined) updateData.office_visit_at = transactionData.officeVisitAt ? transactionData.officeVisitAt.toISOString() : null;
 
     const { data, error } = await supabase

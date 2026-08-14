@@ -512,10 +512,10 @@ export default function ViewFarmer() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-earth-200 bg-earth-50">
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Date of Visit</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Transaction Type</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Description</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-earth-800">Notes</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-earth-800">Transaction Type</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-earth-800">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-earth-800">Date of Visit</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-earth-800">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -528,16 +528,7 @@ export default function ViewFarmer() {
                           index % 2 === 0 ? "bg-[#fffefb]" : "bg-earth-50/30"
                         }`}
                       >
-                        <td className="px-4 py-3 text-sm text-earth-700">
-                          {new Date(tx.officeVisitAt || tx.createdAt).toLocaleDateString("en-PH", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </td>
-                        <td className="px-4 py-3">
+                        <td className="px-6 py-4">
                           <span
                             className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getTransactionTypeColor(
                               tx.transactionType
@@ -546,10 +537,23 @@ export default function ViewFarmer() {
                             {tx.transactionType}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-earth-600 max-w-xs truncate" title={tx.description || ""}>
-                          {tx.description || "-"}
+                        <td className="px-6 py-4">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                            tx.status === "done"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}>
+                            {tx.status === "done" ? "Done" : "Ongoing"}
+                          </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-earth-600 max-w-xs truncate" title={tx.notes || ""}>
+                        <td className="px-6 py-4 text-sm text-earth-700">
+                          {new Date(tx.officeVisitAt || tx.createdAt).toLocaleDateString("en-PH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-earth-600 max-w-md" title={tx.notes || ""}>
                           {tx.notes || "-"}
                         </td>
                       </tr>

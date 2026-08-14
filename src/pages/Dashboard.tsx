@@ -851,7 +851,7 @@ export default function Dashboard() {
               <CardContent className="p-6">
                 <div className="overflow-y-auto pr-2 custom-scrollbar max-h-96">
                   <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={barangayChartData} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                    <BarChart data={barangayChartData} margin={{ top: 28, right: 20, bottom: 10, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                       <XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" height={70} tick={{ fontSize: 11, fill: '#4b5563', fontWeight: 500 }} axisLine={{ stroke: '#9ca3af' }} tickLine={false} dy={0} />
                       <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} dx={-10} />
@@ -865,6 +865,13 @@ export default function Dashboard() {
                         {barangayChartData.map((_entry, index) => (
                           <Cell key={`cell-${index}`} fill={BARANGAY_COLORS[index % BARANGAY_COLORS.length]} />
                         ))}
+                        <LabelList
+                          dataKey="value"
+                          position="top"
+                          fill="#0f766e"
+                          fontSize={11}
+                          fontWeight={600}
+                        />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -994,7 +1001,32 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Gender Checkboxes */}
                 <div className="space-y-3 p-4 bg-farm-50/50 rounded-lg border border-farm-200">
-                  <h3 className="font-semibold text-farm-700 text-base mb-3">Gender</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-farm-700 text-base">Gender</h3>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPrintFilters(prev => ({
+                          ...prev,
+                          genders: Object.fromEntries(Object.keys(prev.genders).map(gender => [gender, true]))
+                        }))}
+                        className="text-xs font-semibold text-farm-700 hover:text-farm-800 underline"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-gray-400">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setPrintFilters(prev => ({
+                          ...prev,
+                          genders: Object.fromEntries(Object.keys(prev.genders).map(gender => [gender, false]))
+                        }))}
+                        className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
                   {Object.entries(printFilters.genders).map(([gender, checked]) => (
                     <label key={gender} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
                       <input
@@ -1016,7 +1048,32 @@ export default function Dashboard() {
                 {/* Farm Type Checkboxes */}
                 {Object.keys(printFilters.farmTypes).length > 0 && (
                   <div className="space-y-3 p-4 bg-harvest-50/50 rounded-lg border border-harvest-200">
-                    <h3 className="font-semibold text-harvest-700 text-base mb-3">Farm Type</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-harvest-700 text-base">Farm Type</h3>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPrintFilters(prev => ({
+                            ...prev,
+                            farmTypes: Object.fromEntries(Object.keys(prev.farmTypes).map(type => [type, true]))
+                          }))}
+                          className="text-xs font-semibold text-harvest-700 hover:text-harvest-800 underline"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-gray-400">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setPrintFilters(prev => ({
+                            ...prev,
+                            farmTypes: Object.fromEntries(Object.keys(prev.farmTypes).map(type => [type, false]))
+                          }))}
+                          className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                        >
+                          Deselect All
+                        </button>
+                      </div>
+                    </div>
                     {Object.entries(printFilters.farmTypes).map(([farmType, checked]) => (
                       <label key={farmType} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
                         <input
@@ -1040,7 +1097,32 @@ export default function Dashboard() {
               {/* Agency & Barangay in separate sections */}
               {Object.keys(printFilters.agencies).length > 0 && (
                 <div className="space-y-3 p-4 bg-sky-50/50 rounded-lg border border-sky-200">
-                  <h3 className="font-semibold text-sky-700 text-base mb-3">Agency</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-sky-700 text-base">Agency</h3>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPrintFilters(prev => ({
+                          ...prev,
+                          agencies: Object.fromEntries(Object.keys(prev.agencies).map(agency => [agency, true]))
+                        }))}
+                        className="text-xs font-semibold text-sky-700 hover:text-sky-800 underline"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-gray-400">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setPrintFilters(prev => ({
+                          ...prev,
+                          agencies: Object.fromEntries(Object.keys(prev.agencies).map(agency => [agency, false]))
+                        }))}
+                        className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
                   <div className="max-h-40 overflow-y-auto space-y-2">
                     {Object.entries(printFilters.agencies).map(([org, checked]) => (
                       <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">
@@ -1065,7 +1147,32 @@ export default function Dashboard() {
               {/* Barangay Checkboxes */}
               {Object.keys(printFilters.barangays).length > 0 && (
                 <div className="space-y-3 p-4 bg-earth-50/50 rounded-lg border border-earth-200">
-                  <h3 className="font-semibold text-earth-700 text-base mb-3">Barangay</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-earth-700 text-base">Barangay</h3>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPrintFilters(prev => ({
+                          ...prev,
+                          barangays: Object.fromEntries(Object.keys(prev.barangays).map(barangay => [barangay, true]))
+                        }))}
+                        className="text-xs font-semibold text-earth-700 hover:text-earth-800 underline"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-gray-400">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setPrintFilters(prev => ({
+                          ...prev,
+                          barangays: Object.fromEntries(Object.keys(prev.barangays).map(barangay => [barangay, false]))
+                        }))}
+                        className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
                   <div className="max-h-40 overflow-y-auto space-y-2">
                     {Object.entries(printFilters.barangays).map(([barangay, checked]) => (
                       <label key={barangay} className="flex items-center gap-3 cursor-pointer hover:bg-white/70 p-2 rounded transition-colors">

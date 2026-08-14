@@ -91,6 +91,7 @@ export default function RecordTransaction() {
         rsbsaCode: selectedFarmer.rsbsaCode,
         transactionType,
         notes: notes || undefined,
+        status: "ongoing",
       });
       success(`Transaction recorded for ${formatFarmerDisplayName(selectedFarmer)}!`);
       handleReset();

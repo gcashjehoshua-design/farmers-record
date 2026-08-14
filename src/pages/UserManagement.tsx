@@ -8,10 +8,9 @@ import { Shield, UserPlus, Users, Trash2, ToggleLeft, ToggleRight, Lock, AlertTr
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function UserManagement() {
-  const { user, users, createUser, updateUserRole, toggleUserActive, deleteUser } = useAuth();
+  const { user, users, createUser, toggleUserActive, deleteUser } = useAuth();
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
-  const [role, setRole] = useState<"admin" | "staff">("staff");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -68,7 +67,7 @@ export default function UserManagement() {
       await createUser({
         fullName,
         username,
-        role,
+        role: "staff",
         password,
       });
       setFormSuccess("User account created successfully.");
@@ -76,7 +75,6 @@ export default function UserManagement() {
       setUsername("");
       setPassword("");
       setConfirmPassword("");
-      setRole("staff");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create user.";
       setFormError(message);
@@ -131,7 +129,7 @@ export default function UserManagement() {
                 User Management
               </h1>
               <p className="text-base md:text-lg text-gray-700">
-                Create and manage administrator and staff accounts.
+                Create and manage staff accounts. Only one administrator account exists in the system.
               </p>
             </div>
           </div>
@@ -149,7 +147,7 @@ export default function UserManagement() {
               <div>
                 <CardTitle className="text-2xl font-display">Create New User</CardTitle>
                 <CardDescription className="text-base">
-                  Add a new administrator or staff account to the system.
+                  Add a new staff account to the system.
                 </CardDescription>
               </div>
             </div>
@@ -197,20 +195,7 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <label className="block text-sm font-semibold text-earth-800 mb-1.5">
-                    Role
-                  </label>
-                  <select
-                    className="input-modern h-14 w-full text-base px-4"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as "admin" | "staff")}
-                  >
-                    <option value="staff">Staff</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="block text-sm font-semibold text-earth-800 mb-1.5">
                     Password
@@ -323,18 +308,21 @@ export default function UserManagement() {
                           <TableCell className="py-3 text-sm">
                             {u.username}
                           </TableCell>
-                          <TableCell className="py-3 text-sm capitalize">
-                            <select
-                              className="input-modern h-11 text-sm px-4 w-full"
-                              value={u.role}
-                              onChange={(e) =>
-                                updateUserRole(u.id, e.target.value as "admin" | "staff")
-                              }
-                              disabled={isSelf}
+                          <TableCell className="py-3 text-sm">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                                u.role === "admin"
+                                  ? "bg-farm-50 text-farm-700 border-farm-200"
+                                  : "bg-earth-50 text-earth-700 border-earth-200"
+                              }`}
                             >
-                              <option value="staff">Staff</option>
-                              <option value="admin">Admin</option>
-                            </select>
+                              {u.role === "admin" ? (
+                                <Shield className="w-3.5 h-3.5" />
+                              ) : (
+                                <Users className="w-3.5 h-3.5" />
+                              )}
+                              <span className="capitalize">{u.role}</span>
+                            </span>
                           </TableCell>
                           <TableCell className="py-3 text-center">
                             <span

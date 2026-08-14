@@ -31,18 +31,25 @@ export default function TransactionHistory() {
   const { toasts, success, error: showError } = useToast();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === "admin";
+  const isStaff = user?.role === "staff";
+  const canEditStatus = isAdmin || isStaff;
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [selectedAgency, setSelectedAgency] = useState<string | null>(null);
+  const [selectedTransactionType, setSelectedTransactionType] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [printFilters, setPrintFilters] = useState<{
     barangays: { [key: string]: boolean };
     agencies: { [key: string]: boolean };
     transactionTypes: { [key: string]: boolean };
+    statuses: { [key: string]: boolean };
   }>({
     barangays: {},
     agencies: {},
     transactionTypes: {},
+    statuses: {},
   });
 
   // Get unique barangays and agencies
@@ -77,6 +84,7 @@ export default function TransactionHistory() {
         barangays: Object.fromEntries(allBarangays.map((barangay) => [barangay, true])),
         agencies: Object.fromEntries(allAgencies.map((agency) => [agency, true])),
         transactionTypes: Object.fromEntries(transactionTypes.map((type) => [type, true])),
+        statuses: { ongoing: true, done: true },
       });
     }
   }, [isPrintDialogOpen, allBarangays, allAgencies, transactionTypes]);
@@ -89,10 +97,12 @@ export default function TransactionHistory() {
 
       const barangayMatch = !selectedBarangay || farmer.farmerAddress1 === selectedBarangay;
       const agencyMatch = !selectedAgency || farmer.agency === selectedAgency;
+      const transactionTypeMatch = !selectedTransactionType || tx.transactionType === selectedTransactionType;
+      const statusMatch = !selectedStatus || tx.status === selectedStatus;
 
-      return barangayMatch && agencyMatch;
+      return barangayMatch && agencyMatch && transactionTypeMatch && statusMatch;
     });
-  }, [sortedTransactions, farmers, selectedBarangay, selectedAgency]);
+  }, [sortedTransactions, farmers, selectedBarangay, selectedAgency, selectedTransactionType, selectedStatus]);
 
   const transactionTypeColors: Record<string, string> = {
     "Loan": "bg-blue-100 text-blue-700",
@@ -115,8 +125,9 @@ export default function TransactionHistory() {
       const barangaySelected = printFilters.barangays[farmer.farmerAddress1 || ""];
       const agencySelected = printFilters.agencies[farmer.agency || ""];
       const transactionTypeSelected = printFilters.transactionTypes[tx.transactionType || ""];
+      const statusSelected = printFilters.statuses[tx.status || "ongoing"];
 
-      return barangaySelected && agencySelected && transactionTypeSelected;
+      return barangaySelected && agencySelected && transactionTypeSelected && statusSelected;
     });
 
     if (filtered.length === 0) {
@@ -143,6 +154,12 @@ export default function TransactionHistory() {
       .map(([type]) => type);
     if (selectedTypes.length > 0 && selectedTypes.length < transactionTypes.length) 
       appliedFiltersList.push(`Transaction Type: ${selectedTypes.join(", ")}`);
+
+    const selectedStatuses = Object.entries(printFilters.statuses)
+      .filter(([_, selected]) => selected)
+      .map(([status]) => status === "done" ? "Done" : "Ongoing");
+    if (selectedStatuses.length > 0 && selectedStatuses.length < 2)
+      appliedFiltersList.push(`Status: ${selectedStatuses.join(", ")}`);
 
     const transactionsWithNames = filtered.map(tx => {
       const farmer = farmers.find(f => f.rsbsaCode === tx.rsbsaCode);
@@ -185,6 +202,26 @@ export default function TransactionHistory() {
       showError("Failed to delete transaction. Please try again.");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleStatusChange = async (transactionId: string, newStatus: "ongoing" | "done") => {
+    if (!canEditStatus) {
+      showError("Only administrators and staff can update transaction status.");
+      return;
+    }
+
+    setUpdatingStatusId(transactionId);
+    try {
+      await transactionService.update(transactionId, { status: newStatus });
+      success(`Transaction status updated to ${newStatus}!`);
+      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      await refetchTransactions();
+    } catch (e) {
+      console.error(e);
+      showError("Failed to update transaction status. Please try again.");
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -232,7 +269,7 @@ export default function TransactionHistory() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Barangay</label>
                 <select
@@ -263,8 +300,35 @@ export default function TransactionHistory() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Transaction Type</label>
+                <select
+                  value={selectedTransactionType || ""}
+                  onChange={(e) => setSelectedTransactionType(e.target.value || null)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                >
+                  <option value="">All Types</option>
+                  {transactionTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                <select
+                  value={selectedStatus || ""}
+                  onChange={(e) => setSelectedStatus(e.target.value || null)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="done">Done</option>
+                </select>
+              </div>
             </div>
-            {(selectedBarangay || selectedAgency) && (
+            {(selectedBarangay || selectedAgency || selectedTransactionType || selectedStatus) && (
               <div className="mt-4 flex gap-2 flex-wrap">
                 {selectedBarangay && (
                   <button
@@ -281,6 +345,24 @@ export default function TransactionHistory() {
                     className="inline-flex items-center gap-2 px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium hover:bg-sky-200 transition-colors"
                   >
                     Agency: {selectedAgency}
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                {selectedTransactionType && (
+                  <button
+                    onClick={() => setSelectedTransactionType(null)}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium hover:bg-sky-200 transition-colors"
+                  >
+                    Type: {selectedTransactionType}
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                {selectedStatus && (
+                  <button
+                    onClick={() => setSelectedStatus(null)}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium hover:bg-sky-200 transition-colors"
+                  >
+                    Status: {selectedStatus}
                     <X className="w-4 h-4" />
                   </button>
                 )}
@@ -322,13 +404,14 @@ export default function TransactionHistory() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-gray-200 bg-gray-50">
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Farmer Name</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Barangay</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Agency</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Transaction Type</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date of Visit</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Notes</th>
-                      {isAdmin && <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Actions</th>}
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">Farmer Name</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">Barangay</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">Agency</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">Transaction Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">Status</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">Date of Visit</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">Notes</th>
+                      {isAdmin && <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 whitespace-nowrap">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -351,6 +434,31 @@ export default function TransactionHistory() {
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getTransactionTypeColor(tx.transactionType)}`}>
                               {tx.transactionType}
                             </span>
+                          </td>
+                          <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                            {canEditStatus ? (
+                              <select
+                                value={tx.status}
+                                onChange={(e) => handleStatusChange(tx.id, e.target.value as "ongoing" | "done")}
+                                disabled={updatingStatusId === tx.id}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold border-0 cursor-pointer transition-colors ${
+                                  tx.status === "done"
+                                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                    : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                                } ${updatingStatusId === tx.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                              >
+                                <option value="ongoing">Ongoing</option>
+                                <option value="done">Done</option>
+                              </select>
+                            ) : (
+                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                                tx.status === "done"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-orange-100 text-orange-700"
+                              }`}>
+                                {tx.status === "done" ? "Done" : "Ongoing"}
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">
                             {new Date(tx.officeVisitAt || tx.createdAt).toLocaleDateString('en-PH', {
@@ -414,10 +522,35 @@ export default function TransactionHistory() {
                   {/* Transaction Type Checkboxes */}
                   {transactionTypes.length > 0 && (
                     <div className="space-y-4 p-6 bg-farm-50 border-2 border-farm-100 rounded-2xl shadow-inner">
-                      <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
-                        <Filter className="w-4 h-4 text-farm-600" />
-                        Transaction Type
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
+                          <Filter className="w-4 h-4 text-farm-600" />
+                          Transaction Type
+                        </h3>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPrintFilters(prev => ({
+                              ...prev,
+                              transactionTypes: Object.fromEntries(transactionTypes.map(type => [type, true]))
+                            }))}
+                            className="text-xs font-semibold text-farm-700 hover:text-farm-800 underline"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-gray-400">|</span>
+                          <button
+                            type="button"
+                            onClick={() => setPrintFilters(prev => ({
+                              ...prev,
+                              transactionTypes: Object.fromEntries(transactionTypes.map(type => [type, false]))
+                            }))}
+                            className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {transactionTypes.map((type) => (
                           <label key={type} className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">
@@ -441,14 +574,102 @@ export default function TransactionHistory() {
                     </div>
                   )}
 
+                  {/* Status Filter */}
+                  <div className="space-y-4 p-6 bg-farm-50 border-2 border-farm-100 rounded-2xl shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
+                        <Filter className="w-4 h-4 text-farm-600" />
+                        Status
+                      </h3>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPrintFilters(prev => ({
+                            ...prev,
+                            statuses: { ongoing: true, done: true }
+                          }))}
+                          className="text-xs font-semibold text-farm-700 hover:text-farm-800 underline"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-gray-400">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setPrintFilters(prev => ({
+                            ...prev,
+                            statuses: { ongoing: false, done: false }
+                          }))}
+                          className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                        >
+                          Deselect All
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={printFilters.statuses?.ongoing || false}
+                          onChange={(e) =>
+                            setPrintFilters((prev) => ({
+                              ...prev,
+                              statuses: { ...prev.statuses, ongoing: e.target.checked },
+                            }))
+                          }
+                          className="w-5 h-5 rounded-md cursor-pointer accent-farm-600 border-farm-300 bg-white"
+                        />
+                        <span className="text-sm text-earth-700 font-semibold group-hover:text-farm-700 transition-colors">Ongoing</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={printFilters.statuses?.done || false}
+                          onChange={(e) =>
+                            setPrintFilters((prev) => ({
+                              ...prev,
+                              statuses: { ...prev.statuses, done: e.target.checked },
+                            }))
+                          }
+                          className="w-5 h-5 rounded-md cursor-pointer accent-farm-600 border-farm-300 bg-white"
+                        />
+                        <span className="text-sm text-earth-700 font-semibold group-hover:text-farm-700 transition-colors">Done</span>
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Agency Checkboxes */}
                     {Object.keys(printFilters.agencies).length > 0 && (
                       <div className="space-y-4 p-6 bg-farm-50 border-2 border-farm-100 rounded-2xl shadow-inner">
-                        <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
-                          <Filter className="w-4 h-4 text-farm-600" />
-                          Agencies
-                        </h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
+                            <Filter className="w-4 h-4 text-farm-600" />
+                            Agencies
+                          </h3>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPrintFilters(prev => ({
+                                ...prev,
+                                agencies: Object.fromEntries(Object.keys(prev.agencies).map(agency => [agency, true]))
+                              }))}
+                              className="text-xs font-semibold text-farm-700 hover:text-farm-800 underline"
+                            >
+                              Select All
+                            </button>
+                            <span className="text-gray-400">|</span>
+                            <button
+                              type="button"
+                              onClick={() => setPrintFilters(prev => ({
+                                ...prev,
+                                agencies: Object.fromEntries(Object.keys(prev.agencies).map(agency => [agency, false]))
+                              }))}
+                              className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                            >
+                              Deselect All
+                            </button>
+                          </div>
+                        </div>
                         <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                           {Object.entries(printFilters.agencies).map(([org, checked]) => (
                             <label key={org} className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">
@@ -473,10 +694,35 @@ export default function TransactionHistory() {
                     {/* Barangay Checkboxes */}
                     {Object.keys(printFilters.barangays).length > 0 && (
                       <div className="space-y-4 p-6 bg-farm-50 border-2 border-farm-100 rounded-2xl shadow-inner">
-                        <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
-                          <Filter className="w-4 h-4 text-farm-600" />
-                          Barangays
-                        </h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-earth-800 text-base flex items-center gap-2 px-1">
+                            <Filter className="w-4 h-4 text-farm-600" />
+                            Barangays
+                          </h3>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPrintFilters(prev => ({
+                                ...prev,
+                                barangays: Object.fromEntries(Object.keys(prev.barangays).map(barangay => [barangay, true]))
+                              }))}
+                              className="text-xs font-semibold text-farm-700 hover:text-farm-800 underline"
+                            >
+                              Select All
+                            </button>
+                            <span className="text-gray-400">|</span>
+                            <button
+                              type="button"
+                              onClick={() => setPrintFilters(prev => ({
+                                ...prev,
+                                barangays: Object.fromEntries(Object.keys(prev.barangays).map(barangay => [barangay, false]))
+                              }))}
+                              className="text-xs font-semibold text-gray-600 hover:text-gray-800 underline"
+                            >
+                              Deselect All
+                            </button>
+                          </div>
+                        </div>
                         <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                           {Object.entries(printFilters.barangays).map(([barangay, checked]) => (
                             <label key={barangay} className="flex items-center gap-3 cursor-pointer hover:bg-white p-3 rounded-xl transition-all border border-transparent hover:border-farm-200 group shadow-sm">

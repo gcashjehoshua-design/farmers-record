@@ -55,6 +55,8 @@ export type FarmerCommodity = {
   updatedAt: Date;
 }
 
+export type TransactionStatus = "ongoing" | "done";
+
 export type Transaction = {
   id: string;
   rsbsaCode: string;
@@ -62,6 +64,7 @@ export type Transaction = {
   amount?: number;
   description?: string;
   notes?: string;
+  status: TransactionStatus;
   officeVisitAt?: Date;
   createdAt: Date;
 }

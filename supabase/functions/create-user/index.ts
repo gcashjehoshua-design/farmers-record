@@ -113,6 +113,17 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // The system has a single administrator account; only staff can be created
+    if (role !== "staff") {
+      return new Response(
+        JSON.stringify({ error: "Only staff accounts can be created" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // Admin client (without user's JWT) for creating the auth user
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: email.toLowerCase().trim(),

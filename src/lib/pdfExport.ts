@@ -324,7 +324,7 @@ export async function exportVisitsToPdf(
     if (y + rowHeight > bottom) {
       doc.addPage();
       await addPdfHeader(doc, "Visits Report (continued)");
-      y = top;
+      y = top + 6; // Add spacing after header
       drawHeader();
     }
 
@@ -422,7 +422,7 @@ export async function exportFarmersToPdf(
     if (y + rowHeight > bottom) {
       doc.addPage();
       await addPdfHeader(doc, "Farmers Record List Report (continued)");
-      y = top;
+      y = top + 6; // Add spacing after header
       drawHeader();
     }
 
@@ -464,8 +464,8 @@ export async function exportProfileTransactionsToPdf(
     return;
   }
 
-  const colWidths = [62, 34, 34, 42, 30, 65];
-  const headers = ["Farmer Name", "Barangay", "Agency", "Transaction Type", "Date of Visit", "Notes"];
+  const colWidths = [58, 32, 32, 40, 24, 24, 57];
+  const headers = ["Farmer Name", "Barangay", "Agency", "Transaction Type", "Status", "Date of Visit", "Notes"];
   const lineHeight = 4;
   const cellPaddingX = 2;
   const cellPaddingTop = 3;
@@ -490,6 +490,7 @@ export async function exportProfileTransactionsToPdf(
       farmerMeta?.barangay || "-",
       farmerMeta?.agency || "-",
       tx.transactionType || "-",
+      tx.status === "done" ? "Done" : "Ongoing",
       dateStr,
       tx.notes || "-",
     ];
@@ -502,7 +503,7 @@ export async function exportProfileTransactionsToPdf(
     if (y + rowHeight > bottom) {
       doc.addPage();
       await addPdfHeader(doc, "Transaction History Report (continued)");
-      y = top;
+      y = top + 6; // Add spacing after header
       drawHeader();
     }
 
@@ -541,7 +542,7 @@ export async function exportAllTransactionsToPdf(
       if (y > bottom - 10) {
         doc.addPage();
         await addPdfHeader(doc, "Transaction History Report (continued)");
-        y = top;
+        y = top + 6; // Add spacing after header
       }
       doc.text(`• ${filter}`, MARGIN + 4, y);
       y += 5;
@@ -564,8 +565,8 @@ export async function exportAllTransactionsToPdf(
   }
 
   // Landscape A4: 297mm width -> 267mm usable width with 15mm margins.
-  const colWidths = [62, 34, 34, 42, 30, 65];
-  const headers = ["Farmer Name", "Barangay", "Agency", "Transaction Type", "Date of Visit", "Notes"];
+  const colWidths = [58, 32, 32, 40, 24, 24, 57];
+  const headers = ["Farmer Name", "Barangay", "Agency", "Transaction Type", "Status", "Date of Visit", "Notes"];
   const contentWidth = colWidths.reduce((a, b) => a + b, 0);
   const lineHeight = 4;
   const cellPaddingX = 2;
@@ -602,6 +603,7 @@ export async function exportAllTransactionsToPdf(
       tx.barangay || "-",
       tx.agency || "-",
       tx.transactionType || "-",
+      tx.status === "done" ? "Done" : "Ongoing",
       dateStr,
       tx.notes || "-",
     ];
@@ -615,7 +617,7 @@ export async function exportAllTransactionsToPdf(
     if (y + rowHeight > bottom) {
       doc.addPage();
       await addPdfHeader(doc, "Transaction History Report (continued)");
-      y = top;
+      y = top + 6; // Add spacing after header
       drawHeader();
     }
 
@@ -692,7 +694,7 @@ export async function exportFilteredFarmersToPdf(
     if (y > CONTENT_BOTTOM - ROW_HEIGHT) {
       doc.addPage();
       await addPdfHeader(doc, "Farmers Record List Report (continued)");
-      y = CONTENT_TOP;
+      y = CONTENT_TOP + 6; // Add spacing after header
     }
     
     doc.setFontSize(BODY_FONT);

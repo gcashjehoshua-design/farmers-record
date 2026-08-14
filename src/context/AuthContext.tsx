@@ -217,9 +217,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setUsers([]);
       },
-      createUser: async ({ fullName, username, role, password }) => {
+      createUser: async ({ fullName, username, role: _role, password }) => {
         if (!user || user.role !== "admin") {
           throw new Error("Only admin users can create accounts.");
+        }
+        if (_role !== "staff") {
+          throw new Error("Only staff accounts can be created. The system has a single administrator account.");
         }
 
         const email = getEmailFromUsername(username);
@@ -229,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const { error: rpcError } = await (supabase as any).rpc("admin_create_user", {
             p_full_name: fullName.trim(),
             p_email: email,
-            p_role: role,
+            p_role: "staff",
             p_password: password,
           });
 
@@ -248,6 +251,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateUserRole: async (id, role) => {
         if (!user || user.role !== "admin") {
           throw new Error("Only admin users can update roles.");
+        }
+        if (role === "admin") {
+          throw new Error("The system has a single administrator account. Other accounts must remain staff.");
         }
 
         const { error } = await (supabase as any)

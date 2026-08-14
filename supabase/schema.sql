@@ -89,10 +89,12 @@ CREATE TABLE transactions (
   amount DECIMAL(12, 2),
   description TEXT,
   notes TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'ongoing',
   office_visit_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  FOREIGN KEY (rsbsa_code) REFERENCES farmers(rsbsa_code) ON DELETE CASCADE
+  FOREIGN KEY (rsbsa_code) REFERENCES farmers(rsbsa_code) ON DELETE CASCADE,
+  CONSTRAINT transactions_status_check CHECK (status IN ('ongoing', 'done'))
 );
 
 -- Create APP_USERS table for authentication roles and status
