@@ -157,6 +157,7 @@ export interface Database {
           amount: number | null;
           description: string | null;
           notes: string | null;
+          status: string;
           office_visit_at: string;
           created_at: string;
         };
@@ -167,6 +168,7 @@ export interface Database {
           amount?: number | null;
           description?: string | null;
           notes?: string | null;
+          status?: string;
           office_visit_at?: string;
           created_at?: string;
         };
@@ -177,6 +179,7 @@ export interface Database {
           amount?: number | null;
           description?: string | null;
           notes?: string | null;
+          status?: string;
           office_visit_at?: string | null;
           created_at?: string;
         };
