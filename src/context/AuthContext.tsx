@@ -8,6 +8,10 @@ export interface AppUser {
   id: string;
   authUserId: string;
   fullName: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  birthdate: string | null;
   username: string;
   role: UserRole;
   isActive: boolean;
@@ -20,7 +24,8 @@ interface AuthContextValue {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  createUser: (input: { fullName: string; username: string; role: UserRole; password: string }) => Promise<void>;
+  createUser: (input: { firstName: string; middleName?: string; lastName: string; birthdate?: string; username: string; role: UserRole; password: string }) => Promise<void>;
+  updateProfile: (input: { firstName: string; middleName?: string; lastName: string; birthdate?: string }) => Promise<void>;
   updateUserRole: (id: string, role: UserRole) => Promise<void>;
   toggleUserActive: (id: string) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
@@ -35,6 +40,10 @@ function mapRowToAppUser(row: AppUserRow): AppUser {
     id: row.id,
     authUserId: row.auth_user_id,
     fullName: row.full_name,
+    firstName: row.first_name || row.full_name.split(" ")[0] || "",
+    middleName: row.middle_name || "",
+    lastName: row.last_name || row.full_name.split(" ").slice(1).join(" ") || row.full_name,
+    birthdate: row.birthdate,
     username: row.email.replace("@passicity.gov.ph", ""),
     role: (row.role as UserRole) ?? "staff",
     isActive: row.is_active,
@@ -77,6 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshCurrentUserAndUsers = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setUser(null);
+      setUsers([]);
+      return;
+    }
+
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError) {
       console.error("Failed to get auth user:", authError);
@@ -123,6 +139,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         (authUser.user_metadata && (authUser.user_metadata.full_name as string)) ||
         authUser.email ||
         "User";
+      const nameParts = fullName.trim().split(/\s+/).filter(Boolean);
+      const firstName = nameParts[0] || "User";
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : firstName;
+      const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(" ") : null;
 
       // Retry logic with exponential backoff for race condition on new device login
       let insertData;
@@ -137,6 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             auth_user_id: authUser.id,
             email: authUser.email ?? "",
             full_name: fullName,
+            first_name: firstName,
+            middle_name: middleName,
+            last_name: lastName,
             role,
             is_active: true,
           })
@@ -217,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setUsers([]);
       },
-      createUser: async ({ fullName, username, role: _role, password }) => {
+      createUser: async ({ firstName, middleName, lastName, birthdate, username, role: _role, password }) => {
         if (!user || user.role !== "admin") {
           throw new Error("Only admin users can create accounts.");
         }
@@ -226,6 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const email = getEmailFromUsername(username);
+        const fullName = [firstName, middleName, lastName].map((part) => part?.trim()).filter(Boolean).join(" ");
 
         // Call PostgreSQL RPC function to create user
         try {
@@ -240,6 +264,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw new Error(rpcError.message || "Failed to create user");
           }
 
+          const { error: profileError } = await (supabase as any)
+            .from("app_users")
+            .update({
+              first_name: firstName.trim(),
+              middle_name: middleName?.trim() || null,
+              last_name: lastName.trim(),
+              birthdate: birthdate || null,
+            })
+            .eq("email", email);
+          if (profileError) throw new Error(profileError.message || "Account was created, but its profile could not be completed.");
+
           await refreshCurrentUserAndUsers();
         } catch (error) {
           if (error instanceof Error) {
@@ -247,6 +282,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           throw new Error("Failed to create user - unexpected error");
         }
+      },
+      updateProfile: async ({ firstName, middleName, lastName, birthdate }) => {
+        if (!user) throw new Error("You must be signed in.");
+        const { error } = await (supabase as any)
+          .from("app_users")
+          .update({
+            first_name: firstName.trim(),
+            middle_name: middleName?.trim() || null,
+            last_name: lastName.trim(),
+            birthdate: birthdate || null,
+          })
+          .eq("id", user.id);
+        if (error) throw new Error(error.message || "Failed to update profile.");
+        await refreshCurrentUserAndUsers();
       },
       updateUserRole: async (id, role) => {
         if (!user || user.role !== "admin") {
@@ -331,4 +380,3 @@ export function useAuthContext(): AuthContextValue {
   }
   return ctx;
 }
-

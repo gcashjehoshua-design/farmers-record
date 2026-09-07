@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -244,6 +244,12 @@ export default function Login() {
                 </label>
               </div>
 
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-sm font-semibold text-farm-700 hover:text-farm-900 hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+
               {/* Submit Button */}
               <Button
                 type="submit"
@@ -275,4 +281,3 @@ export default function Login() {
     </div>
   );
 }
-

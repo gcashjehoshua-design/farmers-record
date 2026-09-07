@@ -145,7 +145,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         {user && (
           <div className="mt-2 pt-2 border-t border-earth-200/80 flex items-center justify-between gap-3 text-xs">
             <div className="flex flex-col">
-              <span className="font-semibold text-earth-800">{user.fullName}</span>
+              <RouterLink to={`/users/${user.id}`} className="font-semibold text-earth-800 hover:text-farm-700 hover:underline" title="View my profile">{user.fullName}</RouterLink>
               <span className="text-earth-600 capitalize">{user.role}</span>
             </div>
             <button

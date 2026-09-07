@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,10 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function UserManagement() {
   const { user, users, createUser, toggleUserActive, deleteUser } = useAuth();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [birthdate, setBirthdate] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,7 +51,7 @@ export default function UserManagement() {
     setFormError(null);
     setFormSuccess(null);
 
-    if (!fullName.trim() || !username.trim() || !password) {
+    if (!firstName.trim() || !lastName.trim() || !birthdate || !username.trim() || !password) {
       setFormError("Please fill in all required fields.");
       return;
     }
@@ -65,13 +69,19 @@ export default function UserManagement() {
     try {
       setIsSubmitting(true);
       await createUser({
-        fullName,
+        firstName,
+        middleName,
+        lastName,
+        birthdate,
         username,
         role: "staff",
         password,
       });
       setFormSuccess("User account created successfully.");
-      setFullName("");
+      setFirstName("");
+      setMiddleName("");
+      setLastName("");
+      setBirthdate("");
       setUsername("");
       setPassword("");
       setConfirmPassword("");
@@ -165,18 +175,32 @@ export default function UserManagement() {
             )}
 
             <form className="space-y-4" onSubmit={handleCreateUser}>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <label className="block text-sm font-semibold text-earth-800 mb-1.5">
-                    Full name
+                    First Name
                   </label>
                   <Input
                     type="text"
                     className="input-modern h-11"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-earth-800 mb-1.5">Middle Name <span className="font-normal text-earth-500">(optional)</span></label>
+                  <Input type="text" className="input-modern h-11" value={middleName} onChange={(e) => setMiddleName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-earth-800 mb-1.5">Last Name</label>
+                  <Input type="text" className="input-modern h-11" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-semibold text-earth-800 mb-1.5">Birthdate</label>
+                  <Input type="date" className="input-modern h-11" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} max={new Date().toISOString().slice(0, 10)} required />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-earth-800 mb-1.5">
@@ -278,8 +302,9 @@ export default function UserManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[30%]">Name</TableHead>
-                    <TableHead className="w-[25%]">Username</TableHead>
+                    <TableHead className="w-[26%]">Name</TableHead>
+                    <TableHead className="w-[20%]">Username</TableHead>
+                    <TableHead className="w-[14%]">Birthdate</TableHead>
                     <TableHead className="w-[15%]">Role</TableHead>
                     <TableHead className="w-[12%] text-center">Status</TableHead>
                     <TableHead className="w-[18%] text-right">Actions</TableHead>
@@ -288,7 +313,7 @@ export default function UserManagement() {
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-6 text-center text-sm text-earth-600">
+                      <TableCell colSpan={6} className="py-6 text-center text-sm text-earth-600">
                         No users found.
                       </TableCell>
                     </TableRow>
@@ -299,7 +324,7 @@ export default function UserManagement() {
                         <TableRow key={u.id} className="hover:bg-earth-50/60">
                           <TableCell className="py-3">
                             <div className="flex flex-col">
-                              <span className="font-semibold text-earth-900">{u.fullName}</span>
+                              <Link to={`/users/${u.id}`} className="font-semibold text-earth-900 hover:text-farm-700 hover:underline">{u.fullName}</Link>
                               <span className="text-xs text-earth-500">
                                 Created {new Date(u.createdAt).toLocaleString()}
                               </span>
@@ -307,6 +332,9 @@ export default function UserManagement() {
                           </TableCell>
                           <TableCell className="py-3 text-sm">
                             {u.username}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm">
+                            {u.birthdate ? new Date(`${u.birthdate}T00:00:00`).toLocaleDateString("en-PH") : "—"}
                           </TableCell>
                           <TableCell className="py-3 text-sm">
                             <span

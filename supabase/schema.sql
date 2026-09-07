@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS farmer_commodities CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS farmers CASCADE;
+DROP TABLE IF EXISTS user_security_questions CASCADE;
 DROP TABLE IF EXISTS app_users CASCADE;
 
 -- Shared trigger function: drop only after no trigger references it
@@ -102,10 +103,27 @@ CREATE TABLE app_users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name VARCHAR(200) NOT NULL,
+  first_name VARCHAR(100),
+  middle_name VARCHAR(100),
+  last_name VARCHAR(100),
+  birthdate DATE,
   email TEXT NOT NULL UNIQUE,
   role VARCHAR(20) NOT NULL DEFAULT 'staff',
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE user_security_questions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL UNIQUE REFERENCES app_users(id) ON DELETE CASCADE,
+  question TEXT NOT NULL CHECK (char_length(trim(question)) BETWEEN 10 AND 200),
+  answer_hash TEXT NOT NULL,
+  answer_salt TEXT NOT NULL,
+  failed_attempts INTEGER NOT NULL DEFAULT 0,
+  locked_until TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create PROJECTS table for implemented/ongoing programs
@@ -161,10 +179,53 @@ CREATE TRIGGER update_projects_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+CREATE OR REPLACE FUNCTION sync_app_user_full_name()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NULLIF(trim(COALESCE(NEW.first_name, '')), '') IS NOT NULL
+     AND NULLIF(trim(COALESCE(NEW.last_name, '')), '') IS NOT NULL THEN
+    NEW.first_name := trim(NEW.first_name);
+    NEW.middle_name := NULLIF(trim(COALESCE(NEW.middle_name, '')), '');
+    NEW.last_name := trim(NEW.last_name);
+    NEW.full_name := concat_ws(' ', NEW.first_name, NEW.middle_name, NEW.last_name);
+  END IF;
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER sync_app_user_full_name_trigger
+BEFORE INSERT OR UPDATE OF first_name, middle_name, last_name ON app_users
+FOR EACH ROW EXECUTE FUNCTION sync_app_user_full_name();
+
+CREATE OR REPLACE FUNCTION enforce_self_profile_edits()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF OLD.first_name IS NULL AND OLD.last_name IS NULL AND OLD.birthdate IS NULL THEN
+    RETURN NEW;
+  END IF;
+  IF auth.uid() IS DISTINCT FROM OLD.auth_user_id AND (
+    NEW.first_name IS DISTINCT FROM OLD.first_name OR
+    NEW.middle_name IS DISTINCT FROM OLD.middle_name OR
+    NEW.last_name IS DISTINCT FROM OLD.last_name OR
+    NEW.birthdate IS DISTINCT FROM OLD.birthdate OR
+    NEW.full_name IS DISTINCT FROM OLD.full_name
+  ) THEN
+    RAISE EXCEPTION 'Only the account owner can edit personal profile details';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER enforce_self_profile_edits_trigger
+BEFORE UPDATE ON app_users
+FOR EACH ROW EXECUTE FUNCTION enforce_self_profile_edits();
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE farmers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_security_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for farmers table (authenticated users can read, all)
@@ -347,7 +408,7 @@ SELECT
 
 -- Grant permissions on app_users table to authenticated role (required for login/profile creation)
 GRANT SELECT, INSERT, UPDATE ON app_users TO authenticated;
+REVOKE ALL ON user_security_questions FROM anon, authenticated;
 
 -- Allow API roles to read analytics view (needed for dashboard total counts)
 GRANT SELECT ON dashboard_stats TO anon, authenticated;
-

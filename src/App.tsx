@@ -16,11 +16,12 @@ import RecordTransaction from "@/pages/RecordTransaction";
 import TransactionHistory from "@/pages/TransactionHistory";
 import ViewFarmer from "@/pages/ViewFarmer";
 import EditFarmer from "@/pages/EditFarmer";
-import Settings from "@/pages/Settings";
 import UserManagement from "@/pages/UserManagement";
+import UserProfile from "@/pages/UserProfile";
 import InactiveFarmers from "@/pages/InactiveFarmers";
 import Projects from "@/pages/Projects";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
 
 // Tailwind will provide global theming and styles.
 
@@ -45,8 +46,7 @@ function AppLayout() {
   else if (
     location.pathname.startsWith("/record-transaction") ||
     location.pathname.startsWith("/transaction-history") ||
-    location.pathname.startsWith("/projects") ||
-    location.pathname.startsWith("/settings")
+    location.pathname.startsWith("/projects")
   ) directPath = "/";
   else if (location.pathname.startsWith("/add-farmer")) directPath = "/farmers";
 
@@ -78,8 +78,8 @@ function AppLayout() {
             <Route path="/farmers/:id" element={<ViewFarmer />} />
             <Route path="/farmers" element={<FarmersList />} />
             <Route path="/inactive-farmers" element={<InactiveFarmers />} />
-            <Route path="/settings" element={<Settings />} />
             <Route path="/users" element={<UserManagement />} />
+            <Route path="/users/:id" element={<UserProfile />} />
           </Routes>
         </main>
         <Footer />
@@ -95,6 +95,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
               path="/*"
               element={
@@ -111,4 +112,3 @@ function App() {
 }
 
 export default App;
-
