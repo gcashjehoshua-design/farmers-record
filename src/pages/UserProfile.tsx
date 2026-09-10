@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, Pencil, Save, ShieldQuestion, UserRound } from "lucide-react";
+import { ArrowLeft, CalendarDays, Eye, EyeOff, Pencil, Save, ShieldQuestion, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export default function UserProfile() {
   const [answer, setAnswer] = useState("");
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   const [savingSecurity, setSavingSecurity] = useState(false);
+  const [showSecurityAnswer, setShowSecurityAnswer] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -123,7 +124,7 @@ export default function UserProfile() {
       {isOwnProfile && (
         <Card className="card-modern border-sky-200 overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-sky-50 to-sky-100 border-b-2 border-sky-200"><div className="flex items-center gap-3"><ShieldQuestion className="h-6 w-6 text-sky-700" /><div><CardTitle>Password Recovery</CardTitle><CardDescription>Set or replace your own security question.</CardDescription></div></div></CardHeader>
-          <CardContent className="p-6"><form className="space-y-4" onSubmit={saveSecurityQuestion}>{securityMessage && <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm">{securityMessage}</div>}<div><label className="text-sm font-semibold">Security Question</label><select className="mt-1 flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={questionChoice} onChange={(e) => setQuestionChoice(e.target.value)}>{SECURITY_QUESTIONS.map((question) => <option key={question}>{question}</option>)}</select></div>{questionChoice === "Custom question" && <div><label className="text-sm font-semibold">Your Question</label><Input className="mt-1 h-11" value={customQuestion} onChange={(e) => setCustomQuestion(e.target.value)} maxLength={200} required /></div>}<div><label className="text-sm font-semibold">Answer</label><Input type="password" autoComplete="off" className="mt-1 h-11" value={answer} onChange={(e) => setAnswer(e.target.value)} required /><p className="mt-1 text-xs text-earth-500">Answers are not case-sensitive and are stored securely.</p></div><Button className="btn-farm" disabled={savingSecurity}><ShieldQuestion className="mr-2 h-4 w-4" />{savingSecurity ? "Saving…" : "Save Security Question"}</Button></form></CardContent>
+          <CardContent className="p-6"><form className="space-y-4" onSubmit={saveSecurityQuestion}>{securityMessage && <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm">{securityMessage}</div>}<div><label className="text-sm font-semibold">Security Question</label><select className="mt-1 flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={questionChoice} onChange={(e) => setQuestionChoice(e.target.value)}>{SECURITY_QUESTIONS.map((question) => <option key={question}>{question}</option>)}</select></div>{questionChoice === "Custom question" && <div><label className="text-sm font-semibold">Your Question</label><Input className="mt-1 h-11" value={customQuestion} onChange={(e) => setCustomQuestion(e.target.value)} maxLength={200} required /></div>}<div><label className="text-sm font-semibold">Answer</label><div className="relative mt-1"><Input type={showSecurityAnswer ? "text" : "password"} autoComplete="off" className="h-11 pr-11" value={answer} onChange={(e) => setAnswer(e.target.value)} required /><button type="button" onClick={() => setShowSecurityAnswer((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-500 hover:text-earth-800" aria-label={showSecurityAnswer ? "Hide security answer" : "Show security answer"}>{showSecurityAnswer ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div><p className="mt-1 text-xs text-earth-500">Answers are not case-sensitive and are stored securely.</p></div><Button className="btn-farm" disabled={savingSecurity}><ShieldQuestion className="mr-2 h-4 w-4" />{savingSecurity ? "Saving…" : "Save Security Question"}</Button></form></CardContent>
         </Card>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, CheckCircle2, KeyRound } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,9 @@ export default function ForgotPassword() {
   const [answer, setAnswer] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -74,11 +77,22 @@ export default function ForgotPassword() {
           ) : !question ? (
             <form className="space-y-4" onSubmit={findQuestion}><div><label className="text-sm font-semibold">Username</label><Input className="mt-1 h-11" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" placeholder="Enter your username" /></div><Button className="btn-farm w-full" disabled={loading}>{loading ? "Checking…" : "Continue"}</Button></form>
           ) : (
-            <form className="space-y-4" onSubmit={resetPassword}><div className="rounded-lg border border-farm-200 bg-farm-50 p-3"><p className="text-xs font-semibold uppercase text-earth-500">Security Question</p><p className="mt-1 font-medium text-earth-900">{question}</p></div><div><label className="text-sm font-semibold">Answer</label><Input className="mt-1 h-11" value={answer} onChange={(e) => setAnswer(e.target.value)} autoComplete="off" required /></div><div><label className="text-sm font-semibold">New Password</label><Input type="password" className="mt-1 h-11" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required /></div><div><label className="text-sm font-semibold">Confirm New Password</label><Input type="password" className="mt-1 h-11" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" required /></div><Button className="btn-farm w-full" disabled={loading}>{loading ? "Updating…" : "Reset Password"}</Button><button type="button" className="w-full text-sm text-earth-600 hover:underline" onClick={() => { setQuestion(""); setAnswer(""); }}>Use a different account</button></form>
+            <form className="space-y-4" onSubmit={resetPassword}>
+              <div className="rounded-lg border border-farm-200 bg-farm-50 p-3"><p className="text-xs font-semibold uppercase text-earth-500">Security Question</p><p className="mt-1 font-medium text-earth-900">{question}</p></div>
+              <PasswordField label="Answer" value={answer} onChange={setAnswer} visible={showAnswer} onToggle={() => setShowAnswer((value) => !value)} autoComplete="off" />
+              <PasswordField label="New Password" value={password} onChange={setPassword} visible={showPassword} onToggle={() => setShowPassword((value) => !value)} autoComplete="new-password" />
+              <PasswordField label="Confirm New Password" value={confirmPassword} onChange={setConfirmPassword} visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} autoComplete="new-password" />
+              <Button className="btn-farm w-full" disabled={loading}>{loading ? "Updating…" : "Reset Password"}</Button>
+              <button type="button" className="w-full text-sm text-earth-600 hover:underline" onClick={() => { setQuestion(""); setAnswer(""); }}>Use a different account</button>
+            </form>
           )}
           {!complete && <Link to="/login" className="mt-5 flex items-center justify-center gap-2 text-sm font-medium text-earth-700 hover:underline"><ArrowLeft className="w-4 h-4" />Back to Sign In</Link>}
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function PasswordField({ label, value, onChange, visible, onToggle, autoComplete }: { label: string; value: string; onChange: (value: string) => void; visible: boolean; onToggle: () => void; autoComplete: string }) {
+  return <div><label className="text-sm font-semibold">{label}</label><div className="relative mt-1"><Input type={visible ? "text" : "password"} className="h-11 pr-11" value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} required /><button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-500 hover:text-earth-800" aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}>{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></div>;
 }
