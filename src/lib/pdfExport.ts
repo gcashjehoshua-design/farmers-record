@@ -635,7 +635,7 @@ export async function exportAllTransactionsToPdf(
 
 /** Export filtered farmers list to PDF */
 export async function exportFilteredFarmersToPdf(
-  farmers: Array<any>,
+  farmers: Farmer[],
   appliedFilters: string[]
 ): Promise<void> {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -702,8 +702,8 @@ export async function exportFilteredFarmersToPdf(
       truncateToFit(formatFarmerDisplayName(farmer) || "-", "name"),
       truncateToFit(farmer.gender || "-", "gender"),
       truncateToFit(farmer.farmType || "-", "type"),
-      truncateToFit(farmer.barangay || "-", "barangay"),
-      truncateToFit(farmer.organization || "-", "org"),
+      truncateToFit(farmer.farmerAddress1 || "-", "barangay"),
+      truncateToFit(farmer.agency || "-", "org"),
       truncateToFit(farmer.phone || "-", "phone"),
     ];
     

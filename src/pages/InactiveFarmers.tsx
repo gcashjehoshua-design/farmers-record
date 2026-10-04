@@ -73,7 +73,7 @@ export default function InactiveFarmers() {
     try {
       await updateFarmer.mutateAsync({ rsbsaCode: farmerToReactivate.rsbsaCode, data: { isActive: true } });
       success(`${display} has been reactivated.`);
-    } catch (e) {
+    } catch {
       showError("Failed to reactivate farmer.");
     } finally {
       setShowConfirmModal(false);

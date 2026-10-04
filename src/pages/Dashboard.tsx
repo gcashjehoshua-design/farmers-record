@@ -257,22 +257,22 @@ export default function Dashboard() {
 
       const appliedFiltersList = [];
       const selectedGenders = Object.entries(printFilters.genders)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([gender]) => gender);
       if (selectedGenders.length > 0) appliedFiltersList.push(`Gender: ${selectedGenders.join(", ")}`);
 
       const selectedFarmTypes = Object.entries(printFilters.farmTypes)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([type]) => type);
       if (selectedFarmTypes.length > 0) appliedFiltersList.push(`Farm Type: ${selectedFarmTypes.join(", ")}`);
 
       const selectedAgencies = Object.entries(printFilters.agencies)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([org]) => org);
       if (selectedAgencies.length > 0) appliedFiltersList.push(`Agency: ${selectedAgencies.join(", ")}`);
 
       const selectedBarangays = Object.entries(printFilters.barangays)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([barangay]) => barangay);
       if (selectedBarangays.length > 0) appliedFiltersList.push(`Barangay: ${selectedBarangays.join(", ")}`);
 

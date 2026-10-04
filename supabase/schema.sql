@@ -200,17 +200,43 @@ FOR EACH ROW EXECUTE FUNCTION sync_app_user_full_name();
 
 CREATE OR REPLACE FUNCTION enforce_self_profile_edits()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  actor_is_admin boolean := false;
 BEGIN
+  IF NEW.id IS DISTINCT FROM OLD.id
+     OR NEW.auth_user_id IS DISTINCT FROM OLD.auth_user_id
+     OR NEW.email IS DISTINCT FROM OLD.email THEN
+    RAISE EXCEPTION 'Account identity fields cannot be changed';
+  END IF;
+
+  IF auth.uid() = OLD.auth_user_id THEN
+    IF NEW.role IS DISTINCT FROM OLD.role
+       OR NEW.is_active IS DISTINCT FROM OLD.is_active THEN
+      RAISE EXCEPTION 'Users cannot change their own role or account status';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.app_users
+    WHERE auth_user_id = auth.uid()
+      AND role = 'admin'
+      AND is_active = true
+  ) INTO actor_is_admin;
+
+  IF NOT actor_is_admin THEN
+    RAISE EXCEPTION 'Only an active administrator can update another account';
+  END IF;
+
   IF OLD.first_name IS NULL AND OLD.last_name IS NULL AND OLD.birthdate IS NULL THEN
     RETURN NEW;
   END IF;
-  IF auth.uid() IS DISTINCT FROM OLD.auth_user_id AND (
-    NEW.first_name IS DISTINCT FROM OLD.first_name OR
-    NEW.middle_name IS DISTINCT FROM OLD.middle_name OR
-    NEW.last_name IS DISTINCT FROM OLD.last_name OR
-    NEW.birthdate IS DISTINCT FROM OLD.birthdate OR
-    NEW.full_name IS DISTINCT FROM OLD.full_name
-  ) THEN
+
+  IF NEW.first_name IS DISTINCT FROM OLD.first_name
+     OR NEW.middle_name IS DISTINCT FROM OLD.middle_name
+     OR NEW.last_name IS DISTINCT FROM OLD.last_name
+     OR NEW.birthdate IS DISTINCT FROM OLD.birthdate
+     OR NEW.full_name IS DISTINCT FROM OLD.full_name THEN
     RAISE EXCEPTION 'Only the account owner can edit personal profile details';
   END IF;
   RETURN NEW;
@@ -220,6 +246,42 @@ $$;
 CREATE TRIGGER enforce_self_profile_edits_trigger
 BEFORE UPDATE ON app_users
 FOR EACH ROW EXECUTE FUNCTION enforce_self_profile_edits();
+
+CREATE OR REPLACE FUNCTION enforce_app_user_admin_mutations()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  actor_is_admin boolean := false;
+BEGIN
+  IF auth.role() = 'service_role' THEN
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+    RETURN NEW;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.app_users
+    WHERE auth_user_id = auth.uid()
+      AND role = 'admin'
+      AND is_active = true
+  ) INTO actor_is_admin;
+
+  IF NOT actor_is_admin THEN
+    RAISE EXCEPTION 'Only an active administrator can create or delete accounts';
+  END IF;
+  IF TG_OP = 'DELETE' AND OLD.auth_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'The administrator cannot delete their own account';
+  END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER enforce_app_user_admin_insert_trigger
+BEFORE INSERT ON app_users
+FOR EACH ROW EXECUTE FUNCTION enforce_app_user_admin_mutations();
+
+CREATE TRIGGER enforce_app_user_admin_delete_trigger
+BEFORE DELETE ON app_users
+FOR EACH ROW EXECUTE FUNCTION enforce_app_user_admin_mutations();
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE farmers ENABLE ROW LEVEL SECURITY;

@@ -273,7 +273,18 @@ export interface Database {
       };
     };
     Functions: {
-      [_ in never]: never;
+      admin_create_user: {
+        Args: { p_email: string; p_full_name: string; p_password: string; p_role: string };
+        Returns: undefined;
+      };
+      admin_delete_user: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
+      has_security_question: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

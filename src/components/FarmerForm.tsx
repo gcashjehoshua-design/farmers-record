@@ -261,7 +261,7 @@ const DEFAULT_COMMODITIES = [
 ];
 
 export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) {
-  const isInactive = (initialData as any)?.isActive === false;
+  const isInactive = initialData?.isActive === false;
   const { toasts, error: showError } = useToast();
   const queryClient = useQueryClient();
   const isEditMode = !!initialData?.rsbsaCode;
@@ -360,7 +360,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
     }
   };
 
-  const FormField = ({
+  const renderFormField = ({
     label,
     name,
     required,
@@ -439,7 +439,7 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
     );
   };
 
-  const BoolRow = ({
+  const renderBoolRow = ({
     label,
     name,
     hint,
@@ -493,17 +493,11 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
               <p className="text-sm text-gray-600">Matches Excel: RSBSA CODE, FIRST / LAST / MIDDLE NAME</p>
             </div>
           </div>
-          <FormField
-            name="rsbsaCode"
-            label="RSBSA code"
-            required
-            placeholder="Unique farmer ID"
-            disabled={isEditMode}
-          />
+          {renderFormField({ name: "rsbsaCode", label: "RSBSA code", required: true, placeholder: "Unique farmer ID", disabled: isEditMode })}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <FormField name="firstName" label="First name" required placeholder="Juan" capitalizeFirstLetter />
-            <FormField name="middleName" label="Middle name" placeholder="Santos" capitalizeFirstLetter />
-            <FormField name="lastName" label="Last name" required placeholder="Dela Cruz" capitalizeFirstLetter />
+            {renderFormField({ name: "firstName", label: "First name", required: true, placeholder: "Juan", capitalizeFirstLetter: true })}
+            {renderFormField({ name: "middleName", label: "Middle name", placeholder: "Santos", capitalizeFirstLetter: true })}
+            {renderFormField({ name: "lastName", label: "Last name", required: true, placeholder: "Dela Cruz", capitalizeFirstLetter: true })}
           </div>
           <DisplayNamePreview control={control} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -521,9 +515,9 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
                 </div>
               )}
             />
-            <FormField name="birthdate" label="Birthdate" type="date" />
+            {renderFormField({ name: "birthdate", label: "Birthdate", type: "date" })}
           </div>
-          <FormField name="phone" label="Phone (optional)" placeholder="09XXXXXXXXX" />
+          {renderFormField({ name: "phone", label: "Phone (optional)", placeholder: "09XXXXXXXXX" })}
         </div>
 
         {/* Classifications — Excel YES/NO columns */}
@@ -538,13 +532,13 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <BoolRow name="isFarmer" label="Farmer" />
-            <BoolRow name="isFarmworker" label="Farmworker" />
-            <BoolRow name="isFisherfolk" label="Fisherfolk" />
-            <BoolRow name="isAgriyouth" label="Agriyouth" />
-            <BoolRow name="isIndigenousPeople" label="Indigenous people (IF IP)" />
-            <BoolRow name="isOrganicPractitioner" label="Organic practitioner" />
-            <BoolRow name="isArb" label="ARB" />
+            {renderBoolRow({ name: "isFarmer", label: "Farmer" })}
+            {renderBoolRow({ name: "isFarmworker", label: "Farmworker" })}
+            {renderBoolRow({ name: "isFisherfolk", label: "Fisherfolk" })}
+            {renderBoolRow({ name: "isAgriyouth", label: "Agriyouth" })}
+            {renderBoolRow({ name: "isIndigenousPeople", label: "Indigenous people (IF IP)" })}
+            {renderBoolRow({ name: "isOrganicPractitioner", label: "Organic practitioner" })}
+            {renderBoolRow({ name: "isArb", label: "ARB" })}
           </div>
         </div>
 
@@ -580,8 +574,8 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
               ))}
             </datalist>
           </div>
-          <FormField name="farmerAddress2" label="Farmer address 2 (Municipality / City)" placeholder="Passi City" />
-          <FormField name="farmerAddress3" label="Farmer address 3 (Province)" placeholder="Iloilo" />
+          {renderFormField({ name: "farmerAddress2", label: "Farmer address 2 (Municipality / City)", placeholder: "Passi City" })}
+          {renderFormField({ name: "farmerAddress3", label: "Farmer address 3 (Province)", placeholder: "Iloilo" })}
         </div>
 
         {/* Parcel */}
@@ -593,8 +587,8 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
             <h3 className="text-xl font-display font-bold text-gray-900">Parcel &amp; farm area</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField name="parcelArea" label="Parcel area" type="number" placeholder="hectares" />
-            <FormField name="cropArea" label="Crop area" type="number" placeholder="hectares" />
+            {renderFormField({ name: "parcelArea", label: "Parcel area", type: "number", placeholder: "hectares" })}
+            {renderFormField({ name: "cropArea", label: "Crop area", type: "number", placeholder: "hectares" })}
             <Controller
               name="farmType"
               control={control}
@@ -671,8 +665,8 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
         <div className="p-6 bg-gradient-to-br from-sky-50 to-white border-2 border-sky-100 rounded-2xl space-y-5 shadow-sm">
           <h3 className="text-xl font-display font-bold text-gray-900 border-b pb-2">Agency &amp; ownership</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField name="tribe" label="Tribe" />
-            <FormField name="agency" label="Agency" />
+            {renderFormField({ name: "tribe", label: "Tribe" })}
+            {renderFormField({ name: "agency", label: "Agency" })}
             <Controller
               name="ownershipType"
               control={control}
@@ -689,10 +683,10 @@ export default function FarmerForm({ onSuccess, initialData }: FarmerFormProps) 
                 </div>
               )}
             />
-            <FormField name="ownerName" label="Owner name" />
-            <FormField name="dateEncoded" label="Date encoded" type="date" />
+            {renderFormField({ name: "ownerName", label: "Owner name" })}
+            {renderFormField({ name: "dateEncoded", label: "Date encoded", type: "date" })}
           </div>
-          <FormField name="notes" label="Notes" multiline rows={4} placeholder="Additional notes" />
+          {renderFormField({ name: "notes", label: "Notes", multiline: true, rows: 4, placeholder: "Additional notes" })}
         </div>
 
         {/* Commodities (same as Excel rows) */}

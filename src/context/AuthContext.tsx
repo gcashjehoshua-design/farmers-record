@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, _session) => {
+    } = supabase.auth.onAuthStateChange(() => {
       void refreshCurrentUserAndUsers();
     });
 
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Find or create app_users profile for this auth user
-    const { data: rows, error: profileError } = await (supabase as any)
+    const { data: rows, error: profileError } = await supabase
       .from("app_users")
       .select("*")
       .eq("auth_user_id", authUser.id)
@@ -123,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!profileRow) {
       // If this is the first user in the system, make them admin. Otherwise default to staff.
-      const { count, error: countError } = await (supabase as any)
+      const { count, error: countError } = await supabase
         .from("app_users")
         .select("id", { count: "exact", head: true });
 
@@ -151,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const MAX_RETRIES = 3;
 
       while (retries < MAX_RETRIES) {
-        const result = await (supabase as any)
+        const result = await supabase
           .from("app_users")
           .insert({
             auth_user_id: authUser.id,
@@ -253,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Call PostgreSQL RPC function to create user
         try {
-          const { error: rpcError } = await (supabase as any).rpc("admin_create_user", {
+          const { error: rpcError } = await supabase.rpc("admin_create_user", {
             p_full_name: fullName.trim(),
             p_email: email,
             p_role: "staff",
@@ -264,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw new Error(rpcError.message || "Failed to create user");
           }
 
-          const { error: profileError } = await (supabase as any)
+          const { error: profileError } = await supabase
             .from("app_users")
             .update({
               first_name: firstName.trim(),
@@ -285,7 +285,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
       updateProfile: async ({ firstName, middleName, lastName, birthdate }) => {
         if (!user) throw new Error("You must be signed in.");
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("app_users")
           .update({
             first_name: firstName.trim(),
@@ -305,7 +305,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error("The system has a single administrator account. Other accounts must remain staff.");
         }
 
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("app_users")
           .update({ role })
           .eq("id", id);
@@ -321,7 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error("Only admin users can change status.");
         }
 
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("app_users")
           .select("is_active")
           .eq("id", id)
@@ -333,7 +333,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const nextActive = !data[0].is_active;
 
-        const { error: updateError } = await (supabase as any)
+        const { error: updateError } = await supabase
           .from("app_users")
           .update({ is_active: nextActive })
           .eq("id", id);
@@ -350,7 +350,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         try {
-          const { error: rpcError } = await (supabase as any).rpc("admin_delete_user", {
+          const { error: rpcError } = await supabase.rpc("admin_delete_user", {
             p_user_id: id,
           });
 
@@ -373,6 +373,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuthContext(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {

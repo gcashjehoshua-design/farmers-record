@@ -24,6 +24,7 @@ export default function RecordTransaction() {
   const [notes, setNotes] = useState("");
 
   // Auto-fill farmer from query parameter if provided
+  /* eslint-disable react-hooks/set-state-in-effect -- this effect synchronizes asynchronously loaded farmer data with the URL */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const farmerCode = params.get("farmer")?.trim();
@@ -48,6 +49,7 @@ export default function RecordTransaction() {
       console.warn(`[RecordTransaction] ✗ Farmer not found with code: "${farmerCode}"`);
     }
   }, [location.search, farmers]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const term = searchTerm.trim().toLowerCase();
   const filteredFarmers = useMemo(() => {
@@ -372,4 +374,3 @@ export default function RecordTransaction() {
     </div>
   );
 }
-

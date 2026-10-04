@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore Deno resolves remote imports when the Edge Function is deployed.
+// @ts-expect-error Deno resolves remote imports when the Edge Function is deployed.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.1";
 
 // Kept inline so this function can also be deployed directly through the

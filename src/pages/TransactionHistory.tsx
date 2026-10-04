@@ -138,25 +138,25 @@ export default function TransactionHistory() {
     // Build applied filters list
     const appliedFiltersList = [];
     const selectedBarangays = Object.entries(printFilters.barangays)
-      .filter(([_, selected]) => selected)
+      .filter(([, selected]) => selected)
       .map(([barangay]) => barangay);
     if (selectedBarangays.length > 0 && selectedBarangays.length < allBarangays.length) 
       appliedFiltersList.push(`Barangay: ${selectedBarangays.join(", ")}`);
 
     const selectedAgencies = Object.entries(printFilters.agencies)
-      .filter(([_, selected]) => selected)
+      .filter(([, selected]) => selected)
       .map(([agency]) => agency);
     if (selectedAgencies.length > 0 && selectedAgencies.length < allAgencies.length) 
       appliedFiltersList.push(`Agency: ${selectedAgencies.join(", ")}`);
 
     const selectedTypes = Object.entries(printFilters.transactionTypes)
-      .filter(([_, selected]) => selected)
+      .filter(([, selected]) => selected)
       .map(([type]) => type);
     if (selectedTypes.length > 0 && selectedTypes.length < transactionTypes.length) 
       appliedFiltersList.push(`Transaction Type: ${selectedTypes.join(", ")}`);
 
     const selectedStatuses = Object.entries(printFilters.statuses)
-      .filter(([_, selected]) => selected)
+      .filter(([, selected]) => selected)
       .map(([status]) => status === "done" ? "Done" : "Ongoing");
     if (selectedStatuses.length > 0 && selectedStatuses.length < 2)
       appliedFiltersList.push(`Status: ${selectedStatuses.join(", ")}`);

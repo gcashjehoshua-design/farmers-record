@@ -55,7 +55,7 @@ export default function FarmersList() {
     try {
       await deleteFarmer.mutateAsync(farmerToDeactivate.rsbsaCode);
       success(`${display} is now inactive.`);
-    } catch (e) {
+    } catch {
       showError("Failed to make farmer inactive.");
     } finally {
       setShowConfirmModal(false);
@@ -165,7 +165,7 @@ export default function FarmersList() {
       await exportFarmersToPdf(dataToPrint, printFilters);
       success("PDF report generated successfully.");
       setShowPrintModal(false);
-    } catch (e) {
+    } catch {
       showError("Failed to generate PDF report.");
     } finally {
       setIsPrinting(false);

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Upload, CheckCircle, FileUp, ArrowLeft } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
-import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase";
 import { buildOfficialFullName, formatCommoditySummary } from "@/lib/farmerDisplay";
 import { PASSI_BARANGAYS } from "@/constants/barangays";
@@ -131,21 +130,34 @@ function mergeCommodityRow(
   }
 }
 
-/** Parse .xlsx / .xls from ArrayBuffer (browser-safe; avoids deprecated readAsBinaryString) */
-function parseExcelToFarmers(buffer: ArrayBuffer): FarmerImportData[] {
-  const workbook = XLSX.read(new Uint8Array(buffer), {
-    type: "array",
-    cellDates: true,
-    dense: false,
-  });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
-  const worksheet = workbook.Sheets[sheetName];
-  if (!worksheet) return [];
+/** Parse an .xlsx workbook. ExcelJS is loaded only when this page needs it. */
+async function parseExcelToFarmers(buffer: ArrayBuffer): Promise<FarmerImportData[]> {
+  const { Workbook } = await import("exceljs");
+  const workbook = new Workbook();
+  await workbook.xlsx.load(buffer);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet || worksheet.rowCount < 2) return [];
 
-  const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
-    defval: "",
-    raw: false,
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell({ includeEmpty: true }, (cell, columnNumber) => {
+    headers[columnNumber] = cell.text.trim();
+  });
+
+  const jsonData: Record<string, unknown>[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const record: Record<string, unknown> = {};
+    let hasValue = false;
+
+    headers.forEach((header, columnNumber) => {
+      if (!header) return;
+      const cell = row.getCell(columnNumber);
+      const value = cell.value instanceof Date ? cell.value : cell.text;
+      record[header] = value ?? "";
+      if (cell.value !== null && cell.text.trim() !== "") hasValue = true;
+    });
+
+    if (hasValue) jsonData.push(record);
   });
 
   const farmersByRsbsa = new Map<string, FarmerImportData>();
@@ -231,14 +243,14 @@ export default function ImportFarmers() {
     setFileSelected(file);
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const buf = event.target?.result;
         if (!(buf instanceof ArrayBuffer)) {
           showError("Could not read file. Please try again.");
           return;
         }
-        const farmers = parseExcelToFarmers(buf);
+        const farmers = await parseExcelToFarmers(buf);
         setTotalFarmers(farmers.length);
         setPreviewData(farmers.slice(0, 10));
         if (farmers.length === 0) {
@@ -279,7 +291,7 @@ export default function ImportFarmers() {
             showError("Could not read file for import.");
             return;
           }
-          const farmers = parseExcelToFarmers(buf);
+          const farmers = await parseExcelToFarmers(buf);
           if (farmers.length === 0) {
             showError("No farmers to import.");
             return;
@@ -358,7 +370,7 @@ export default function ImportFarmers() {
 
             const { error: farmerError } = await supabase
               .from("farmers")
-              .upsert(farmersData as any);
+              .upsert(farmersData);
 
             if (farmerError) {
               console.error("Error inserting farmers batch:", farmerError);
@@ -395,7 +407,7 @@ export default function ImportFarmers() {
             });
 
             if (commoditiesData.length > 0) {
-              const { error: commodityError } = await supabase.from("farmer_commodities").insert(commoditiesData as any);
+              const { error: commodityError } = await supabase.from("farmer_commodities").insert(commoditiesData);
 
               if (commodityError) {
                 console.error("Error inserting commodities:", commodityError);
@@ -481,7 +493,7 @@ export default function ImportFarmers() {
               <label className="inline-block">
                 <input
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx"
                   onChange={handleFileSelect}
                   className="hidden"
                 />

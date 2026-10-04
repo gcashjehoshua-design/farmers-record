@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error Deno resolves remote imports when the Edge Function is deployed.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 const corsHeaders = {
