@@ -46,16 +46,6 @@ function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isDashboard = location.pathname === "/" || location.pathname === "";
 
-  let directPath = "/";
-  if (location.pathname.startsWith("/farmers") && !location.pathname.includes("/farmers/")) directPath = "/";
-  else if (location.pathname.startsWith("/farmers/")) directPath = "/farmers";
-  else if (
-    location.pathname.startsWith("/record-transaction") ||
-    location.pathname.startsWith("/transaction-history") ||
-    location.pathname.startsWith("/projects")
-  ) directPath = "/";
-  else if (location.pathname.startsWith("/add-farmer")) directPath = "/farmers";
-
   const isFarmerProfilePage = location.pathname.match(/^\/farmers\/[^/]+(\/edit)?$/);
 
   return (
@@ -69,7 +59,7 @@ function AppLayout() {
         <div className="container mx-auto px-4 py-6">
           {isDashboard && <LogoHeader />}
           {!isDashboard && !isFarmerProfilePage && (
-            <BackButton label="Back to Dashboard" directPath={directPath} fallbackPath="/" />
+            <BackButton label="Back to Dashboard" directPath="/" fallbackPath="/" />
           )}
         </div>
         <main className="container mx-auto px-4 pb-8 flex-grow">
